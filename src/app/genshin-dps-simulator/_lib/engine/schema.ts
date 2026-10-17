@@ -145,6 +145,8 @@ export const opSchema = z.union([
           element: z.union([elementSchema, z.literal('attacker')]),
           // Element units it applies to the enemy (1 when missing).
           gauge: z.number().min(0).optional(),
+          // Its elemental application ICD tag (see the talents' rows).
+          icd: z.string().optional(),
           // Dealt by the member whose hit fired the trigger (a `party:` or
           // `active:` one), with that member's stats: Nicole's Arcane
           // Projections. Alone, the character itself deals it.

@@ -2,8 +2,9 @@ import { createEventLog, SimEvent, sortEvents } from './eventLog';
 import { createKitAdapter, KitAction, KitAdapter } from './kitAdapter';
 import { createEventQueue } from './queue';
 import { createRuntime, KitRuntime, PartyLink } from './runtime';
+import { BonusStat } from './schema';
 import { collectRunResult } from './simulateKit';
-import { getLoadedCharacter } from '../characterData';
+import { getLoadedCharacter, LoadedCharacter } from '../characterData';
 import { createDamageContext } from '../damageEngine';
 import { EffectData } from '../effects';
 import { FRAMES_PER_SECOND } from '../frames';
@@ -36,19 +37,32 @@ import {
 // gcsim: a swap needs 1 s since the last one.
 export const SWAP_COOLDOWN_FRAMES = 60;
 
-// Elemental resonance (2 members of an element), by effect id. Fervent
-// Flames: +25% ATK for everyone. High Voltage: an Electro particle on an
-// Electro-related reaction (Overloaded here), once every 5 s.
-export const RESONANCES = {
+// Elemental resonance (2 members of an element), by effect id, with the
+// bonus it gives everyone (`whileAura`: only on an enemy with that aura).
+// Fervent Flames: +25% ATK. Shattering Ice: +15% CRIT Rate on a
+// Cryo-affected enemy. High Voltage gives no bonus: an Electro particle on
+// an Electro-related reaction (Overloaded here), once every 5 s.
+type Resonance = {
+  label: string;
+  element: string;
+  bonus?: { stat: BonusStat; value: number; whileAura?: string };
+};
+export const RESONANCES: Record<string, Resonance> = {
   'resonance/fervent-flames': {
     label: 'Fervent Flames (2 Pyro)',
     element: 'Pyro',
+    bonus: { stat: 'atkPercent', value: 25 },
+  },
+  'resonance/shattering-ice': {
+    label: 'Shattering Ice (2 Cryo)',
+    element: 'Cryo',
+    bonus: { stat: 'critRate', value: 15, whileAura: 'Cryo' },
   },
   'resonance/high-voltage': {
     label: 'High Voltage (2 Electro)',
     element: 'Electro',
   },
-} as const;
+};
 const HIGH_VOLTAGE_COOLDOWN_FRAMES = 5 * 60;
 
 const SEPARATOR = ':';
@@ -71,15 +85,22 @@ const FIELD_ACTIONS = new Set(['dodge', 'wait']);
 export const isFieldAction = (actionId: string): boolean =>
   FIELD_ACTIONS.has(splitTeamActionId(actionId).actionId);
 
-export type TeamMember = { characterId: string; values: ParsedValues };
+export type TeamMember = {
+  characterId: string;
+  values: ParsedValues;
+  // Its file already loaded (one not registered yet, as loadCharacterFile
+  // gives); else the registered character with that id.
+  loaded?: LoadedCharacter;
+};
 
 // Every member's palette, with ids (and the ids its sequences name)
 // prefixed by the member.
 export const getTeamRotationActions = (
-  characterIds: string[]
+  characterIds: string[],
+  loadedOf: (characterId: string) => LoadedCharacter = getLoadedCharacter
 ): RotationAction[] =>
   characterIds.flatMap((characterId) => {
-    const { rotation } = getLoadedCharacter(characterId);
+    const { rotation } = loadedOf(characterId);
     if (!rotation) {
       return [];
     }
@@ -162,13 +183,23 @@ type TeamOptions = {
 };
 
 // Element auras (gcsim's gauge theory, simplified): a hit of U units on a
-// bare enemy leaves 0.8 × U, decaying to nothing over (2.5 × U + 7) s; a
-// hit of the other element triggers Overloaded and takes U units off it.
-// The same element refreshes the aura if it leaves more.
-const AURA_ELEMENTS = new Set(['Pyro', 'Electro']);
-const OVERLOADED_PAIR: Record<string, string> = {
-  Pyro: 'Electro',
-  Electro: 'Pyro',
+// bare enemy leaves 0.8 × U, decaying to nothing over (2.5 × U + 7) s. A
+// hit of an element that reacts with the aura triggers that reaction and
+// takes `uses` × U units off it; the same element refreshes the aura if it
+// leaves more. One aura at a time; an element that does not react with it
+// here (no table entry) leaves it as it is.
+const AURA_ELEMENTS = new Set(['Pyro', 'Electro', 'Cryo']);
+// The hit's element → the aura's → the reaction, and how much aura it uses.
+const REACTION_TABLE: Record<
+  string,
+  Record<string, { reaction: string; uses: number }>
+> = {
+  Pyro: {
+    Electro: { reaction: 'Overloaded', uses: 1 },
+    Cryo: { reaction: 'Melt', uses: 2 },
+  },
+  Electro: { Pyro: { reaction: 'Overloaded', uses: 1 } },
+  Cryo: { Pyro: { reaction: 'Melt', uses: 0.5 } },
 };
 type Aura = { element: string; gauge: number; frame: number; decay: number };
 
@@ -192,6 +223,9 @@ export const simulateTeam = (
   if (new Set(ids).size !== ids.length) {
     throw new Error('A character can only be once in a team');
   }
+  const loadedOf = (characterId: string): LoadedCharacter =>
+    team.find((entry) => entry.characterId === characterId)?.loaded ??
+    getLoadedCharacter(characterId);
   const durationFrames =
     Math.max(1, readNumber(team[0].values, 'duration')) * FRAMES_PER_SECOND;
   const queue = createEventQueue();
@@ -212,20 +246,31 @@ export const simulateTeam = (
   const members: MemberState[] = [];
   const elementCount = (element: string) =>
     team.filter(
-      ({ characterId }) =>
-        getLoadedCharacter(characterId).character.element === element
+      ({ characterId }) => loadedOf(characterId).character.element === element
     ).length;
-  const resonanceEffects: EffectData[] =
-    elementCount('Pyro') >= 2
+  // The party's resonances with a bonus, and the aura each one needs.
+  const resonances = Object.entries(RESONANCES).flatMap(([id, resonance]) =>
+    resonance.bonus && elementCount(resonance.element) >= 2
       ? [
           {
-            id: 'resonance/fervent-flames',
-            label: RESONANCES['resonance/fervent-flames'].label,
-            stat: 'atkPercent',
-            value: 25,
+            effect: {
+              id,
+              label: resonance.label,
+              stat: resonance.bonus.stat,
+              value: resonance.bonus.value,
+            } as EffectData,
+            whileAura: resonance.bonus.whileAura,
           },
         ]
-      : [];
+      : []
+  );
+  const resonanceEffectsAt = (frame: number): EffectData[] =>
+    resonances
+      .filter(
+        ({ whileAura }) =>
+          !whileAura || (aura?.element === whileAura && gaugeAt(frame) > 0)
+      )
+      .map(({ effect }) => effect);
   const highVoltage = elementCount('Electro') >= 2;
   let highVoltageReadyAt = 0;
 
@@ -270,10 +315,16 @@ export const simulateTeam = (
         },
       });
     const current = gaugeAt(frame);
-    if (aura && current > 0 && OVERLOADED_PAIR[element] === aura.element) {
-      aura = { ...aura, gauge: Math.max(0, current - units), frame };
-      logAura('Overloaded');
-      return 'Overloaded';
+    const reacts =
+      aura && current > 0 ? REACTION_TABLE[element]?.[aura.element] : undefined;
+    if (aura && reacts) {
+      aura = {
+        ...aura,
+        gauge: Math.max(0, current - reacts.uses * units),
+        frame,
+      };
+      logAura(reacts.reaction);
+      return reacts.reaction;
     }
     const applied = 0.8 * units;
     if (aura && current > 0 && aura.element === element) {
@@ -281,6 +332,11 @@ export const simulateTeam = (
         aura = { ...aura, gauge: applied, frame };
         logAura(null);
       }
+      return null;
+    }
+    // Another element that does not react with it (not modeled): the
+    // aura stays.
+    if (aura && current > 0) {
       return null;
     }
     aura = {
@@ -301,7 +357,7 @@ export const simulateTeam = (
     receiveEffects: (frame, forConversion = false) => {
       const receiverActive = activeAt(frame) === index;
       return [
-        ...resonanceEffects,
+        ...resonanceEffectsAt(frame),
         ...members.flatMap((other, otherIndex) =>
           otherIndex === index
             ? []
@@ -347,7 +403,7 @@ export const simulateTeam = (
   });
 
   team.forEach(({ characterId, values }, index) => {
-    const loaded = getLoadedCharacter(characterId);
+    const loaded = loadedOf(characterId);
     const context = createDamageContext(values, critMode, countUntilFrame);
     const runtime = createRuntime({
       character: loaded.character,
@@ -410,7 +466,7 @@ export const simulateTeam = (
     from: number
   ): number | null => {
     const { runtime } = members[member];
-    const loaded = getLoadedCharacter(ids[member]);
+    const loaded = loadedOf(ids[member]);
     if (!loaded.actions[actionId]) {
       return from;
     }
@@ -586,7 +642,7 @@ export const simulateTeam = (
 
   const rotationTrace = playRotation(adapter, {
     rotation,
-    actions: getTeamRotationActions(ids),
+    actions: getTeamRotationActions(ids, loadedOf),
     durationFrames,
   });
   queue.runUntil(Number.POSITIVE_INFINITY, durationFrames);
@@ -596,7 +652,7 @@ export const simulateTeam = (
     name: member.name,
     context: member.context,
     ...collectRunResult(
-      getLoadedCharacter(member.characterId),
+      loadedOf(member.characterId),
       member.runtime,
       durationFrames
     ),

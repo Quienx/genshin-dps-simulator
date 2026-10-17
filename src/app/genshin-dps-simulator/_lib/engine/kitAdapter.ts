@@ -639,7 +639,8 @@ export const createKitAdapter = ({
       row: string,
       element: DamageElement,
       group?: string,
-      gauge?: number
+      gauge?: number,
+      icd?: string
     ) =>
       schedule(frame, (hitFrame) =>
         runtime.performHit({
@@ -651,6 +652,7 @@ export const createKitAdapter = ({
           group,
           row,
           gauge,
+          icd,
           entry,
         })
       );
@@ -689,7 +691,8 @@ export const createKitAdapter = ({
           hit.row,
           (hit.element ?? 'Physical') as DamageElement,
           comboId === 'normal' ? undefined : group,
-          hit.gauge
+          hit.gauge,
+          hit.icd
         )
       );
     }
@@ -711,7 +714,8 @@ export const createKitAdapter = ({
           hit.row,
           (hit.element ?? 'Physical') as DamageElement,
           undefined,
-          hit.gauge
+          hit.gauge,
+          hit.icd
         )
       );
     }
@@ -735,7 +739,8 @@ export const createKitAdapter = ({
               ? 'Physical'
               : character.element)) as DamageElement,
           cast.group,
-          hit.gauge
+          hit.gauge,
+          hit.icd
         )
       );
     }

@@ -56,6 +56,10 @@ export const getReactionMultiplier = (
 
 export const TRANSFORMATIVE_REACTIONS = Object.keys(REACTIONS.transformative);
 
+// Melt and Vaporize: they multiply the hit that triggers them.
+export const isAmplifyingReaction = (reaction: string): boolean =>
+  reaction in REACTIONS.amplifying;
+
 // A transformative reaction (Overloaded) deals its own damage: level base ×
 // reaction multiplier × (1 + EM bonus + reaction DMG bonus), before RES. It
 // ignores DEF, CRIT and DMG Bonus; `extraEm` comes from the hit's bonuses.

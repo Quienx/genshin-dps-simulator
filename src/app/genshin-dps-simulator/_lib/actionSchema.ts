@@ -69,6 +69,10 @@ export const rowTimingSchema = z.object({
   // Element units each hit applies to the enemy (gcsim's durability / 25):
   // 1 by default, 2 for a strong hit, 0 for one that applies none.
   gauge: z.number().min(0).optional(),
+  // Elemental application ICD tag (gcsim's): hits of the same character
+  // sharing a tag apply their element on the 1st, 4th, 7th… hit, or the
+  // first one 2.5 s after the count restarted. None: every hit applies.
+  icd: z.string().optional(),
 });
 
 export const cooldownSchema = z.object({
@@ -115,6 +119,7 @@ export const talentActionSchema = z.object({
         category: z.string().optional(),
         element: z.string().optional(),
         gauge: z.number().min(0).optional(),
+        icd: z.string().optional(),
       })
     )
     .optional(),
@@ -200,6 +205,8 @@ export type ActionHitData = {
   category?: string;
   // Element units it applies (1 when missing).
   gauge?: number;
+  // Its elemental application ICD tag (none: it always applies).
+  icd?: string;
 };
 
 type ComboStepData = {
@@ -304,6 +311,7 @@ const toHits = (talentId: string, row: TimedRow): ActionHitData[] =>
     element: row.timing.element,
     category: row.timing.category,
     gauge: row.timing.gauge,
+    icd: row.timing.icd,
   }));
 
 // The actions every talent defines, keyed by the rotation block id

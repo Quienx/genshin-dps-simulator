@@ -32,7 +32,7 @@ import {
 } from '../effects';
 import formatNumber from '../formatNumber';
 import { FRAMES_PER_SECOND } from '../frames';
-import { getTransformativeReaction } from '../reactions';
+import { getTransformativeReaction, isAmplifyingReaction } from '../reactions';
 import { readFlag, readNumber } from '../readValue';
 import { RotationTraceEntry } from '../rotation/types';
 import { buildStatSheet } from '../stats';
@@ -55,6 +55,9 @@ const OFF_FIELD_PARTICLES = 0.6;
 
 // How long a dropped particle takes to be caught (gcsim's default).
 const ENEMY_PARTICLE_DELAY_FRAMES = 100;
+// The standard elemental application ICD: every 3rd hit, or after 2.5 s.
+const ICD_HITS = 3;
+const ICD_RESET_FRAMES = 150;
 
 type StatusInstance = {
   uid: number;
@@ -164,6 +167,8 @@ export type HitRequest = {
   row?: string;
   // Element units the hit applies to the enemy (1 when missing).
   gauge?: number;
+  // Its elemental application ICD tag (none: it always applies).
+  icd?: string;
   // Trace entry of the action the hit belongs to, for notes.
   entry: RotationTraceEntry | null;
 };
@@ -200,7 +205,8 @@ export type PartyLink = {
   // `party:` use triggers react to it.
   broadcastUse: (keys: string[], frame: number) => void;
   // An Elemental hit landing on the enemy's aura (teams with auras): the
-  // transformative reaction it triggers ("Overloaded"), if any.
+  // reaction it triggers, if any: amplifying ("Melt", on the hit itself)
+  // or transformative ("Overloaded", a hit of its own).
   applyElement?: (
     element: string,
     units: number,
@@ -1228,6 +1234,7 @@ export const createRuntime = ({
           sourceId: scope.sourceId,
           blockUid: entry?.blockUid,
           gauge: hit.gauge,
+          icd: hit.icd,
           entry: null,
         };
         if (attacker && party) {
@@ -1591,6 +1598,16 @@ export const createRuntime = ({
       ...summed.activeEffectIds,
     ];
 
+    // On the enemy's aura: the reaction this hit triggers. An amplifying
+    // one (Melt) multiplies this hit; a transformative one (Overloaded) is
+    // dealt after it, by this character.
+    const auraReaction =
+      element === 'Physical' || !appliesElement(hit.icd, hit.frame)
+        ? null
+        : party?.applyElement?.(element, hit.gauge ?? 1, hit.frame) ?? null;
+    const amplified =
+      auraReaction && isAmplifyingReaction(auraReaction) ? auraReaction : null;
+
     addHit(context, {
       time: toSeconds(hit.frame),
       category: hit.category,
@@ -1605,14 +1622,16 @@ export const createRuntime = ({
       defReduction: summed.defReduction,
       defIgnore: summed.defIgnore,
       resShred: summed.resShred,
-      reaction: reaction?.reaction,
+      reaction: amplified ?? reaction?.reaction,
       actionId: hit.actionId,
       sourceId: hit.sourceId,
       blockUid: hit.blockUid ?? (hit.entry?.blockUid || undefined),
       effectIds,
       notes: [
         element,
-        ...(reaction?.reaction ? [reaction.reaction] : []),
+        ...(amplified ?? reaction?.reaction
+          ? [amplified ?? reaction?.reaction]
+          : []),
         ...noteResources.map(
           (block) => `${block.label}: ${getResource(block.id).toFixed(1)}%`
         ),
@@ -1627,12 +1646,7 @@ export const createRuntime = ({
       causeOf(hit.entry) ?? currentCause
     );
 
-    // On the enemy's aura: the reaction, dealt by this character.
-    const auraReaction =
-      element === 'Physical'
-        ? null
-        : party?.applyElement?.(element, hit.gauge ?? 1, hit.frame) ?? null;
-    if (auraReaction) {
+    if (auraReaction && !amplified) {
       performReaction(
         auraReaction,
         hit.frame,
@@ -1669,6 +1683,9 @@ export const createRuntime = ({
       `category:${hit.category}`,
       `element:${element}`,
       ...(element === 'Physical' ? [] : ['elemental']),
+      // A hit the aura amplified (Melt): `reaction:Melt` (and, for the
+      // party, `party:reaction:Melt`).
+      ...(amplified ? [`reaction:${amplified}`] : []),
       '*',
     ].filter(
       (key, index, keys): key is string =>
@@ -1693,6 +1710,23 @@ export const createRuntime = ({
       );
     }
     shareHit(hitKeys, hit.frame);
+  };
+
+  // gcsim's standard elemental application ICD, per tag: a hit applies on
+  // the 1st, 4th, 7th… hit of the tag, or on the first one 2.5 s after the
+  // count restarted (which restarts it). Untagged hits always apply.
+  const icdCounters = new Map<string, { start: number; hits: number }>();
+  const appliesElement = (tag: string | undefined, frame: number) => {
+    if (!tag) {
+      return true;
+    }
+    const counter = icdCounters.get(tag);
+    if (!counter || frame - counter.start >= ICD_RESET_FRAMES) {
+      icdCounters.set(tag, { start: frame, hits: 1 });
+      return true;
+    }
+    counter.hits += 1;
+    return (counter.hits - 1) % ICD_HITS === 0;
   };
 
   // `party:` triggers react to any member's hit, `active:` ones to the
