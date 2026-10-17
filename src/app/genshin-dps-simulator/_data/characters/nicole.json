@@ -323,25 +323,8 @@
           "gte": 1
         }
       },
-      "extra": true
-    },
-    {
-      "id": "grace-party",
-      "type": "bonus",
-      "source": "talent",
-      "label": "Grace of Kenosis (ATK × ratio, capped) (party)",
-      "icon": "Skill_S_Nicole_01",
-      "stat": "flatAtk",
-      "valueRow": "elementalSkill/buff-ratio",
-      "ofStat": "atk",
-      "capRow": "elementalSkill/buff-max",
-      "while": {
-        "graceOfKenosis": {
-          "gte": 1
-        }
-      },
       "extra": true,
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "a4-self",
@@ -402,22 +385,8 @@
         "graceOfKenosis": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "c2-atk-party",
-      "type": "bonus",
-      "source": "constellation",
-      "label": "C2: Grace of Kenosis +300 ATK (party)",
-      "ifFlag": "c2",
-      "stat": "flatAtk",
-      "value": 300,
-      "while": {
-        "graceOfKenosis": {
-          "gte": 1
-        }
       },
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "burst-use",
@@ -680,7 +649,7 @@
   "details": [
     {
       "label": "Grace of Kenosis ATK (party)",
-      "value": "+{buffValue:grace-party|number} ATK"
+      "value": "+{buffValue:grace|number} ATK"
     },
     {
       "label": "Guidance of Theosis (party, after 3 s on field)",

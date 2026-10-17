@@ -28,22 +28,38 @@ const toStringRecord = (
     Object.entries(numbers).map(([name, value]) => [name, String(value)])
   );
 
+// A character file's defaults as form values (one not registered too: a
+// draft checked by scripts/scaffold/check.ts).
+export const buildDefaultValuesFor = (character: {
+  id: string;
+  defaults: {
+    numbers: Record<string, number>;
+    flags: Record<string, boolean>;
+  };
+}): SimulationValues => ({
+  character: character.id as CharacterId,
+  numbers: {
+    ...toStringRecord({
+      ...COMMON_NUMBER_DEFAULTS,
+      ...character.defaults.numbers,
+      ...ENEMY_DUMMY_DEFAULTS,
+    }),
+  },
+  flags: { ...character.defaults.flags },
+  rotation: null,
+});
+
 export const buildDefaultValues = (
   characterId: CharacterId
 ): SimulationValues => {
   const character = CHARACTERS[characterId];
-  return {
-    character: characterId,
-    numbers: {
-      ...toStringRecord({
-        ...COMMON_NUMBER_DEFAULTS,
-        ...character.numberDefaults,
-        ...ENEMY_DUMMY_DEFAULTS,
-      }),
+  return buildDefaultValuesFor({
+    id: characterId,
+    defaults: {
+      numbers: character.numberDefaults,
+      flags: character.flagDefaults,
     },
-    flags: { ...character.flagDefaults },
-    rotation: null,
-  };
+  });
 };
 
 const pickEnemyDummyValues = (

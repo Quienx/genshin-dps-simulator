@@ -88,25 +88,8 @@
         "lightsGuidance": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "celestial-gift-party",
-      "type": "bonus",
-      "source": "artifact",
-      "label": "Celestial Gift 4-piece: Light's Guidance (+20% Pyro DMG) (party)",
-      "ifFlag": "celestial4",
-      "stat": "dmgBonus",
-      "value": 20,
-      "match": {
-        "elements": ["Pyro"]
       },
-      "while": {
-        "lightsGuidance": {
-          "gte": 1
-        }
-      },
-      "teamBuff": true
+      "teamBuff": "everyone"
     }
   ]
 }

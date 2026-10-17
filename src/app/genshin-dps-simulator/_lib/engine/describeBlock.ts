@@ -179,7 +179,11 @@ export const describeEffect = (
     value,
     describeMatch(block),
     describeWhile(block, context),
-    block.teamBuff ? 'for the party (not her own hits)' : null,
+    block.teamBuff === 'everyone'
+      ? 'for her and the party'
+      : block.teamBuff
+      ? 'for the party (not her own hits)'
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');

@@ -545,26 +545,8 @@
         "chevreuseShred": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "a1-shred-party",
-      "type": "bonus",
-      "source": "passive",
-      "label": "Coordinated Tactics (-40% Pyro / Electro RES) (party)",
-      "icon": "UI_Talent_S_Chevreuse_05",
-      "ifFlag": "pyroElectroParty",
-      "stat": "resShred",
-      "value": 40,
-      "match": {
-        "elements": ["Pyro", "Electro"]
       },
-      "while": {
-        "chevreuseShred": {
-          "gte": 1
-        }
-      },
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "ball-fired",
@@ -620,24 +602,8 @@
         "verticalForce": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "a4-atk-party",
-      "type": "bonus",
-      "source": "passive",
-      "label": "Vertical Force Coordination (1% ATK per 1,000 Max HP, max 40%) (party)",
-      "icon": "UI_Talent_S_Chevreuse_06",
-      "stat": "atkPercent",
-      "value": 0.1,
-      "ofStat": "hp",
-      "cap": 40,
-      "while": {
-        "verticalForce": {
-          "gte": 1
-        }
       },
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "skill-particles",
@@ -1183,7 +1149,7 @@
     },
     {
       "label": "A4 ATK for Pyro / Electro members",
-      "value": "+{buffValue:a4-atk-party|fixed1}% ATK, up {uptime:verticalForce|percent}"
+      "value": "+{buffValue:a4-atk|fixed1}% ATK, up {uptime:verticalForce|percent}"
     },
     {
       "label": "A1 -40% Pyro / Electro RES up",

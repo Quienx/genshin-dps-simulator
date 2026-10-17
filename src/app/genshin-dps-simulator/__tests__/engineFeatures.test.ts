@@ -1947,3 +1947,61 @@ describe('party element count', () => {
     expect(bonusWith(['nicole', 'varesa'])).toBeLessThan(100000);
   });
 });
+
+describe('a bonus for everyone (teamBuff "everyone")', () => {
+  // Arlecchino's copy: +100% DMG for her and the party, one block.
+  const giver = loadCharacterFile(
+    editCharacter('arlecchino', (file) => {
+      file.id = 'everyonedummy';
+      (file.blocks as unknown[]).push({
+        id: 'for-everyone',
+        type: 'bonus',
+        source: 'talent',
+        label: 'For everyone: +100% DMG',
+        stat: 'dmgBonus',
+        value: 100,
+        teamBuff: 'everyone',
+      });
+    })
+  );
+  const team = simulateTeam(
+    [
+      {
+        characterId: 'everyonedummy',
+        values: parseValues(buildDefaultValues('arlecchino')),
+        loaded: giver,
+      },
+      {
+        characterId: 'nicole',
+        values: parseValues(buildDefaultValues('nicole')),
+      },
+    ],
+    {
+      loop: false,
+      blocks: [block('e', 'everyonedummy:skill'), block('n', 'nicole:skill')],
+    },
+    {}
+  );
+  const firstHit = (id: string) =>
+    team.members.find((member) => member.characterId === id)!.context.hitLog[0];
+
+  it('applies to her own hits', () => {
+    expect(firstHit('everyonedummy').effectIds).toContain('for-everyone');
+  });
+
+  it("applies to the party's hits", () => {
+    expect(firstHit('nicole').effectIds).toContain(
+      'everyonedummy/for-everyone'
+    );
+  });
+});
+
+describe('default values of a file not registered', () => {
+  it('are those of the registered character for its own file', async () => {
+    const { buildDefaultValuesFor } = await import('../_lib/simulationValues');
+    const { getLoadedCharacter } = await import('../_lib/characterData');
+    expect(
+      buildDefaultValuesFor(getLoadedCharacter('escoffier').character)
+    ).toEqual(buildDefaultValues('escoffier'));
+  });
+});

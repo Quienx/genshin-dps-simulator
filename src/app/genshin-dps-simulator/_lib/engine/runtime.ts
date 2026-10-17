@@ -417,7 +417,11 @@ export const createRuntime = ({
         : {}),
     }));
   // Team buffs are for the rest of the party: only the details read them.
-  const bonuses = allBonuses.filter((block) => !block.teamBuff);
+  // Its own hits get every bonus but those only for the party; an
+  // "everyone" one is both.
+  const bonuses = allBonuses.filter(
+    (block) => !block.teamBuff || block.teamBuff === 'everyone'
+  );
   const teamBuffs = new Map(
     allBonuses
       .filter((block) => block.teamBuff && isStatBonus(block))

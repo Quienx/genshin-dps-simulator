@@ -550,28 +550,8 @@
         "a4Shred": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "a4-shred-party",
-      "icon": "UI_Talent_S_Escoffier_06",
-      "type": "bonus",
-      "source": "passive",
-      "label": "Inspiration-Immersed Seasoning (Cryo / Hydro RES down) (party)",
-      "stat": "resShred",
-      "value": [5, 10, 15, 55],
-      "scaleBy": {
-        "partyElements": ["Hydro", "Cryo"]
       },
-      "match": {
-        "elements": ["Cryo", "Hydro"]
-      },
-      "while": {
-        "a4Shred": {
-          "gte": 1
-        }
-      },
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "c1Buff",
@@ -636,26 +616,8 @@
         "c1Buff": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "c1-crit-party",
-      "icon": "UI_Talent_S_Escoffier_01",
-      "type": "bonus",
-      "source": "constellation",
-      "label": "C1: +60% Cryo CRIT DMG (party)",
-      "ifFlag": "c1",
-      "stat": "critDamage",
-      "value": 60,
-      "match": {
-        "elements": ["Cryo"]
       },
-      "while": {
-        "c1Buff": {
-          "gte": 1
-        }
-      },
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "c2Window",
@@ -1112,7 +1074,7 @@
     },
     {
       "label": "A4 Cryo / Hydro RES down",
-      "value": "-{buffValue:a4-shred-party|fixed1}%, up {uptime:a4Shred|percent}"
+      "value": "-{buffValue:a4-shred|fixed1}%, up {uptime:a4Shred|percent}"
     },
     {
       "label": "Particles",

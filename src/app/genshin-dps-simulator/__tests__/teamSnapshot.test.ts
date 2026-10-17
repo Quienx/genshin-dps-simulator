@@ -198,7 +198,7 @@ describe('bonus timers with refreshes', () => {
       (entry) => entry.action === toTeamActionId('varesa', 'plunge')
     );
     const grace = getActionBonuses(team, plunge?.blockUid ?? '').find(
-      (bonus) => bonus.id === 'nicole/grace-party'
+      (bonus) => bonus.id === 'nicole/grace'
     );
     // 20 s from the E (applied 8 frames in), not up to the refreshed one's end.
     expect(grace?.remaining).toBeCloseTo(eStart + 8 / 60 + 20 - grace!.time, 1);
@@ -218,8 +218,8 @@ describe('what each bonus raises', () => {
   it('names the stat and what it applies to', () => {
     expect(valueOf('nicole/angelos-party')).toBe('+26% Elemental DMG');
     expect(valueOf('long-night-4pc')).toBe('5 stacks +75% Plunge DMG');
-    expect(valueOf('chevreuse/a1-shred-party')).toBe('-40% Pyro/Electro RES');
-    expect(valueOf('chevreuse/a4-atk-party')).toBe('+40% ATK');
+    expect(valueOf('chevreuse/a1-shred')).toBe('-40% Pyro/Electro RES');
+    expect(valueOf('chevreuse/a4-atk')).toBe('+40% ATK');
     expect(valueOf('rainbow-crash')).toMatch(/^\+[\d,.]+ Plunge DMG \(flat\)$/);
   });
 });

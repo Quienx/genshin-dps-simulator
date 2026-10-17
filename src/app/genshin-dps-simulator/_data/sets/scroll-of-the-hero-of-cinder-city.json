@@ -96,25 +96,8 @@
         "scrollReaction": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "scroll-4pc-party",
-      "type": "bonus",
-      "source": "artifact",
-      "label": "Scroll 4-piece: +12% Pyro / Electro DMG (Overloaded) (party)",
-      "ifFlag": "scroll4",
-      "stat": "dmgBonus",
-      "value": 12,
-      "match": {
-        "elements": ["Pyro", "Electro"]
       },
-      "while": {
-        "scrollReaction": {
-          "gte": 1
-        }
-      },
-      "teamBuff": true
+      "teamBuff": "everyone"
     },
     {
       "id": "scroll-4pc-nightsoul",
@@ -131,25 +114,8 @@
         "scrollNightsoul": {
           "gte": 1
         }
-      }
-    },
-    {
-      "id": "scroll-4pc-nightsoul-party",
-      "type": "bonus",
-      "source": "artifact",
-      "label": "Scroll 4-piece: +28% Pyro / Electro DMG (in Nightsoul's Blessing) (party)",
-      "ifFlag": "scroll4",
-      "stat": "dmgBonus",
-      "value": 28,
-      "match": {
-        "elements": ["Pyro", "Electro"]
       },
-      "while": {
-        "scrollNightsoul": {
-          "gte": 1
-        }
-      },
-      "teamBuff": true
+      "teamBuff": "everyone"
     }
   ]
 }

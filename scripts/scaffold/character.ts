@@ -10,6 +10,8 @@
 import { join } from 'node:path';
 
 import { parseDmTables } from './dmTables';
+import { fetchFrames } from './frames';
+import { FramesReport } from './goFrames';
 import {
   AMBER,
   DRAFTS,
@@ -69,7 +71,52 @@ const catalogRef = (
   return id;
 };
 
+// The timings frames.ts can tell for sure: a Normal Attack step's hits,
+// end and cancels (gcsim's attackHitmarks / attackFrames), the Charged
+// Attack's, and the E's and Q's end, cancels and cooldown. The rest of the
+// report is in `_frames`.
+const cancelsOf = (cancels: Record<string, number | string>) =>
+  Object.fromEntries(
+    Object.entries(cancels).filter(
+      ([key, value]) =>
+        !['walk', 'jump'].includes(key) && typeof value === 'number'
+    )
+  );
+const normalStep = (frames: FramesReport, label: string) => {
+  const step = Number(label.match(/^(\d+)-Hit/)?.[1] ?? 0) - 1;
+  const hitmarks = (frames.arrays.attackHitmarks as number[][] | undefined)?.[
+    step
+  ];
+  const slice = frames.frames[`attackFrames[${step}]`];
+  return step >= 0 && hitmarks && slice
+    ? {
+        action: 'normal',
+        hitmarks,
+        end: slice.end,
+        cancels: cancelsOf(slice.cancels),
+      }
+    : 'TODO';
+};
+const talentTiming = (frames: FramesReport, slice: string, action: string) => {
+  const found = frames.frames[slice];
+  const cooldown = frames.cooldowns.find((entry) => entry.action === action);
+  return {
+    ...(found ? { end: found.end, cancels: cancelsOf(found.cancels) } : {}),
+    ...(cooldown
+      ? {
+          cooldown: {
+            frames: cooldown.frames,
+            ...(cooldown.delay === undefined
+              ? {}
+              : { delayFrames: cooldown.delay }),
+          },
+        }
+      : {}),
+  };
+};
+
 run(async () => {
+  const frames = await fetchFrames(key);
   const dm = await fetchText(
     `${GCSIM}/internal/characters/${key}/zz_${key}.dm.go`
   );
@@ -111,7 +158,19 @@ run(async () => {
                 ),
               },
         ],
-        timing: 'TODO',
+        timing:
+          kind === 'attack' && /^\d+-Hit/.test(table.label)
+            ? normalStep(frames, table.label)
+            : kind === 'attack' &&
+              /^Charged/.test(table.label) &&
+              frames.frames.chargeFrames
+            ? {
+                action: 'charged',
+                hitmarks: [frames.constants.chargeHitmark ?? 'TODO'],
+                end: frames.frames.chargeFrames.end,
+                cancels: cancelsOf(frames.frames.chargeFrames.cancels),
+              }
+            : 'TODO',
       }));
 
   const hints: string[] = [];
@@ -130,6 +189,7 @@ run(async () => {
       ),
       amber: `${AMBER}/avatar/${avatar.id}`,
     },
+    _frames: frames,
     _todo: [
       'timings (hitmarks, end, cancels, gauge, icd) from the .go files',
       'cooldowns, energyCost, actions, forms',
@@ -176,6 +236,15 @@ run(async () => {
         boostedBy: kind === 'attack' ? null : 'TODO (c3 or c5)',
         description: plain(talent?.description),
         rows: rowsOf(kind),
+        ...(kind === 'skill'
+          ? talentTiming(frames, 'skillFrames', 'skill')
+          : {}),
+        ...(kind === 'burst'
+          ? {
+              ...talentTiming(frames, 'burstFrames', 'burst'),
+              energyCost: frames.energy.max ?? 'TODO',
+            }
+          : {}),
       };
     }),
     blocks: 'TODO',

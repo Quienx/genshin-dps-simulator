@@ -377,5 +377,5 @@ type BuildWithBlocks = {
 export const getBuildEffects = (build: BuildWithBlocks): EffectData[] =>
   [...build.blocks, ...build.artifactSet.blocks, ...build.weapon.blocks]
     .filter(isStatBonus)
-    .filter((block) => !block.teamBuff)
+    .filter((block) => !block.teamBuff || block.teamBuff === 'everyone')
     .map(toEffect);

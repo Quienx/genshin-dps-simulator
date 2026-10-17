@@ -368,7 +368,11 @@ export const bonusBlockSchema = z
     // character's own hits; in a team it applies to the other members'
     // ("active": only to the one on the field). The details report it
     // ({buffValue:<id>}).
-    teamBuff: z.union([z.boolean(), z.literal('active')]).optional(),
+    // "everyone": the party's hits and the character's own (one block for
+    // a self + party buff).
+    teamBuff: z
+      .union([z.boolean(), z.literal('active'), z.literal('everyone')])
+      .optional(),
   })
   .refine(
     (block) =>
