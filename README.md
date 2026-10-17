@@ -205,8 +205,8 @@ Planned characters include Mavuika, Flins, Navia, Zhongli and Bennett.
 Use **pnpm** so the Husky hooks work.
 
 ```bash
-git clone git@github.com:Quienx/ts-nextjs-tailwind-starter.git
-cd ts-nextjs-tailwind-starter
+git clone git@github.com:Quienx/genshin-dps-simulator.git
+cd genshin-dps-simulator
 pnpm install
 pnpm dev
 ```
