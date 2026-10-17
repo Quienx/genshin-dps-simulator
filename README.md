@@ -4,8 +4,7 @@ A Genshin Impact damage simulator built on a **generic engine**. Every character
 
 Frames, hitmarks and kit rules are taken from [gcsim](https://github.com/genshinsim/gcsim), so results can be checked against a known reference.
 
-- `/genshin-dps-simulator` — character and team simulator
-- `/genshin-dps-simulator/timeline` — rotation timeline view
+- `/genshin-dps-simulator` — the simulator: a team combat timeline with an editable rotation
 - `/` — an unrelated 3D solar system playground (React Three Fiber)
 
 Current roster: **Arlecchino, Mualani, Varesa, Iansan, Chevreuse, Nicole**.
@@ -15,7 +14,7 @@ Current roster: **Arlecchino, Mualani, Varesa, Iansan, Chevreuse, Nicole**.
 - **Solo and team runs.** Up to 4 members share one clock (event queue) against one enemy, with swaps (gcsim's `swap_delay`), team buffs, shared particles, elemental resonance, and Pyro/Electro auras with Overloaded.
 - **Expected or rolled damage.** Expected values average CRITs. The Simulate button rolls them.
 - **Real builds.** Enter the character screen totals, or the five artifacts, and the engine computes the screen stats from them.
-- **Inspection.** Hit table, hit timeline chart, damage share by category, an activity timeline of statuses and resources, a per-step inspector, and CSV export.
+- **Combat timeline.** Every action, hit, status and resource on one zoomable timeline, with playback, drag-and-drop rotation editing, a combat log, a damage summary, the enemy's state and each member's character sheet.
 - **Validation at load.** Every file is parsed with zod, and every resource or status it names is checked, so a malformed kit fails at import instead of producing `NaN` damage.
 
 ## How it works
@@ -53,7 +52,7 @@ simulateKit.ts (solo) / simulateTeam.ts (team) → results → UI (_components/)
 | `_lib/engine/simulateKit.ts`                      | Solo runs, `simulateLoadedCharacter()`                                 |
 | `_lib/engine/simulateTeam.ts`                     | Team runs, `simulateTeam()`                                            |
 | `_lib/team.ts`                                    | Team presets and screen state                                          |
-| `_components/`                                    | UI (`team/` for team mode)                                             |
+| `_components/timeline/`                           | The timeline UI (`CombatTimelinePage.tsx` is the entry point)          |
 | `__tests__/`                                      | Vitest suite (engine features, invariants, golden cases, teams)        |
 | `CLAUDE.md`                                       | **Full engine and JSON reference**                                     |
 
@@ -212,6 +211,8 @@ pnpm dev
 ```
 
 Then open [http://localhost:3000/genshin-dps-simulator](http://localhost:3000/genshin-dps-simulator).
+
+On Vercel, the site URL (metadata, sitemap) comes from the production domain. Elsewhere, set `SITE_URL` (for example `https://example.com`, no trailing `/`).
 
 | Command           | What it does                              |
 | ----------------- | ----------------------------------------- |
