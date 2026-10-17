@@ -16,6 +16,23 @@ const nextConfig = {
   //   ]
   // },
 
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: [
+          {
+            loader: '@svgr/webpack',
+            options: {
+              dimensions: false,
+              titleProp: true,
+            },
+          },
+        ],
+        as: '*.js',
+      },
+    },
+  },
+
   webpack(config) {
     // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule) =>

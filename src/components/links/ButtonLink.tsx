@@ -8,14 +8,14 @@ import UnstyledLink, {
   UnstyledLinkProps,
 } from '@/components/links/UnstyledLink';
 
-const ButtonLinkVariant = [
+export const ButtonLinkVariant = [
   'primary',
   'outline',
   'ghost',
   'light',
   'dark',
 ] as const;
-const ButtonLinkSize = ['sm', 'base'] as const;
+export const ButtonLinkSize = ['sm', 'base'] as const;
 
 type ButtonLinkProps = {
   isDarkBg?: boolean;

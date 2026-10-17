@@ -5,7 +5,7 @@ import { ImSpinner2 } from 'react-icons/im';
 
 import { cn } from '@/lib/utils';
 
-const IconButtonVariant = [
+export const IconButtonVariant = [
   'primary',
   'outline',
   'ghost',

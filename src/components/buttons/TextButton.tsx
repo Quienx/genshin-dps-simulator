@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-const TextButtonVariant = ['primary', 'basic'] as const;
+export const TextButtonVariant = ['primary', 'basic'] as const;
 
 type TextButtonProps = {
   variant?: (typeof TextButtonVariant)[number];

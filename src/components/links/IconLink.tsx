@@ -8,7 +8,7 @@ import UnstyledLink, {
   UnstyledLinkProps,
 } from '@/components/links/UnstyledLink';
 
-const IconLinkVariant = [
+export const IconLinkVariant = [
   'primary',
   'outline',
   'ghost',
