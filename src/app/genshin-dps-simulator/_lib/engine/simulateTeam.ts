@@ -68,6 +68,9 @@ export const splitTeamActionId = (
 // Steps that never swap: they are done by whoever is on the field.
 const FIELD_ACTIONS = new Set(['dodge', 'wait']);
 
+export const isFieldAction = (actionId: string): boolean =>
+  FIELD_ACTIONS.has(splitTeamActionId(actionId).actionId);
+
 export type TeamMember = { characterId: string; values: ParsedValues };
 
 // Every member's palette, with ids (and the ids its sequences name)
@@ -552,6 +555,7 @@ export const simulateTeam = (
       );
       return {
         ...description,
+        action: toTeamActionId(ids[member], innerStep.action),
         performedAction:
           description.performedAction &&
           toTeamActionId(ids[member], description.performedAction),

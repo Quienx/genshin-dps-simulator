@@ -12,6 +12,7 @@ import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
 import {
   createTeamBlock,
   getCharacterState,
+  stampFieldActions,
   TeamMemberRun,
 } from '../../_lib/team';
 
@@ -124,7 +125,8 @@ export const blockFor = (action: RotationAction): RotationBlock => ({
 
 // A drop before `beforeUid` (null: at the end): a palette action becomes a
 // new block there (picked), or a block moves there. Dropped on its own
-// place, nothing changes.
+// place, nothing changes. Dash and Wait blocks then name the member on the
+// field where they are (stampFieldActions).
 export const applyDrop = (
   rotation: RotationSetting,
   actions: RotationAction[],
@@ -138,7 +140,7 @@ export const applyDrop = (
     }
     const block = blockFor(action);
     return {
-      rotation: insertBlock(rotation, block, beforeUid),
+      rotation: stampFieldActions(insertBlock(rotation, block, beforeUid)),
       selected: block.uid,
     };
   }
@@ -150,10 +152,12 @@ export const applyDrop = (
     return { rotation, selected: payload.blockUid };
   }
   return {
-    rotation: insertBlock(
-      removeBlock(rotation, payload.blockUid),
-      rotation.blocks[index],
-      beforeUid
+    rotation: stampFieldActions(
+      insertBlock(
+        removeBlock(rotation, payload.blockUid),
+        rotation.blocks[index],
+        beforeUid
+      )
     ),
     selected: payload.blockUid,
   };

@@ -22,6 +22,9 @@ type StepDescription = {
   warning: string | null;
   // The action actually performed, if not the step's own.
   performedAction?: string;
+  // Who did it, if not who the step names: a team's Dash or Wait is done by
+  // the member on the field (its team action id, "nicole:dodge").
+  action?: string;
   // Not performed (no Energy, a failed requirement).
   skipped?: boolean;
 };
@@ -97,7 +100,7 @@ export const playRotation = <A>(
     const description = adapter.describe(step, planned, waitedFrames);
     const entry: RotationTraceEntry = {
       blockUid: step.blockUid,
-      action: step.action,
+      action: description.action ?? step.action,
       kind: step.kind,
       seconds: step.seconds,
       comboIndex: description.comboIndex,

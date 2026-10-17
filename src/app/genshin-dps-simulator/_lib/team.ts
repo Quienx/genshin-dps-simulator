@@ -6,6 +6,7 @@ import { ActivityLog } from './engine/runtime';
 import { BonusBlock, Condition } from './engine/schema';
 import {
   getTeamRotationActions,
+  isFieldAction,
   RESONANCES,
   simulateTeam,
   splitTeamActionId,
@@ -204,6 +205,7 @@ export const isSoloTeamField = (name: string): boolean =>
   SOLO_TEAM_FIELDS.has(name);
 
 // The palette, one group per member, labelled with the member's name.
+// Dash and Wait are not in them: they are in the General group.
 export type TeamPaletteGroup = {
   characterId: string;
   name: string;
@@ -236,9 +238,61 @@ export const getTeamPaletteGroups = (
     actions: actions.filter(
       (action) =>
         splitTeamActionId(action.id).characterId === characterId &&
-        !action.hidden
+        !action.hidden &&
+        !isFieldAction(action.id)
     ),
   }));
+
+// The General group: each field action (Dash, Wait) once, without a
+// member's name. Whoever is on the field does it, so the block takes the
+// member on the field where it is dropped (stampFieldActions). A kit's own
+// special dash is a `move` action of its own, in its member's group.
+export const getGeneralPaletteActions = (
+  actions: RotationAction[]
+): RotationAction[] => {
+  const seen = new Set<string>();
+  return actions.flatMap((action) => {
+    const { actionId } = splitTeamActionId(action.id);
+    if (action.hidden || !isFieldAction(action.id) || seen.has(actionId)) {
+      return [];
+    }
+    seen.add(actionId);
+    return [{ ...action, label: action.label.replace(/^[^:]+:\s*/, '') }];
+  });
+};
+
+// Each Dash or Wait block named after the member on the field there: the
+// one of the block before it, or, at the start, of the first block that
+// is not one. The run already does them on the field; this keeps the
+// rotation saying so (and a leading one with the member who starts).
+export const stampFieldActions = (
+  rotation: RotationSetting
+): RotationSetting => {
+  let onField: string | null = null;
+  const blocks = rotation.blocks.map((entry, index) => {
+    if (!isFieldAction(entry.action)) {
+      onField = splitTeamActionId(entry.action).characterId;
+      return entry;
+    }
+    const starter = rotation.blocks
+      .slice(index + 1)
+      .find((next) => !isFieldAction(next.action));
+    const characterId =
+      onField ??
+      (starter ? splitTeamActionId(starter.action).characterId : null);
+    if (!characterId) {
+      return entry;
+    }
+    const action = toTeamActionId(
+      characterId,
+      splitTeamActionId(entry.action).actionId
+    );
+    return action === entry.action ? entry : { ...entry, action };
+  });
+  return blocks.every((entry, index) => entry === rotation.blocks[index])
+    ? rotation
+    : { ...rotation, blocks };
+};
 
 // A run's biggest hit: who, with what and when.
 export type TeamHighestHit = {

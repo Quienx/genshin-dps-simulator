@@ -7,10 +7,14 @@ import { payloadOf, TRASH_DROP_ID } from './rotationDnd';
 import { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload } from './timelineData';
 import RotationActionIcon from '../rotation/RotationActionIcon';
-import { splitTeamActionId } from '../../_lib/engine/simulateTeam';
+import {
+  isFieldAction,
+  splitTeamActionId,
+} from '../../_lib/engine/simulateTeam';
 import { removeBlock, updateBlock } from '../../_lib/rotation/blocks';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { RotationSetting } from '../../_lib/rotation/types';
+import { getGeneralPaletteActions } from '../../_lib/team';
 
 type RotationEditBarProps = {
   members: TimelineMember[];
@@ -148,7 +152,8 @@ const Trash = ({
 };
 
 // Edit mode, over the chart. Drag a member's action onto the chart to add
-// it where it drops (a click adds it at the end), drag a block on the
+// it where it drops (a click adds it at the end); Dash and Wait, done by
+// whoever is on the field, are once in the General group. Drag a block on the
 // chart to move it or onto the trash to remove it, and click one to
 // change it here (a Normal Attack's hits, a Wait's seconds).
 const RotationEditBar = ({
@@ -194,6 +199,7 @@ const RotationEditBar = ({
             .filter(
               (entry) =>
                 !entry.hidden &&
+                !isFieldAction(entry.id) &&
                 splitTeamActionId(entry.id).characterId === member.characterId
             )
             .map((entry) => (
@@ -205,6 +211,19 @@ const RotationEditBar = ({
             ))}
         </div>
       ))}
+      <div
+        data-testid='timeline-general-actions'
+        className='flex items-center gap-1 border-l border-slate-700/60 pl-4'
+      >
+        <span className='mr-1 font-semibold text-slate-300'>General</span>
+        {getGeneralPaletteActions(actions).map((entry) => (
+          <PaletteItem
+            key={entry.id}
+            action={entry}
+            onAdd={() => drop({ kind: 'new', actionId: entry.id }, null)}
+          />
+        ))}
+      </div>
 
       <div className='ml-auto flex items-center gap-2'>
         {block && action ? (
