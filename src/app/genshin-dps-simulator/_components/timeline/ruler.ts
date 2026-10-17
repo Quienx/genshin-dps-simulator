@@ -3,11 +3,16 @@ import { ActionPiece } from '../../_lib/inspector';
 // The narrowest an action can be: its icon and a gap, so icons never
 // overlap.
 export const MIN_ACTION_PX = 26;
-const ACTION_GAP_PX = 2;
+// Space between back-to-back actions. It takes no time: at the instant
+// one ends and the next starts, x jumps by this much.
+export const ACTION_GAP_PX = 4;
 
 export type Ruler = {
   totalWidth: number;
+  // Where `time` is; at a gap, its left side (where an action ends).
   toX: (time: number) => number;
+  // The same, but at a gap its right side (where the next action starts).
+  toStartX: (time: number) => number;
   toTime: (x: number) => number;
 };
 
@@ -50,6 +55,23 @@ export const buildRuler = (
     const [t1, x1] = points[index];
     return t1 === t0 ? x0 : x0 + ((time - t0) / (t1 - t0)) * (x1 - x0);
   };
+  const toStartX = (time: number) => {
+    let index = -1;
+    points.forEach(([t], i) => {
+      if (t <= time) {
+        index = i;
+      }
+    });
+    if (index < 0) {
+      return 0;
+    }
+    if (index === points.length - 1) {
+      return points[index][1];
+    }
+    const [t0, x0] = points[index];
+    const [t1, x1] = points[index + 1];
+    return t1 === t0 ? x0 : x0 + ((time - t0) / (t1 - t0)) * (x1 - x0);
+  };
   const toTime = (position: number) => {
     const index = points.findIndex(([, px]) => px >= position);
     if (index < 0) {
@@ -62,7 +84,7 @@ export const buildRuler = (
     const [t1, x1] = points[index];
     return x1 === x0 ? t1 : t0 + ((position - x0) / (x1 - x0)) * (t1 - t0);
   };
-  return { totalWidth, toX, toTime };
+  return { totalWidth, toX, toStartX, toTime };
 };
 
 // The zoom (px per second) whose ruler best fills `width`; never below

@@ -452,10 +452,10 @@ const buildGroups = (
         // A block starts where it was put: its wait for a cooldown first
         // (dead time, grey), then the action. A skipped one takes no time:
         // a marker on top (the next block starts there too).
-        const from = ruler.toX(action.start - action.waited);
+        const from = ruler.toStartX(action.start - action.waited);
         const left = skipped ? ruler.toX(action.start) - SKIPPED_PX / 2 : from;
         const width = skipped ? SKIPPED_PX : ruler.toX(action.end) - from;
-        const waitWidth = skipped ? 0 : ruler.toX(action.start) - from;
+        const waitWidth = skipped ? 0 : ruler.toStartX(action.start) - from;
         const warned = warningsOf(action).length > 0;
         return (
           <DraggableAction
@@ -476,7 +476,8 @@ const buildGroups = (
               action.blockUid === selectedBlock &&
                 'ring-2 ring-sky-400 ring-offset-1 ring-offset-slate-950'
             )}
-            // The ruler already leaves a gap before the next action.
+            // The ruler leaves a gap before the next action; `from` is
+            // on its far side, so back-to-back blocks never touch.
             style={{ left, width }}
           >
             {waitWidth > 0 && (
