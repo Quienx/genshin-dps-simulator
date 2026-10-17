@@ -63,11 +63,15 @@ type StatusInstance = {
   until: number;
   // The instance of the `endsWith` status it belongs to.
   parentUid: number | null;
+  // The rotation block of the action whose trigger applied it: its ticks
+  // are that action's hits (Escoffier's Mek belongs to her E).
+  blockUid?: string;
 };
 
 type ScheduledApply = {
   statusId: string;
   frame: number;
+  blockUid?: string;
   parentId: string | null;
   parentUid: number | null;
   done: boolean;
@@ -552,7 +556,7 @@ export const createRuntime = ({
   // eslint-disable-next-line prefer-const
   let performHit: (hit: HitRequest) => void;
 
-  const applyStatusNow = (id: string, frame: number) => {
+  const applyStatusNow = (id: string, frame: number, blockUid?: string) => {
     const block = statusBlocks.get(id);
     if (!block) {
       throw new Error(`${character.name} has no status "${id}"`);
@@ -628,6 +632,7 @@ export const createRuntime = ({
         parent?.until ?? Number.POSITIVE_INFINITY
       ),
       parentUid: parent?.uid ?? null,
+      blockUid,
     };
     nextUid += 1;
     const replaced = instances.get(id);
@@ -726,6 +731,7 @@ export const createRuntime = ({
             element: ticks.element,
             scaling: rowScaling(ticks.row),
             sourceId: id,
+            blockUid: instance.blockUid,
             gauge: ticks.gauge,
             icd: ticks.icd,
             icdGroup: ticks.icdGroup,
@@ -736,12 +742,13 @@ export const createRuntime = ({
     }
   };
 
-  const scheduleStatus = (id: string, frame: number) => {
+  const scheduleStatus = (id: string, frame: number, blockUid?: string) => {
     const block = statusBlocks.get(id);
     const parentId = block?.endsWith ?? null;
     const entry: ScheduledApply = {
       statusId: id,
       frame,
+      blockUid,
       parentId,
       parentUid: parentId ? instances.get(parentId)?.uid ?? null : null,
       done: false,
@@ -758,7 +765,7 @@ export const createRuntime = ({
       ) {
         return;
       }
-      applyStatusNow(id, applyFrame);
+      applyStatusNow(id, applyFrame, entry.blockUid);
       entry.appliedUid = instances.get(id)?.uid;
     });
   };
@@ -1222,10 +1229,11 @@ export const createRuntime = ({
       return;
     }
     if ('applyStatus' in op) {
+      const blockUid = entry?.blockUid || undefined;
       if (op.afterFrames) {
-        scheduleStatus(op.applyStatus, frame + op.afterFrames);
+        scheduleStatus(op.applyStatus, frame + op.afterFrames, blockUid);
       } else {
-        applyStatusNow(op.applyStatus, frame);
+        applyStatusNow(op.applyStatus, frame, blockUid);
       }
       return;
     }

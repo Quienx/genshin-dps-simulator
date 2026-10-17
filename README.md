@@ -7,7 +7,7 @@ Frames, hitmarks and kit rules are taken from [gcsim](https://github.com/genshin
 - `/genshin-dps-simulator` — the simulator: a team combat timeline with an editable rotation
 - `/` — an unrelated 3D solar system playground (React Three Fiber)
 
-Current roster: **Arlecchino, Mualani, Varesa, Iansan, Chevreuse, Nicole**.
+Current roster: **Arlecchino, Mualani, Varesa, Iansan, Chevreuse, Nicole, Escoffier**.
 
 ## Features
 

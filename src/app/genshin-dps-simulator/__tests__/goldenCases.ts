@@ -176,6 +176,22 @@ export const CASES: Case[] = [
   },
   { id: 'nicole/defaults', character: 'nicole', changes: [] },
   { id: 'nicole/c6', character: 'nicole', changes: constellationsUpTo(6) },
+  { id: 'escoffier/defaults', character: 'escoffier', changes: [] },
+  {
+    id: 'escoffier/c6',
+    character: 'escoffier',
+    changes: constellationsUpTo(6),
+  },
+  {
+    id: 'escoffier/no-symphonist',
+    character: 'escoffier',
+    changes: [{ flag: 'symphonist', value: false }],
+  },
+  {
+    id: 'escoffier/symphonist-r5',
+    character: 'escoffier',
+    changes: [{ number: 'symphonistRefinement', value: 5 }],
+  },
 ];
 
 export const NORMAL_ONLY_CASES: Case[] = [

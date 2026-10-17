@@ -9,6 +9,7 @@ import { RotationData } from './rotation/rotationSchema';
 import { getMultiplierRow, getTalent } from './talents';
 import arlecchinoJson from '../_data/characters/arlecchino.json';
 import chevreuseJson from '../_data/characters/chevreuse.json';
+import escoffierJson from '../_data/characters/escoffier.json';
 import iansanJson from '../_data/characters/iansan.json';
 import mualaniJson from '../_data/characters/mualani.json';
 import nicoleJson from '../_data/characters/nicole.json';
@@ -22,6 +23,7 @@ const CHARACTER_FILES: unknown[] = [
   iansanJson,
   chevreuseJson,
   nicoleJson,
+  escoffierJson,
 ];
 
 // Parsing at import time makes a malformed character file fail loudly on
