@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   lint:
-    name: ⬣ ESLint, ʦ TypeScript, 💅 Prettier, and 🃏 Test
+    name: ⬣ ESLint, ʦ TypeScript, 💅 Prettier, and 🃏 Vitest
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout repo
@@ -19,13 +19,11 @@ jobs:
 
       - name: 🤌 Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: ⎔ Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - name: 📥 Download deps
@@ -40,5 +38,5 @@ jobs:
       - name: 💅 Prettier check
         run: pnpm run format:check
 
-      - name: 🃏 Run jest
+      - name: 🃏 Run tests
         run: pnpm run test

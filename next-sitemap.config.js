@@ -1,11 +1,14 @@
+const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
 /**
  * @type {import('next-sitemap').IConfig}
  * @see https://github.com/iamvishnusankar/next-sitemap#readme
  */
 module.exports = {
-  // !STARTERCONF Change the siteUrl
-  /** Without additional '/' on the end, e.g. https://theodorusclarence.com */
-  siteUrl: 'https://tsnext-tw.thcl.dev',
+  // Same origin as src/constant/config.ts.
+  siteUrl:
+    process.env.SITE_URL ??
+    (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000'),
   generateRobotsTxt: true,
   robotsTxtOptions: {
     policies: [{ userAgent: '*', allow: '/' }],

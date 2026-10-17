@@ -1,7 +1,12 @@
+// The deployed origin, without a trailing '/'. Vercel sets its production
+// domain; elsewhere, set SITE_URL.
+const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
 export const siteConfig = {
-  title: 'Next.js + Tailwind CSS + TypeScript Starter',
+  title: 'Genshin DPS Simulator',
   description:
-    'A starter for Next.js, Tailwind CSS, and TypeScript with Absolute Import, Seo, Link component, pre-configured with Husky',
-  /** Without additional '/' on the end, e.g. https://theodorusclarence.com */
-  url: 'https://tsnext-tw.thcl.dev',
+    'A Genshin Impact team damage simulator with a combat timeline, built on a generic engine where every character is a JSON file.',
+  url:
+    process.env.SITE_URL ??
+    (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000'),
 };

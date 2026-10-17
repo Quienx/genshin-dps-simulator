@@ -91,10 +91,13 @@
   }
 }
 
-@theme {
-  /* Font configuration */
-  --font-primary: 'Inter', system-ui, sans-serif;
+/* Fonts: Geist and Geist Mono from next/font (src/app/layout.tsx) */
+@theme inline {
+  --font-primary: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
 
+@theme {
   /* Primary color palette - converted to modern oklch format */
   --color-primary-50: oklch(0.97 0.024 213.79);
   --color-primary-100: oklch(0.94 0.05 213.79);
@@ -157,22 +160,6 @@
     height: 100%;
     overflow: hidden;
     background: var(--background);
-  }
-
-  /* inter var - latin */
-  @font-face {
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 100 900;
-    font-display: block;
-    src: url('/fonts/inter-var-latin.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-      U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212,
-      U+2215, U+FEFF, U+FFFD;
-  }
-
-  .cursor-newtab {
-    cursor: url('/images/new-tab.png') 10 10, pointer;
   }
 
   /* #region  /**=========== Typography =========== */
