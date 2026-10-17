@@ -163,10 +163,35 @@ All accept `ifFlag`, `unlessFlag`, `if`, `icdFrames` and `delayFrames`. A `remov
 
 ## Adding or checking a character
 
-1. Write the JSON with gcsim's frames and rules and the multipliers from the talent tables.
-2. While writing it, validate and simulate it without registering it, using `loadCharacterFile()` (`_lib/characterData.ts`) and `simulateLoadedCharacter()` (`_lib/engine/simulateKit.ts`).
-3. Add the import line to `CHARACTER_FILES`. The invariants in `__tests__/invariants.test.ts` then cover it automatically.
-4. Add cases to `__tests__/goldenCases.ts` and regenerate `scripts/sim-golden.json` (`npx tsx scripts/sim-golden.ts`) **only** when a change in results is intended.
+1. **Scaffold the file:** `npx tsx scripts/character-scaffold.ts <gcsim key> --weapon "<name>" --set "<name>"` writes `scripts/scaffolds/<key>.json` (not loaded by the app): level 90 stats and ascension stat, every talent multiplier table from gcsim's `zz_<key>.dm.go`, icons, the official texts of talents, passives, constellations, the weapon (base ATK, substat, R1-R5) and the set (pieces, 2/4-piece), plus `_sources` (gcsim's `.go` files) and `_todo`. Fields to write are `"TODO"`.
+2. **List the engine features it needs** (generic only, rule 6): read the `.go` files and check each mechanic against this file. Build them first.
+3. **Write the mechanics** into the draft, then save it as `_data/characters/<key>.json`: timings, cooldowns, actions and forms, blocks, systems, `automatic`, fields, details, and `defaults` (the build's character screen totals). Keep only the rows the kit uses.
+4. **Try it unregistered:** `loadCharacterFile()` (`_lib/characterData.ts`) and `simulateLoadedCharacter()` (`_lib/engine/simulateKit.ts`), or in a team with a member's `loaded`.
+5. **Register it** in `CHARACTER_FILES`: its solo scenario appears in the timeline, and `__tests__/invariants.test.ts` covers it.
+6. **The user tries it** in `pnpm dev` (rule 8).
+7. **Tests last:** engine features in `__tests__/engineFeatures.test.ts`, golden cases in `__tests__/goldenCases.ts` (regenerate `scripts/sim-golden.json` with `npx tsx scripts/sim-golden.ts`; old cases must not move unless intended), then commit.
+
+### gcsim → JSON
+
+| gcsim                                                                    | JSON                                                                                        |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `attackHitmarks`, `QueueAttack(..., delay)`                              | a row's `timing.hitmarks` (from the action's start)                                         |
+| `frames.InitAbilSlice(n)` / `InitNormalCancelSlice` and `[action.X] = f` | `end: n`, `cancels: { "<x>": f }`                                                           |
+| `Durability`                                                             | `gauge` = Durability / 25 (25 → 1, 50 → 2, 0 → 0)                                           |
+| `ICDTag` / `ICDGroup`                                                    | `icd` (a tag name) / `icdGroup` (`_data/icdGroups.json`; `ICDTagNone` → none)               |
+| `Element: attributes.Physical` on Normal / Charged                       | nothing (Physical by default); catalysts set `element`                                      |
+| `SetCD`, `SetCDWithDelay(skill, cd, d)`                                  | `cooldown: { frames: cd, delayFrames: d }`; `SetNumCharges` → `charges`                     |
+| `ConsumeEnergy`, `EnergyMax`                                             | `energyCost` on the talent; the `energy` system                                             |
+| `QueueParticle(key, n, element, delay)`                                  | a trigger `particles: n` with `afterFrames: delay` (100 when `c.ParticleDelay`)             |
+| `Tasks.Add` loops, `AddStatus(key, dur)` with ticks                      | a `status` with `ticks` (`firstAfterFrames`, fractional `everyFrames` as `ceil(every × i)`) |
+| `AddStatMod` / `AddAttackMod` on self                                    | a `bonus` (`while` a status, `match` elements / categories)                                 |
+| the same on every char / `Player.Active()`                               | a `teamBuff` bonus (`"active"` for the member on the field)                                 |
+| `e.AddResistMod`, `AddDefMod`                                            | a `resShred` / `defReduction` bonus `while` a status the hit applies                        |
+| `Player.Heal`                                                            | a `heal` op (`target`: `active` / `party`)                                                  |
+| `c.Core.Player.Active() != c.Index()`                                    | `{ "not": { "onField": true } }`                                                            |
+| `OnEnemyHit` subscriptions on others' hits                               | a trigger on `party:<key>` / `active:<key>`                                                 |
+| counts of party elements                                                 | `{ "partyElements": [...], "gte" / "everyone" }`, `scaleBy: { "partyElements" }`            |
+| `Base.Cons >= n`                                                         | `ifFlag: "c<n>"`; `c.Base.Ascension` → always on (or a passive's `toggleFlag`)              |
 
 Commands: `pnpm test`, `npx tsx scripts/sim-golden.ts --compare`, `pnpm typecheck` and `pnpm lint`.
 
