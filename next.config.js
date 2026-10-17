@@ -6,6 +6,17 @@ const nextConfig = {
 
   reactStrictMode: true,
 
+  async redirects() {
+    return [
+      // The timeline used to live on its own route.
+      {
+        source: '/genshin-dps-simulator/timeline',
+        destination: '/genshin-dps-simulator',
+        permanent: true,
+      },
+    ];
+  },
+
   // Uncoment to add domain whitelist
   // images: {
   //   remotePatterns: [

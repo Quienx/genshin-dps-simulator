@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 
-import DamageSimulator from './_components/DamageSimulator';
+import CombatTimelinePage from './_components/timeline/CombatTimelinePage';
 
 export const metadata: Metadata = {
-  title: 'Genshin Impact Damage Simulator',
+  title: 'Combat Timeline',
 };
 
 export default function GenshinDpsSimulatorPage() {
-  return <DamageSimulator />;
+  return <CombatTimelinePage />;
 }
