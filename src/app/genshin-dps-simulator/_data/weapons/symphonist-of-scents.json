@@ -1,0 +1,119 @@
+{
+  "id": "symphonist-of-scents",
+  "name": "Symphonist of Scents",
+  "icon": "UI_EquipIcon_Pole_Trident",
+  "type": "Polearm",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "symphonist",
+  "refinementField": "symphonistRefinement",
+  "baseAtk": 608,
+  "substat": {
+    "stat": "critDamage",
+    "value": 66.2
+  },
+  "rows": [
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Seasoned Symphony",
+      "status": "included",
+      "template": "ATK +{param:atk}% (on the character screen); off the field +{param:atk}% more. After she heals, she and the healed character get +{param:echo}% ATK for 3 s.",
+      "params": {
+        "atk": [12, 15, 18, 21, 24],
+        "echo": [32, 40, 48, 56, 64]
+      },
+      "screenStat": {
+        "stat": "atkPercent",
+        "param": "atk"
+      },
+      "note": "The healed character: the member on the field (her Q heals the whole party, so off-field members miss it here)."
+    }
+  ],
+  "passive": {
+    "name": "Seasoned Symphony",
+    "descriptions": [
+      "ATK is increased by 12%. When the equipping character is off-field, ATK is increased by an additional 12%. After initiating healing, the equipping character and the character(s) they have healed will obtain the \"Sweet Echoes\" effect, increasing their ATK by 32% for 3s. This effect can be triggered even if the equipping character is off-field.",
+      "ATK is increased by 15%. When the equipping character is off-field, ATK is increased by an additional 15%. After initiating healing, the equipping character and the character(s) they have healed will obtain the \"Sweet Echoes\" effect, increasing their ATK by 40% for 3s. This effect can be triggered even if the equipping character is off-field.",
+      "ATK is increased by 18%. When the equipping character is off-field, ATK is increased by an additional 18%. After initiating healing, the equipping character and the character(s) they have healed will obtain the \"Sweet Echoes\" effect, increasing their ATK by 48% for 3s. This effect can be triggered even if the equipping character is off-field.",
+      "ATK is increased by 21%. When the equipping character is off-field, ATK is increased by an additional 21%. After initiating healing, the equipping character and the character(s) they have healed will obtain the \"Sweet Echoes\" effect, increasing their ATK by 56% for 3s. This effect can be triggered even if the equipping character is off-field.",
+      "ATK is increased by 24%. When the equipping character is off-field, ATK is increased by an additional 24%. After initiating healing, the equipping character and the character(s) they have healed will obtain the \"Sweet Echoes\" effect, increasing their ATK by 64% for 3s. This effect can be triggered even if the equipping character is off-field."
+    ]
+  },
+  "blocks": [
+    {
+      "id": "symphonist-off-field",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Seasoned Symphony: off the field",
+      "ifFlag": "symphonist",
+      "stat": "atkPercent",
+      "value": [12, 15, 18, 21, 24],
+      "scaleBy": {
+        "field": "symphonistRefinement"
+      },
+      "if": {
+        "not": {
+          "onField": true
+        }
+      }
+    },
+    {
+      "id": "sweetEchoes",
+      "type": "status",
+      "source": "weapon",
+      "label": "Sweet Echoes",
+      "ifFlag": "symphonist",
+      "durationFrames": 180
+    },
+    {
+      "id": "symphonist-heal",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Seasoned Symphony: a heal gives Sweet Echoes",
+      "ifFlag": "symphonist",
+      "when": {
+        "heal": "*"
+      },
+      "do": [
+        {
+          "applyStatus": "sweetEchoes"
+        }
+      ]
+    },
+    {
+      "id": "sweet-echoes",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Sweet Echoes",
+      "ifFlag": "symphonist",
+      "stat": "atkPercent",
+      "value": [32, 40, 48, 56, 64],
+      "scaleBy": {
+        "field": "symphonistRefinement"
+      },
+      "while": {
+        "sweetEchoes": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "sweet-echoes-party",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Sweet Echoes (the healed member on the field)",
+      "ifFlag": "symphonist",
+      "stat": "atkPercent",
+      "value": [32, 40, 48, 56, 64],
+      "scaleBy": {
+        "field": "symphonistRefinement"
+      },
+      "while": {
+        "sweetEchoes": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "active"
+    }
+  ]
+}

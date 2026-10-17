@@ -1,0 +1,77 @@
+{
+  "id": "crimson-moons-semblance",
+  "name": "Crimson Moon's Semblance",
+  "icon": "UI_EquipIcon_Pole_BloodMoon",
+  "type": "Polearm",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "crimsonMoon",
+  "refinementField": "crimsonMoonRefinement",
+  "baseAtk": 674,
+  "substat": {
+    "stat": "critRate",
+    "value": 22.1
+  },
+  "rows": [
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive",
+      "status": "toggle",
+      "template": "+{effect:crimson-moon-bond}% DMG with Bond of Life; +{effect:crimson-moon-bond+crimson-moon-high-bond}% with Bond of Life ≥ 30%",
+      "note": "A Charged Attack hit grants 25% Bond of Life (once every 14 s)."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "crimson-moon-bond",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Crimson Moon's Semblance",
+      "stat": "dmgBonus",
+      "value": [12, 16, 20, 24, 28],
+      "scaleBy": {
+        "field": "crimsonMoonRefinement"
+      },
+      "ifFlag": "crimsonMoon",
+      "while": {
+        "bondOfLife": {
+          "gt": 0
+        }
+      }
+    },
+    {
+      "id": "crimson-moon-high-bond",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Crimson Moon's Semblance",
+      "stat": "dmgBonus",
+      "value": [24, 32, 40, 48, 56],
+      "scaleBy": {
+        "field": "crimsonMoonRefinement"
+      },
+      "ifFlag": "crimsonMoon",
+      "while": {
+        "bondOfLife": {
+          "gte": 30
+        }
+      }
+    },
+    {
+      "id": "crimson-moon-bond-grant",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Charged Attack hit grants Bond of Life",
+      "ifFlag": "crimsonMoon",
+      "when": {
+        "hit": "charged"
+      },
+      "icdFrames": 840,
+      "do": [
+        {
+          "addResource": "bondOfLife",
+          "amount": 25
+        }
+      ]
+    }
+  ]
+}

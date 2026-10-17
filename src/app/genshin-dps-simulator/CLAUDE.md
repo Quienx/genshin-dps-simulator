@@ -163,7 +163,10 @@ All accept `ifFlag`, `unlessFlag`, `if`, `icdFrames` and `delayFrames`. A `remov
 
 ## Adding or checking a character
 
-1. **Scaffold the file:** `npx tsx scripts/character-scaffold.ts <gcsim key> --weapon "<name>" --set "<name>"` writes `scripts/scaffolds/<key>.json` (not loaded by the app): level 90 stats and ascension stat, every talent multiplier table from gcsim's `zz_<key>.dm.go`, icons, the official texts of talents, passives, constellations, the weapon (base ATK, substat, R1-R5) and the set (pieces, 2/4-piece), plus `_sources` (gcsim's `.go` files) and `_todo`. Fields to write are `"TODO"`.
+1. **Scaffold the drafts** (written to `scripts/scaffolds/`, not loaded by the app; fields to write are `"TODO"`):
+   - `npx tsx scripts/scaffold/character.ts <gcsim key> --weapon "<name>" --set "<name>"`: level 90 stats and ascension stat, every talent multiplier table from gcsim's `zz_<key>.dm.go`, icons, the official texts of talents, passives and constellations, `_sources` (gcsim's `.go` files) and `_todo`. The weapon and set are named by catalog id, with a hint when one is not in the catalog yet.
+   - `npx tsx scripts/scaffold/weapon.ts "<name>"`: a catalog entry for `_data/weapons/` (base ATK, substat, R1-R5 texts, a flag and a refinement field).
+   - `npx tsx scripts/scaffold/set.ts "<name>"`: a catalog entry for `_data/sets/` (pieces and icons, 2/4-piece texts, their flags).
 2. **List the engine features it needs** (generic only, rule 6): read the `.go` files and check each mechanic against this file. Build them first.
 3. **Write the mechanics** into the draft, then save it as `_data/characters/<key>.json`: timings, cooldowns, actions and forms, blocks, systems, `automatic`, fields, details, and `defaults` (the build's character screen totals). Keep only the rows the kit uses.
 4. **Try it unregistered:** `loadCharacterFile()` (`_lib/characterData.ts`) and `simulateLoadedCharacter()` (`_lib/engine/simulateKit.ts`), or in a team with a member's `loaded`.
@@ -192,6 +195,10 @@ All accept `ifFlag`, `unlessFlag`, `if`, `icdFrames` and `delayFrames`. A `remov
 | `OnEnemyHit` subscriptions on others' hits                               | a trigger on `party:<key>` / `active:<key>`                                                 |
 | counts of party elements                                                 | `{ "partyElements": [...], "gte" / "everyone" }`, `scaleBy: { "partyElements" }`            |
 | `Base.Cons >= n`                                                         | `ifFlag: "c<n>"`; `c.Base.Ascension` → always on (or a passive's `toggleFlag`)              |
+
+### Weapons and artifact sets (catalog)
+
+A character names its weapon and set by id (`"weapon": "favonius-lance"`, `"artifactSet": "obsidian-codex"`); each is one file in `_data/weapons/` or `_data/sets/`, shared by every character that uses it, registered in `_lib/catalog.ts`. The loader (`resolveCatalog`) puts the entry in place before the schema reads the file, so the engine sees it as before; an entry's `defaults` (its flag, refinement) fill what the character's `defaults` do not set. Write their blocks generically: system ids (`energy`, `nightsoul`, `nightsoulBlessing`, `bondOfLife`) and their own flags only. Surf's Up reads the flag `vaporize` (on when the wielder's hits Vaporize; off where a character does not define it).
 
 Commands: `pnpm test`, `npx tsx scripts/sim-golden.ts --compare`, `pnpm typecheck` and `pnpm lint`.
 

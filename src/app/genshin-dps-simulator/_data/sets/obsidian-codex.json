@@ -1,0 +1,105 @@
+{
+  "id": "obsidian-codex",
+  "name": "Obsidian Codex",
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15038_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15038_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15038_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15038_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15038_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "While the equipping character is in Nightsoul's Blessing and is on the field, their DMG dealt is increased by 15%.",
+      "flag": "obsidian2",
+      "note": "Applies to every hit (bites and the Q) while Mualani is in Nightsoul's Blessing."
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "After the equipping character consumes 1 Nightsoul point while on the field, CRIT Rate increases by 40% for 6s. This effect can trigger once every second.",
+      "flag": "obsidian4",
+      "note": "Applies to every hit. Approximation: stays up while surfing and for 6 s after Nightsoul's Blessing ends."
+    }
+  ],
+  "params": {
+    "critLingerSeconds": 6
+  },
+  "blocks": [
+    {
+      "id": "obsidian-2pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Obsidian Codex 2-piece",
+      "stat": "dmgBonus",
+      "value": 15,
+      "ifFlag": "obsidian2",
+      "while": {
+        "nightsoulBlessing": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "obsidian-4pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Obsidian Codex CRIT bonus",
+      "stat": "critRate",
+      "value": 40,
+      "ifFlag": "obsidian4",
+      "while": {
+        "obsidianCrit": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "obsidianCrit",
+      "type": "status",
+      "source": "artifact",
+      "label": "Obsidian Codex CRIT window",
+      "ifFlag": "obsidian4",
+      "durationFrames": 361
+    },
+    {
+      "id": "obsidian-crit-refresh",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Nightsoul points used: CRIT window refreshed",
+      "ifFlag": "obsidian4",
+      "when": {
+        "resourceChanges": "nightsoul",
+        "change": "decrease"
+      },
+      "icdFrames": 60,
+      "do": [
+        {
+          "applyStatus": "obsidianCrit"
+        }
+      ]
+    }
+  ]
+}

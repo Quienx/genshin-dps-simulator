@@ -1,0 +1,153 @@
+{
+  "id": "surfs-up",
+  "name": "Surf's Up",
+  "icon": "UI_EquipIcon_Catalyst_MechaPufferfish",
+  "type": "Catalyst",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "surfsUp",
+  "refinementField": "surfsUpRefinement",
+  "baseAtk": 542,
+  "substat": {
+    "stat": "critDamage",
+    "value": 88.2
+  },
+  "rows": [
+    {
+      "id": "weapon-hp-bonus",
+      "label": "R{refinement} passive: Max HP",
+      "status": "included",
+      "template": "+{param:hpBonus}% Max HP",
+      "params": {
+        "hpBonus": [20, 25, 30, 35, 40]
+      },
+      "screenStat": {
+        "stat": "hpPercent",
+        "param": "hpBonus"
+      }
+    },
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Aqua Remembrance",
+      "status": "toggle",
+      "template": "+{effect:scorching-summer}% Normal Attack DMG per Scorching Summer stack (max {mechanic:maxStacks}) for {mechanic:durationSeconds} s after the E (once every {mechanic:cooldownSeconds} s)",
+      "note": "Sharky's bites count as Normal Attack DMG. Each bite hit removes 1 stack and each Vaporize adds 1 (each once every 1.5 s)."
+    }
+  ],
+  "mechanics": {
+    "maxStacks": 4,
+    "durationSeconds": 14,
+    "cooldownSeconds": 15,
+    "stackChangeIcdSeconds": 1.5
+  },
+  "blocks": [
+    {
+      "id": "scorching-summer",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Surf's Up Scorching Summer",
+      "stat": "dmgBonus",
+      "value": [12, 15, 18, 21, 24],
+      "scaleBy": {
+        "field": "surfsUpRefinement"
+      },
+      "perStack": {
+        "state": "scorching",
+        "max": 4
+      },
+      "ifFlag": "surfsUp",
+      "match": {
+        "categories": ["Normal", "Bite", "Surging Bite"]
+      },
+      "while": {
+        "scorchingWindow": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "scorching",
+      "type": "resource",
+      "source": "weapon",
+      "label": "Scorching Summer stacks",
+      "ifFlag": "surfsUp",
+      "min": 0,
+      "max": 4
+    },
+    {
+      "id": "scorchingWindow",
+      "type": "status",
+      "source": "weapon",
+      "label": "Scorching Summer",
+      "ifFlag": "surfsUp",
+      "durationFrames": 841
+    },
+    {
+      "id": "scorching-start",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "The E grants 4 Scorching Summer stacks",
+      "ifFlag": "surfsUp",
+      "when": {
+        "use": "skill"
+      },
+      "icdFrames": 900,
+      "do": [
+        {
+          "setResource": "scorching",
+          "value": 4
+        },
+        {
+          "applyStatus": "scorchingWindow"
+        }
+      ]
+    },
+    {
+      "id": "scorching-loss",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "A bite spends a stack",
+      "ifFlag": "surfsUp",
+      "when": {
+        "hit": "normal"
+      },
+      "if": {
+        "status": "scorchingWindow"
+      },
+      "icdFrames": 90,
+      "do": [
+        {
+          "addResource": "scorching",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "scorching-gain",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "A Vaporize bite regains a stack",
+      "ifFlag": "surfsUp",
+      "when": {
+        "hit": "normal"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "scorchingWindow"
+          },
+          {
+            "flag": "vaporize"
+          }
+        ]
+      },
+      "icdFrames": 90,
+      "do": [
+        {
+          "addResource": "scorching",
+          "amount": 1
+        }
+      ]
+    }
+  ]
+}

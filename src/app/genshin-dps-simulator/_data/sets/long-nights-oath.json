@@ -1,0 +1,141 @@
+{
+  "id": "long-nights-oath",
+  "name": "Long Night's Oath",
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15039_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15039_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15039_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15039_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15039_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "Plunging Attack DMG increased by 25%.",
+      "flag": "longNight2"
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "After the equipping character's Plunging Attack/Charged Attack/Elemental Skill hits an opponent, they will gain 1/2/2 stack(s) of \"Radiance Everlasting.\" Plunging Attacks, Charged Attacks, or Elemental Skills can each trigger this effect once every 1s. Radiance Everlasting: Plunging Attacks deal 15% increased DMG for 6s. Max 5 stacks. Each stack's duration is counted independently.",
+      "flag": "longNight4",
+      "note": "Plunge, Charged Attack and E hits give 1/2/2 stacks, each source once every 1 s."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "long-night-2pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Long Night's Oath 2-piece",
+      "ifFlag": "longNight2",
+      "stat": "dmgBonus",
+      "value": 25,
+      "match": {
+        "categories": ["Plunge"]
+      }
+    },
+    {
+      "id": "radiance",
+      "type": "status",
+      "source": "artifact",
+      "label": "Radiance Everlasting",
+      "ifFlag": "longNight4",
+      "stacks": {
+        "max": 5,
+        "durationFrames": 360
+      }
+    },
+    {
+      "id": "long-night-4pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Long Night's Oath 4-piece",
+      "ifFlag": "longNight4",
+      "stat": "dmgBonus",
+      "value": 15,
+      "perStack": {
+        "state": "radiance",
+        "max": 5
+      },
+      "match": {
+        "categories": ["Plunge"]
+      }
+    },
+    {
+      "id": "radiance-plunge",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Plunge hit: +1 Radiance",
+      "ifFlag": "longNight4",
+      "when": {
+        "hit": "category:Plunge"
+      },
+      "icdFrames": 60,
+      "do": [
+        {
+          "addStack": "radiance"
+        }
+      ]
+    },
+    {
+      "id": "radiance-charged",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Charged Attack hit: +2 Radiance",
+      "ifFlag": "longNight4",
+      "when": {
+        "hit": "category:Charged"
+      },
+      "icdFrames": 60,
+      "do": [
+        {
+          "addStack": "radiance"
+        },
+        {
+          "addStack": "radiance"
+        }
+      ]
+    },
+    {
+      "id": "radiance-skill",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "E hit: +2 Radiance",
+      "ifFlag": "longNight4",
+      "when": {
+        "hit": "category:Skill"
+      },
+      "icdFrames": 60,
+      "do": [
+        {
+          "addStack": "radiance"
+        },
+        {
+          "addStack": "radiance"
+        }
+      ]
+    }
+  ]
+}

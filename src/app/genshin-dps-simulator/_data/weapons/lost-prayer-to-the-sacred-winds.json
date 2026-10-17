@@ -1,0 +1,83 @@
+{
+  "id": "lost-prayer-to-the-sacred-winds",
+  "name": "Lost Prayer to the Sacred Winds",
+  "icon": "UI_EquipIcon_Catalyst_Fourwinds",
+  "type": "Catalyst",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "lostPrayer",
+  "refinementField": "lostPrayerRefinement",
+  "baseAtk": 608,
+  "substat": {
+    "stat": "critRate",
+    "value": 33.1
+  },
+  "rows": [
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Boundless Blessing",
+      "status": "toggle",
+      "template": "+{effect:lost-prayer}% Elemental DMG every 4 s in combat (max 4 stacks)",
+      "note": "In-game, stacks keep coming every 4 s of combat off the field and are not lost on swapping (her stats in a team test). gcsim resets them on swap."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "lostPrayerStacks",
+      "type": "resource",
+      "source": "weapon",
+      "label": "Lost Prayer stacks",
+      "ifFlag": "lostPrayer",
+      "min": 0,
+      "max": 4,
+      "initial": {
+        "field": "lostPrayerStacks"
+      }
+    },
+    {
+      "id": "lost-prayer",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Lost Prayer to the Sacred Winds",
+      "ifFlag": "lostPrayer",
+      "stat": "dmgBonus",
+      "value": [8, 10, 12, 14, 16],
+      "scaleBy": {
+        "field": "lostPrayerRefinement"
+      },
+      "perStack": {
+        "state": "lostPrayerStacks",
+        "max": 4
+      },
+      "match": {
+        "elements": [
+          "Pyro",
+          "Hydro",
+          "Electro",
+          "Cryo",
+          "Anemo",
+          "Geo",
+          "Dendro"
+        ]
+      }
+    },
+    {
+      "id": "lost-prayer-stack",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "In combat: +1 stack every 4 s (on or off the field)",
+      "ifFlag": "lostPrayer",
+      "when": {
+        "hit": "party:*"
+      },
+      "icdFrames": 240,
+      "do": [
+        {
+          "addResource": "lostPrayerStacks",
+          "amount": 1,
+          "delayFrames": 240
+        }
+      ]
+    }
+  ]
+}

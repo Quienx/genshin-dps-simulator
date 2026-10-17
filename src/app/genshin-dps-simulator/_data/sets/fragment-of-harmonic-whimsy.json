@@ -1,0 +1,90 @@
+{
+  "id": "fragment-of-harmonic-whimsy",
+  "name": "Fragment of Harmonic Whimsy",
+  "screenStats": [
+    {
+      "stat": "atkPercent",
+      "value": 18
+    }
+  ],
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15035_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15035_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15035_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15035_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15035_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "ATK +18%."
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "When the value of a Bond of Life increases or decreases, this character deals 18% increased DMG for 6s. Max 3 stacks.",
+      "flag": "harmonicWhimsy4",
+      "note": "Gains a stack every time the Bond of Life goes up or down."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "whimsy",
+      "type": "status",
+      "source": "artifact",
+      "label": "Harmonic Whimsy stacks",
+      "stacks": {
+        "max": 3,
+        "durationFrames": 360
+      }
+    },
+    {
+      "id": "whimsy-stack",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Bond of Life changed: +1 stack",
+      "when": {
+        "resourceChanges": "bondOfLife"
+      },
+      "do": [
+        {
+          "addStack": "whimsy"
+        }
+      ]
+    },
+    {
+      "id": "harmonic-whimsy-4pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Harmonic Whimsy 4-piece",
+      "stat": "dmgBonus",
+      "value": 18,
+      "perStack": {
+        "state": "whimsy",
+        "max": 3
+      },
+      "ifFlag": "harmonicWhimsy4"
+    }
+  ]
+}

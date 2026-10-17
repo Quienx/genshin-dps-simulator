@@ -3,6 +3,7 @@ import {
   getCharacterActions,
   toRotationActions,
 } from './actionSchema';
+import { resolveCatalog } from './catalog';
 import { CharacterData, characterSchema } from './characterSchema';
 import { validateReferences } from './engine/validateReferences';
 import { RotationData } from './rotation/rotationSchema';
@@ -29,7 +30,7 @@ const CHARACTER_FILES: unknown[] = [
 // Parsing at import time makes a malformed character file fail loudly on
 // load instead of producing NaN damage deep inside a simulation.
 export const CHARACTER_DATA: CharacterData[] = CHARACTER_FILES.map((file) =>
-  characterSchema.parse(file)
+  characterSchema.parse(resolveCatalog(file))
 );
 
 const ids = CHARACTER_DATA.map((character) => character.id);
@@ -147,7 +148,7 @@ const load = (character: CharacterData): LoadedCharacter => {
 // Validates and loads any character file, registered or not (tests, new
 // files being written).
 export const loadCharacterFile = (file: unknown): LoadedCharacter =>
-  load(characterSchema.parse(file));
+  load(characterSchema.parse(resolveCatalog(file)));
 
 const LOADED = CHARACTER_DATA.map(load);
 

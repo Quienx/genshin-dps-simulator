@@ -1,0 +1,189 @@
+{
+  "id": "angelos-heptades",
+  "name": "Angelos' Heptades",
+  "passive": {
+    "name": "Crown of the Final Scion",
+    "descriptions": [
+      "ATK is increased by 12%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 10% for every 1,000 ATK the equipping character has, up to a maximum of 26%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 14 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+      "ATK is increased by 15%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 13% for every 1,000 ATK the equipping character has, up to a maximum of 34%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 15 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+      "ATK is increased by 18%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 16% for every 1,000 ATK the equipping character has, up to a maximum of 42%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 16 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+      "ATK is increased by 21%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 19% for every 1,000 ATK the equipping character has, up to a maximum of 50%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 17 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+      "ATK is increased by 24%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 22% for every 1,000 ATK the equipping character has, up to a maximum of 58%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 18 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light."
+    ]
+  },
+  "icon": "UI_EquipIcon_Catalyst_FairyGarden",
+  "type": "Catalyst",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "angelos",
+  "refinementField": "angelosRefinement",
+  "baseAtk": 741,
+  "substat": {
+    "stat": "atkPercent",
+    "value": 16.5
+  },
+  "rows": [
+    {
+      "id": "weapon-atk",
+      "label": "R{refinement} passive: ATK",
+      "status": "included",
+      "template": "+{param:atk}% ATK (on the character screen)",
+      "params": {
+        "atk": [12, 15, 18, 21, 24]
+      },
+      "screenStat": {
+        "stat": "atkPercent",
+        "param": "atk"
+      }
+    },
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: shielded",
+      "status": "toggle",
+      "template": "While she is shielded: the active character gets Elemental DMG equal to {param:per}% per 1,000 of her ATK (max {param:max}%), and she restores {param:energy} Energy (once every 14 s)",
+      "params": {
+        "per": [10, 13, 16, 19, 22],
+        "max": [26, 34, 42, 50, 58],
+        "energy": [15, 16, 17, 18, 19]
+      },
+      "note": "Her E shield triggers it. The cap is R1's (26%)."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "angelosShield",
+      "type": "status",
+      "source": "weapon",
+      "label": "Angelos' Heptades: shielded",
+      "ifFlag": "angelos",
+      "durationFrames": 1200
+    },
+    {
+      "id": "angelos-shield",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Her E shield: party Elemental DMG and Energy",
+      "ifFlag": "angelos",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "angelosShield",
+          "delayFrames": 8
+        },
+        {
+          "addResource": "energy",
+          "amount": 15,
+          "icdFrames": 840,
+          "if": {
+            "field": "angelosRefinement",
+            "gte": 1,
+            "lt": 2
+          }
+        },
+        {
+          "addResource": "energy",
+          "amount": 16,
+          "icdFrames": 840,
+          "if": {
+            "field": "angelosRefinement",
+            "gte": 2,
+            "lt": 3
+          }
+        },
+        {
+          "addResource": "energy",
+          "amount": 17,
+          "icdFrames": 840,
+          "if": {
+            "field": "angelosRefinement",
+            "gte": 3,
+            "lt": 4
+          }
+        },
+        {
+          "addResource": "energy",
+          "amount": 18,
+          "icdFrames": 840,
+          "if": {
+            "field": "angelosRefinement",
+            "gte": 4,
+            "lt": 5
+          }
+        },
+        {
+          "addResource": "energy",
+          "amount": 19,
+          "icdFrames": 840,
+          "if": {
+            "field": "angelosRefinement",
+            "gte": 5,
+            "lt": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "angelos",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Angelos' Heptades: Elemental DMG from ATK",
+      "ifFlag": "angelos",
+      "stat": "dmgBonus",
+      "value": [1.0, 1.3, 1.6, 1.9, 2.2],
+      "scaleBy": {
+        "field": "angelosRefinement"
+      },
+      "ofStat": "atk",
+      "cap": 26,
+      "match": {
+        "elements": [
+          "Pyro",
+          "Hydro",
+          "Electro",
+          "Cryo",
+          "Anemo",
+          "Geo",
+          "Dendro"
+        ]
+      },
+      "while": {
+        "angelosShield": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "angelos-party",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Angelos' Heptades: Elemental DMG from ATK (party)",
+      "ifFlag": "angelos",
+      "stat": "dmgBonus",
+      "value": [1.0, 1.3, 1.6, 1.9, 2.2],
+      "scaleBy": {
+        "field": "angelosRefinement"
+      },
+      "ofStat": "atk",
+      "cap": 26,
+      "match": {
+        "elements": [
+          "Pyro",
+          "Hydro",
+          "Electro",
+          "Cryo",
+          "Anemo",
+          "Geo",
+          "Dendro"
+        ]
+      },
+      "while": {
+        "angelosShield": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "active"
+    }
+  ]
+}

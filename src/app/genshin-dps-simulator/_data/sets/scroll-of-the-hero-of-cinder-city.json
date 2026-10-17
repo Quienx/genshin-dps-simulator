@@ -1,0 +1,155 @@
+{
+  "id": "scroll-of-the-hero-of-cinder-city",
+  "name": "Scroll of the Hero of Cinder City",
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15037_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15037_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15037_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15037_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15037_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "When a nearby party member triggers a Nightsoul Burst, the equipping character regenerates 6 Elemental Energy.",
+      "flag": "scroll2"
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "After the equipping character triggers a reaction related to their Elemental Type, all nearby party members gain a 12% Elemental DMG Bonus for the Elemental Types involved in the elemental reaction for 15s. If the equipping character is in the Nightsoul's Blessing state when triggering this effect, all nearby party members gain an additional 28% Elemental DMG Bonus for the Elemental Types involved in the elemental reaction for 20s. The equipping character can trigger this effect while off-field, and the DMG bonus from Artifact Sets with the same name do not stack.",
+      "flag": "scroll4",
+      "note": "Simulated on her own Overloaded (Pyro and Electro DMG)."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scrollReaction",
+      "type": "status",
+      "source": "artifact",
+      "label": "Scroll 4-piece: reaction buff",
+      "ifFlag": "scroll4",
+      "durationFrames": 900
+    },
+    {
+      "id": "scrollNightsoul",
+      "type": "status",
+      "source": "artifact",
+      "label": "Scroll 4-piece: Nightsoul buff",
+      "ifFlag": "scroll4",
+      "durationFrames": 1200
+    },
+    {
+      "id": "scroll-4pc-trigger",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Overloaded: Pyro / Electro DMG for the party",
+      "ifFlag": "scroll4",
+      "when": {
+        "hit": "reaction:Overloaded"
+      },
+      "do": [
+        {
+          "applyStatus": "scrollReaction"
+        },
+        {
+          "applyStatus": "scrollNightsoul",
+          "if": {
+            "status": "nightsoulBlessing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scroll-4pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Scroll 4-piece: +12% Pyro / Electro DMG (Overloaded)",
+      "ifFlag": "scroll4",
+      "stat": "dmgBonus",
+      "value": 12,
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      },
+      "while": {
+        "scrollReaction": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "scroll-4pc-party",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Scroll 4-piece: +12% Pyro / Electro DMG (Overloaded) (party)",
+      "ifFlag": "scroll4",
+      "stat": "dmgBonus",
+      "value": 12,
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      },
+      "while": {
+        "scrollReaction": {
+          "gte": 1
+        }
+      },
+      "teamBuff": true
+    },
+    {
+      "id": "scroll-4pc-nightsoul",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Scroll 4-piece: +28% Pyro / Electro DMG (in Nightsoul's Blessing)",
+      "ifFlag": "scroll4",
+      "stat": "dmgBonus",
+      "value": 28,
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      },
+      "while": {
+        "scrollNightsoul": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "scroll-4pc-nightsoul-party",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Scroll 4-piece: +28% Pyro / Electro DMG (in Nightsoul's Blessing) (party)",
+      "ifFlag": "scroll4",
+      "stat": "dmgBonus",
+      "value": 28,
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      },
+      "while": {
+        "scrollNightsoul": {
+          "gte": 1
+        }
+      },
+      "teamBuff": true
+    }
+  ]
+}
