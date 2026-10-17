@@ -34,11 +34,16 @@ import {
   actionAt,
   actionTitle,
   changesSpecialSystem,
+  displayAction,
   eventCharacterState,
+  EventPin,
   hitsOfAction,
   isSystemResource,
   meterAt,
+  pinOf,
+  resolvePin,
   samePanelProps,
+  shownEvent,
 } from './timelineData';
 import { BlockTipCard } from './TimelineTooltip';
 import useBlockQueue from './useBlockQueue';
@@ -548,6 +553,13 @@ type EventPanelProps = {
   builds: SimulationValues[];
   collapsed: boolean;
   onToggle: () => void;
+  // Edit mode: the block picked on the chart, shown while nothing is
+  // pinned.
+  pickedBlock?: string | null;
+  // The buff or debuff bar hovered on the chart: lit in Active Effects.
+  hoveredChip?: string | null;
+  // Moves the playhead (a hit picked in the list goes to it).
+  onSeek?: (time: number) => void;
 };
 
 // The Selected Event: the action at the playhead (or a pinned one) and
@@ -565,12 +577,22 @@ const EventPanel = ({
   builds,
   collapsed,
   onToggle,
+  pickedBlock = null,
+  hoveredChip = null,
+  onSeek,
 }: EventPanelProps) => {
-  const [pinned, setPinned] = useState<{
-    actionKey: string;
-    hitKey: string | null;
-  } | null>(null);
-  useEffect(() => setPinned(null), [view]);
+  // A pin names a rotation block, so it stays through the re-run every
+  // edit makes (a Wait's seconds, a block moved…) and while other blocks
+  // are picked. Without one, the picked block is shown.
+  const [pinned, setPinned] = useState<EventPin | null>(null);
+  const resolvedPin = pinned ? resolvePin(view, pinned) : null;
+  const resolved = shownEvent(view, pinned, pickedBlock);
+  // Its block is gone (removed, another scenario): back to the playhead.
+  useEffect(() => {
+    if (pinned && !resolvePin(view, pinned)) {
+      setPinned(null);
+    }
+  }, [view, pinned]);
   const { queued, exiting, upNow } = useBlockQueue(view.chips, time);
   const [openLanes, setOpenLanes] = useState(true);
   const [openFormula, setOpenFormula] = useState(false);
@@ -599,9 +621,7 @@ const EventPanel = ({
   // it is used, even those that land seconds later (Iansan's E, a
   // grenade): each shows when it lands.
   const atCursor = actionAt(view.actions, time);
-  const action: ActionPiece | undefined = pinned
-    ? view.actions.find((entry) => entry.key === pinned.actionKey)
-    : atCursor;
+  const action: ActionPiece | undefined = resolved ? resolved.action : atCursor;
   const hits = useMemo(
     () => (action ? hitsOfAction(view, action) : []),
     [view, action]
@@ -611,11 +631,7 @@ const EventPanel = ({
   const nextHit = pending[0] ?? null;
   // The hit shown: the one picked, else the latest landed, else the next
   // one (upcoming), so its breakdown is there from the start.
-  const hit =
-    (pinned?.hitKey && hits.find((entry) => hitKey(entry) === pinned.hitKey)) ||
-    landed.at(-1) ||
-    nextHit ||
-    null;
+  const hit = resolved?.hit || landed.at(-1) || nextHit || null;
   const upcoming = hit !== null && hit.time > now;
   const memberRun = hit
     ? run.members.find((entry) => entry.characterId === hit.characterId)
@@ -699,7 +715,9 @@ const EventPanel = ({
   const damage = landed.reduce((sum, entry) => sum + entry.damage, 0);
   const rounded = landed.map((entry) => Math.round(entry.damage));
   const same = rounded.length > 1 && rounded.every((d) => d === rounded[0]);
-  const rotationAction = action ? actionsById.get(action.actionId) : undefined;
+  const rotationAction = action
+    ? displayAction(action, actionsById)
+    : undefined;
   const actionName = action ? actionTitle(action, rotationAction) : '';
   // The elements its hits deal (Arlecchino's Normal Attack: Physical, or
   // Pyro in Masque), landed or not.
@@ -729,27 +747,29 @@ const EventPanel = ({
             Selected Event
           </h2>
           <span className='text-[10px] text-slate-500'>
-            {pinned ? 'pinned' : 'follows the playhead'}
+            {resolvedPin
+              ? 'pinned'
+              : resolved
+              ? 'selected block'
+              : 'follows the playhead'}
           </span>
           <button
             type='button'
-            aria-pressed={pinned !== null}
-            aria-label={pinned ? 'Unpin' : 'Pin'}
-            title={pinned ? 'Unpin' : 'Pin this event'}
+            aria-pressed={resolvedPin !== null}
+            aria-label={resolvedPin ? 'Unpin' : 'Pin'}
+            title={resolvedPin ? 'Unpin' : 'Pin this event'}
             disabled={!action}
             onClick={() =>
               setPinned((current) =>
-                current || !action
-                  ? null
-                  : { actionKey: action.key, hitKey: hit && hitKey(hit) }
+                current || !action ? null : pinOf(view, action, hit)
               )
             }
             className={cn(
               'ml-auto flex size-6 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-700/70 hover:text-slate-100 disabled:opacity-40',
-              pinned && 'bg-sky-600/30 text-sky-200'
+              resolvedPin && 'bg-sky-600/30 text-sky-200'
             )}
           >
-            {pinned ? (
+            {resolvedPin ? (
               <PinOff className='size-3.5' />
             ) : (
               <Pin className='size-3.5' />
@@ -1064,12 +1084,10 @@ const EventPanel = ({
                               <li key={key}>
                                 <button
                                   type='button'
-                                  onClick={() =>
-                                    setPinned({
-                                      actionKey: action.key,
-                                      hitKey: key,
-                                    })
-                                  }
+                                  onClick={() => {
+                                    setPinned(pinOf(view, action, entry));
+                                    onSeek?.(entry.time);
+                                  }}
                                   className={cn(
                                     'flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] hover:bg-slate-800',
                                     hit &&
@@ -1331,6 +1349,9 @@ const EventPanel = ({
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <PulseRow
+                                      data-hovered={
+                                        chip.key === hoveredChip || undefined
+                                      }
                                       // It pulses when it joins, and again
                                       // when renewed (a new application).
                                       pulseKey={spanAt(chip, time).start}
@@ -1343,7 +1364,11 @@ const EventPanel = ({
                                       className={cn(
                                         'flex min-h-0 items-center gap-2 overflow-hidden rounded-md px-1.5 hover:bg-slate-800/60',
                                         // Folding out, it gives its room back.
-                                        leaving ? 'py-0' : 'py-0.5'
+                                        leaving ? 'py-0' : 'py-0.5',
+                                        // Its bar is hovered on the chart:
+                                        // stronger than the event's own.
+                                        chip.key === hoveredChip &&
+                                          '!bg-amber-400/30 ring-1 ring-amber-300/80'
                                       )}
                                     >
                                       <span

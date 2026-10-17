@@ -325,7 +325,9 @@ export const expandBlocks = (
     if (!action) {
       return [];
     }
-    const repetition = expandRepetition(block, action, dodge, actions);
+    const repetition = expandRepetition(block, action, dodge, actions).map(
+      (step) => ({ ...step, blockAction: block.action })
+    );
     return Array.from(
       { length: Math.max(1, block.repeat) },
       () => repetition

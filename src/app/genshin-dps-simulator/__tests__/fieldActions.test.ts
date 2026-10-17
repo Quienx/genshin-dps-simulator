@@ -39,7 +39,11 @@ describe('field actions', () => {
   it('shows Dash and Wait once, in the General group, not per member', () => {
     const actions = getTeamActions(ids);
     const general = getGeneralPaletteActions(actions);
-    expect(general.map((action) => action.kind)).toEqual(['dodge', 'wait']);
+    expect(general.map((action) => action.kind)).toEqual([
+      'dodge',
+      'wait',
+      'swap',
+    ]);
     expect(general.every((action) => !action.label.includes(':'))).toBe(true);
     getTeamPaletteGroups(ids, actions).forEach((group) =>
       expect(

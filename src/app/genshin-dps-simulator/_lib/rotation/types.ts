@@ -24,6 +24,9 @@ export type RotationStep = {
   action: string;
   kind: RotationActionKind;
   seconds: number;
+  // Its block's action, when it is another one: a sequence's own id
+  // (Varesa's E special plays an E).
+  blockAction?: string;
 };
 
 export type RotationTraceEntry = {
@@ -45,6 +48,8 @@ export type RotationTraceEntry = {
   // The action actually performed, when the step's turned into another
   // (a Normal Attack that was a bite).
   performedAction?: string;
+  // Its block's action (see RotationStep).
+  blockAction?: string;
   // Not performed (no Energy, a failed requirement): it takes no time;
   // `warning` says why.
   skipped?: boolean;

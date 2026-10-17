@@ -10,7 +10,10 @@
     "atk": 356,
     "def": 782
   },
-  "ascensionStat": { "stat": "critRate", "value": 19.2 },
+  "ascensionStat": {
+    "stat": "critRate",
+    "value": 19.2
+  },
   "icons": {
     "avatar": "UI_AvatarIcon_Varesa"
   },
@@ -2081,37 +2084,7 @@
   },
   "rotation": {
     "automaticDescription": "E, then a Follow-Up Strike (Charged Attack) and a Plunge. The Plunge fills Nightsoul points to 40 and enters Fiery Passion with a free E: free E, Fiery Follow-Up Strike, Fiery Plunge (Apex Drive) and Volcano Kablam if the Q cooldown and 30 Energy allow it. The full Q (Flying Kick or Fiery Kick) is never used: its 70 Energy and 18 s cooldown would block Kablam. While the E recharges: Charged Attack → Plunge (two of them fill Nightsoul points and enter Fiery Passion), or Normal Attacks if that option is off.",
-    "extraActions": [
-      {
-        "id": "eSpecial",
-        "kind": "skill",
-        "label": "E special (Fiery Passion Rush)",
-        "shortLabel": "E special",
-        "icon": "Skill_S_Varesa_02",
-        "description": "The E in Fiery Passion: free right after entering it, Fiery Passion Rush DMG. Outside Fiery Passion it is a plain E.",
-        "steps": [
-          {
-            "action": "skill",
-            "performed": ["freeFieryRush", "fieryRush"]
-          }
-        ]
-      },
-      {
-        "id": "qSpecial",
-        "kind": "burst",
-        "label": "Q special (Kablam / Fiery Kick)",
-        "shortLabel": "Q special",
-        "icon": "Skill_E_Varesa_01",
-        "description": "Volcano Kablam in Apex Drive (right after a Fiery Plunge, 30 Energy), or Fiery Kick in Fiery Passion (70 Energy).",
-        "steps": [
-          {
-            "action": "burst",
-            "performed": ["kablam", "fieryKick"]
-          }
-        ]
-      }
-    ],
-    "palette": ["skill", "charged", "plunge", "eSpecial", "qSpecial"]
+    "palette": ["skill", "burst", "charged", "plunge"]
   },
   "systems": {
     "energy": {

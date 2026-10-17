@@ -84,9 +84,11 @@ export type BlockChip = {
   holder: string | null;
   // 'stacks': one block for a run of stacks of one status (each with its
   // own timer), from its first stack until its last one runs out.
-  // 'particles': flying from when they are made until they are caught.
+  // 'particles': flying from when they are made until they are caught
+  // (`particles` says how many, of what element).
   // 'heal': what a heal does (HP is not simulated).
   kind: 'trigger' | 'status' | 'stacks' | 'particles' | 'heal';
+  particles?: { count: number; element: string };
   label: string;
   // What it gives, from the bonuses that read it ("+20%"); null when no
   // bonus reads it.
@@ -190,6 +192,12 @@ export type ActionPiece = {
   causeId: string;
   // Its team action id ("chevreuse:skillHold").
   actionId: string;
+  // What the chart shows it as: its block's sequence when it is one
+  // (Mualani's Shark Bite, played as a Normal Attack), else `actionId`.
+  shownActionId: string;
+  // The form it was played as, if one (Varesa's E in Fiery Passion:
+  // "varesa:fieryRush"); null when it was the action itself.
+  performedActionId: string | null;
   characterId: string;
   // Its rotation block (its hits carry it).
   blockUid: string;
@@ -222,6 +230,8 @@ export type EnemyHit = {
   category: string;
   damage: number;
   isCrit: boolean;
+  // False past the counted duration: shown, not added up.
+  counted: boolean;
 };
 
 // Each reaction's own hits up to `time`: how many, their total DMG and
@@ -237,6 +247,7 @@ export const reactionsUntil = (
   >();
   hits.forEach((hit) => {
     if (
+      !hit.counted ||
       hit.time > time + 1e-6 ||
       hit.reaction === 'None' ||
       hit.category !== hit.reaction
@@ -275,7 +286,9 @@ export const INSPECTOR_ENEMY = {
 };
 
 export type InspectorView = {
+  // How long the run played (s), and the part of it that counts.
   duration: number;
+  countedDuration: number;
   chips: BlockChip[];
   lanes: number;
   actions: ActionPiece[];
@@ -316,7 +329,8 @@ export const auraAt = (
 // DMG the enemy took up to `time`.
 export const damageUntil = (hits: EnemyHit[], time: number): number =>
   hits.reduce(
-    (total, hit) => (hit.time <= time + 1e-6 ? total + hit.damage : total),
+    (total, hit) =>
+      hit.counted && hit.time <= time + 1e-6 ? total + hit.damage : total,
     0
   );
 
@@ -394,6 +408,20 @@ const getSourceText = (
     sourceName: talent?.name ?? null,
     sourceText: talent?.description ?? null,
   };
+};
+
+// A team action id that is a sequence (a block of other actions).
+const isSequence = (actionId: string | undefined): actionId is string => {
+  // Only team ids ("mualani:sharkBite") name their character.
+  if (!actionId?.includes(':')) {
+    return false;
+  }
+  const [characterId, id] = actionId.split(':');
+  return Boolean(
+    getLoadedCharacter(characterId)?.rotation?.actions.find(
+      (action) => action.id === id
+    )?.steps
+  );
 };
 
 export const buildInspectorView = (
@@ -579,6 +607,7 @@ export const buildInspectorView = (
       const element = String(event.detail?.element ?? '');
       const particles = {
         kind: 'particles' as const,
+        particles: { count, element },
         value: `${Math.round(count * 100) / 100} ${
           element === 'clear' ? 'clear' : element
         } particle${count === 1 ? '' : 's'}`,
@@ -1079,6 +1108,10 @@ export const buildInspectorView = (
       key: `${entry.blockUid}#${index}`,
       causeId: causeId(entry),
       actionId: entry.action,
+      shownActionId: isSequence(entry.blockAction)
+        ? entry.blockAction
+        : entry.action,
+      performedActionId: entry.performedAction ?? null,
       characterId: entry.action.split(':')[0],
       blockUid: entry.blockUid,
       label: entry.label,
@@ -1105,6 +1138,7 @@ export const buildInspectorView = (
 
   return {
     duration: run.duration,
+    countedDuration: run.countedDuration,
     hits: run.members
       .flatMap((member) =>
         member.hitLog.map((hit, index) => ({
@@ -1125,6 +1159,7 @@ export const buildInspectorView = (
           category: hit.category,
           damage: hit.damage,
           isCrit: hit.isCrit,
+          counted: hit.counted,
         }))
       )
       .sort((a, b) => a.time - b.time),

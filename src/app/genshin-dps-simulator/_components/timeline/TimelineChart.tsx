@@ -25,31 +25,45 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
 import { MemberColor } from './memberColors';
-import { currentPointerX, payloadOf, TRACKS_DROP_ID } from './rotationDnd';
+import {
+  currentPointerX,
+  memberRowAtPointer,
+  payloadOf,
+  TRACKS_DROP_ID,
+} from './rotationDnd';
 import { Ruler } from './ruler';
 import { SOURCE_STYLES, SourceKind, sourceKindOfChip } from './sourceStyles';
 import {
   ActionGroup,
   actionTitle,
   describeTrigger,
+  displayAction,
   DragPayload,
   dropBefore,
   dropSlot,
   hitsOfGroup,
   isReactionHit,
+  mergeSpans,
   meterAt,
+  particleArrivals,
+  resourcesAtAction,
   systemEventRows,
 } from './timelineData';
 import { HeaderMember } from './TimelineHeader';
 import { TipCard, TipStat, TipText, TipTime } from './TimelineTooltip';
 import RotationActionIcon from '../rotation/RotationActionIcon';
+import { describeActionCost, getActionCost } from '../../_lib/actionCosts';
 import { getLoadedCharacter } from '../../_lib/characterData';
-import { splitTeamActionId } from '../../_lib/engine/simulateTeam';
+import {
+  isFieldAction,
+  splitTeamActionId,
+} from '../../_lib/engine/simulateTeam';
 import formatNumber from '../../_lib/formatNumber';
 import { FRAMES_PER_SECOND } from '../../_lib/frames';
 import { elementIconUrl } from '../../_lib/genshinIcons';
 import { ActionPiece, BlockType, InspectorView } from '../../_lib/inspector';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
+import { TeamMemberRun } from '../../_lib/team';
 
 export const LABEL_PX = 200;
 const AXIS_PX = 20;
@@ -59,7 +73,9 @@ const SKIPPED_PX = 26;
 // Edit mode: the ghost of a dragged block where it will land.
 const PLACEHOLDER_PX = 36;
 
-type DropSlot = { time: number; actionId: string };
+// Where a dragged block would go, and the member's row it is over (a Dash
+// or Wait goes on theirs).
+type DropSlot = { time: number; actionId: string; rowMember: string | null };
 // Labeled ticks at least this far apart; the step grows as the zoom
 // shrinks.
 const MAJOR_MIN_PX = 80;
@@ -108,11 +124,19 @@ type TimelineChartProps = {
   // The width the tracks have on screen (for Fit).
   onTrackWidthChange: (width: number) => void;
   // Edit mode (when `onSelectBlock` is set): the block picked, picking one
-  // (a click on it), and a drop on the tracks: before that block (null: at
+  // (a click on it; on the picked one, unpicking it), and a drop on the tracks: before that block (null: at
   // the end).
   selectedBlock?: string | null;
   onSelectBlock?: (blockUid: string) => void;
-  onDropBlock?: (payload: DragPayload, beforeUid: string | null) => void;
+  onDropBlock?: (
+    payload: DragPayload,
+    beforeUid: string | null,
+    rowMember: string | null
+  ) => void;
+  // The buff or debuff bar under the pointer (its block's key), or null.
+  onHoverChip?: (chipKey: string | null) => void;
+  // Each member's run: what it had when an action started (its tooltip).
+  memberRuns?: TeamMemberRun[];
   // Seconds the axis shows: the run's, plus room to add blocks in edit
   // mode.
   axisSeconds?: number;
@@ -127,7 +151,14 @@ const playheadLabel = (value: number) => `${value.toFixed(3)}s`;
 const seconds = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)} s`;
 
-type Bar = { key: string; start: number; end: number; title: ReactNode };
+type Bar = {
+  key: string;
+  start: number;
+  end: number;
+  title: ReactNode;
+  // The block it shows (the Event panel lights it on hover).
+  chipKey?: string;
+};
 type Mark = { key: string; time: number; title: ReactNode };
 
 type Row = {
@@ -171,6 +202,7 @@ const KIND_LABELS: Record<string, string> = {
   move: 'Move',
   dodge: 'Dodge',
   wait: 'Wait',
+  swap: 'Swap',
 };
 
 const ElementIcon = ({
@@ -218,8 +250,9 @@ const Bars = ({
       <span
         key={bar.key}
         data-tip={`b:${bar.key}`}
+        data-chip={bar.chipKey}
         className={cn(
-          'absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full opacity-80 ring-1 ring-white/10',
+          'absolute top-1/2 h-3 -translate-y-1/2 rounded-full',
           colorClass
         )}
         style={{
@@ -325,6 +358,21 @@ const DraggableAction = ({
 
 // The rows: rebuilt only when the run or the zoom change, never with the
 // cursor.
+// The particle lines, by element (clear ones: white).
+const PARTICLE_LINES: Record<string, string> = {
+  Pyro: 'border-orange-400/50',
+  Hydro: 'border-sky-400/50',
+  Electro: 'border-violet-400/50',
+  Cryo: 'border-cyan-300/50',
+  Anemo: 'border-teal-300/50',
+  Geo: 'border-amber-300/50',
+  Dendro: 'border-lime-400/50',
+  clear: 'border-slate-200/40',
+};
+
+// No runs given: one stable empty list (it is a memo dependency).
+const NO_MEMBER_RUNS: TeamMemberRun[] = [];
+
 const buildGroups = (
   view: InspectorView,
   chartActions: ActionGroup[],
@@ -333,7 +381,8 @@ const buildGroups = (
   ruler: Ruler,
   selectedBlock: string | null,
   editing: boolean,
-  slot: DropSlot | null
+  slot: DropSlot | null,
+  memberRuns: TeamMemberRun[]
 ): { groups: Group[]; tips: Tips } => {
   // Every block's tip card, by its `data-tip`.
   const tips: Tips = new Map();
@@ -352,9 +401,9 @@ const buildGroups = (
   const accentOf = (id: string) => slotOf.get(id)?.color.bar ?? 'bg-slate-400';
   // "Chevreuse: Elemental Burst" → "Elemental Burst" (the card shows whose).
   const actionName = (action: ActionPiece | ActionGroup) =>
-    actionTitle(action, actionsById.get(action.actionId));
+    actionTitle(action, displayAction(action, actionsById));
   const actionIcon = (action: ActionPiece, size = 30) => {
-    const rotationAction = actionsById.get(action.actionId);
+    const rotationAction = displayAction(action, actionsById);
     return rotationAction ? (
       <RotationActionIcon
         action={rotationAction}
@@ -371,7 +420,7 @@ const buildGroups = (
       splitTeamActionId(action.actionId).actionId
     ]?.energyCost ?? null;
   const actionTip = (action: ActionGroup) => {
-    const kind = actionsById.get(action.actionId)?.kind;
+    const kind = displayAction(action, actionsById)?.kind;
     const hits = hitsOfGroup(view, action);
     const damage = hits.reduce((total, hit) => total + hit.damage, 0);
     const crits = hits.filter((hit) => hit.isCrit).length;
@@ -394,6 +443,33 @@ const buildGroups = (
             <TriangleAlert className='mt-px size-3 shrink-0' />
             {warning}
           </p>
+        ))}
+        {/* What the character had when it started (Energy, Nightsoul
+            points…), then what it costs. */}
+        {(() => {
+          const member = memberRuns.find(
+            (entry) => entry.characterId === action.characterId
+          );
+          return member
+            ? resourcesAtAction(member, action).map((row) => (
+                <TipStat
+                  key={row.label}
+                  label={row.label}
+                  value={`${
+                    row.value === null ? '—' : formatNumber(row.value)
+                  }${row.max === null ? '' : ` / ${formatNumber(row.max)}`}${
+                    row.format === 'percent' ? '%' : ''
+                  }`}
+                  className='text-sky-200'
+                />
+              ))
+            : null;
+        })()}
+        {/* What it costs (and its cheaper forms, and what it needs). */}
+        {describeActionCost(
+          getActionCost(action.characterId, action.actionId)
+        ).map((line) => (
+          <TipStat key={line} label='Cost' value={line} />
         ))}
         {hits.length > 0 ? (
           <>
@@ -446,7 +522,7 @@ const buildGroups = (
         />
       ),
       content: actions.map((action) => {
-        const rotationAction = actionsById.get(action.actionId);
+        const rotationAction = displayAction(action, actionsById);
         tips.set(`a:${action.key}`, actionTip(action));
         const skipped = action.parts.every((part) => part.skipped);
         // A block starts where it was put: its wait for a cooldown first
@@ -518,7 +594,11 @@ const buildGroups = (
   // Edit mode: where the block being dragged will land, as a ghost of it
   // in its member's row (between the blocks it goes between).
   if (slot) {
-    const owner = splitTeamActionId(slot.actionId).characterId;
+    // A Dash or Wait goes where it is dropped: the row it is over.
+    const owner =
+      slot.rowMember && isFieldAction(slot.actionId)
+        ? slot.rowMember
+        : splitTeamActionId(slot.actionId).characterId;
     const ghost = actionsById.get(slot.actionId);
     const row = actionRows.find((entry) => entry.id === `action-${owner}`);
     if (row && ghost) {
@@ -562,16 +642,19 @@ const buildGroups = (
       kind: sourceKindOfChip(chip, causeKindOf(chip.cause)),
       bars: [],
     };
-    const parts =
+    // Renewed while up, it is one stretch (mergeSpans).
+    const parts = mergeSpans(
       chip.renewals && chip.renewals.length > 0
         ? chip.renewals.map((renewal) => ({
             start: renewal.start,
             end: renewal.end ?? renewal.until ?? view.duration,
           }))
-        : [{ start: chip.start, end: chip.end ?? view.duration }];
+        : [{ start: chip.start, end: chip.end ?? view.duration }]
+    );
     parts.forEach((part, index) =>
       row.bars.push({
         key: `${chip.key}-${index}`,
+        chipKey: chip.key,
         ...part,
         title: (
           <TipCard
@@ -593,9 +676,12 @@ const buildGroups = (
                 className='text-sky-300'
               />
             )}
+            {part.count > 1 && (
+              <TipStat label='Applications' value={String(part.count)} />
+            )}
             {parts.length > 1 && (
               <TipStat
-                label='Application'
+                label='Stretch'
                 value={`${index + 1} of ${parts.length}`}
               />
             )}
@@ -632,7 +718,7 @@ const buildGroups = (
       <Bars
         bars={row.bars}
         ruler={ruler}
-        colorClass={SOURCE_STYLES[row.kind].bar}
+        colorClass={SOURCE_STYLES[row.kind].track}
       />
     ),
   }));
@@ -1047,6 +1133,11 @@ const TimelineRows = memo(function TimelineRows({
                 <div
                   key={row.id}
                   data-testid={`timeline-row-${row.id}`}
+                  // A member's actions row: what a Dash or Wait dropped on
+                  // it belongs to.
+                  data-row-member={
+                    row.id.startsWith('action-') ? row.id.slice(7) : undefined
+                  }
                   className='flex h-7 hover:bg-slate-800/30'
                 >
                   {labelPx > 0 && (
@@ -1234,6 +1325,8 @@ type Gesture = {
   startX: number;
   startScroll: number;
   moved: boolean;
+  // The action block it started on (its tip key), if any.
+  blockTip: string | null;
 };
 
 // The center chart, as a video editor's timeline: wider than the screen,
@@ -1256,6 +1349,8 @@ const TimelineChart = ({
   onSelectBlock,
   onDropBlock,
   axisSeconds,
+  onHoverChip,
+  memberRuns = NO_MEMBER_RUNS,
 }: TimelineChartProps) => {
   const editing = onSelectBlock !== undefined;
   // The labels column on the left (in edit mode too).
@@ -1278,9 +1373,20 @@ const TimelineChart = ({
         ruler,
         selectedBlock,
         editing,
-        slot
+        slot,
+        memberRuns
       ),
-    [view, actions, members, actionsById, ruler, selectedBlock, editing, slot]
+    [
+      view,
+      actions,
+      members,
+      actionsById,
+      ruler,
+      selectedBlock,
+      editing,
+      slot,
+      memberRuns,
+    ]
   );
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1439,10 +1545,19 @@ const TimelineChart = ({
     window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(() => setHover(null), TIP_CLOSE_MS);
   };
+  // The bar under the pointer, told at once (the tip waits a moment).
+  const hoveredChip = useRef<string | null>(null);
+  const reportChip = (chipKey: string | null) => {
+    if (hoveredChip.current !== chipKey) {
+      hoveredChip.current = chipKey;
+      onHoverChip?.(chipKey);
+    }
+  };
   const hideTip = () => {
     window.clearTimeout(openTimer.current);
     window.clearTimeout(closeTimer.current);
     setHover(null);
+    reportChip(null);
   };
   useEffect(
     () => () => {
@@ -1461,6 +1576,7 @@ const TimelineChart = ({
     if (!element || gesture.current || dragging.current) {
       return;
     }
+    reportChip(element.dataset.chip ?? null);
     keepTip();
     tipPointerX.current = event.clientX;
     const next = {
@@ -1507,6 +1623,7 @@ const TimelineChart = ({
     const from = tipTarget(event.target);
     if (from && tipTarget(event.relatedTarget) !== from) {
       hideTipSoon();
+      reportChip(null);
     }
   };
   // Dragging the playhead to an edge (or past it) keeps the view moving
@@ -1537,14 +1654,23 @@ const TimelineChart = ({
   };
   useEffect(() => () => cancelAnimationFrame(edgeFrame.current), []);
 
+  // Where an action block starts: its wait for a cooldown included (the
+  // block starts where it was put).
+  const blockStartOf = (tip: string | null) => {
+    const group = tip
+      ? actions.find((entry) => `a:${entry.key}` === tip)
+      : undefined;
+    return group ? group.start - group.waited : null;
+  };
   const endGesture = (clientX: number) => {
     const current = gesture.current;
     gesture.current = null;
     cancelAnimationFrame(edgeFrame.current);
     setPanning(false);
-    // A click on the tracks (no drag) moves the playhead there.
+    // A click on the tracks (no drag) moves the playhead there; on an
+    // action block, to where that block starts.
     if (current?.mode === 'pan' && !current.moved) {
-      onSeek(timeAtClient(clientX));
+      onSeek(blockStartOf(current.blockTip) ?? timeAtClient(clientX));
     }
   };
 
@@ -1580,10 +1706,16 @@ const TimelineChart = ({
       const next =
         at === null || !actionId
           ? null
-          : { time: dropSlot(actions, at).time, actionId };
+          : {
+              time: dropSlot(actions, at).time,
+              actionId,
+              rowMember: memberRowAtPointer(),
+            };
       // Only when the slot changes: the rows redraw with it.
       setSlot((current) =>
-        current?.time === next?.time && current?.actionId === next?.actionId
+        current?.time === next?.time &&
+        current?.actionId === next?.actionId &&
+        current?.rowMember === next?.rowMember
           ? current
           : next
       );
@@ -1603,7 +1735,7 @@ const TimelineChart = ({
         time !== null &&
         event.over?.id === TRACKS_DROP_ID
       ) {
-        onDropBlock(payload, dropBefore(actions, time));
+        onDropBlock(payload, dropBefore(actions, time), memberRowAtPointer());
       }
     },
   });
@@ -1661,13 +1793,22 @@ const TimelineChart = ({
             )}
             style={{ width: labelPx + trackWidth + 16 }}
             onDragStart={(event) => event.preventDefault()}
-            // Edit mode: a click on a block picks it.
+            // Edit mode: a click on a block picks it (or unpicks it).
             onClick={(event) => {
               const blockUid = (
                 event.target as HTMLElement
               ).closest<HTMLElement>('[data-block-uid]')?.dataset.blockUid;
               if (editing && blockUid) {
                 onSelectBlock?.(blockUid);
+                // Picked, the playhead goes to where it starts.
+                const start = blockStartOf(
+                  (event.target as HTMLElement).closest<HTMLElement>(
+                    '[data-tip^="a:"]'
+                  )?.dataset.tip ?? null
+                );
+                if (start !== null) {
+                  onSeek(start);
+                }
               }
             }}
             onPointerOver={handleTipOver}
@@ -1692,6 +1833,10 @@ const TimelineChart = ({
                 startX: event.clientX,
                 startScroll: scrollRef.current?.scrollLeft ?? 0,
                 moved: false,
+                blockTip:
+                  (event.target as HTMLElement).closest<HTMLElement>(
+                    '[data-tip^="a:"]'
+                  )?.dataset.tip ?? null,
               };
               event.currentTarget.setPointerCapture(event.pointerId);
               if (onRuler) {
@@ -1758,6 +1903,20 @@ const TimelineChart = ({
               ruler={ruler}
               labelPx={labelPx}
             />
+            {/* Where particles are caught (their Energy lands there), one
+              faint line each, in their element's color. */}
+            {particleArrivals(view).map((arrival) => (
+              <span
+                key={arrival.key}
+                aria-hidden
+                data-testid='timeline-particle-line'
+                className={cn(
+                  'pointer-events-none absolute inset-y-0 z-[5] w-0 -translate-x-1/2 border-l border-dashed',
+                  PARTICLE_LINES[arrival.element] ?? PARTICLE_LINES.clear
+                )}
+                style={{ left: labelPx + ruler.toX(arrival.time) }}
+              />
+            ))}
             {/* Edit mode: where the block being dragged would go. */}
             {slot !== null && (
               <span
@@ -1766,6 +1925,21 @@ const TimelineChart = ({
                 className='pointer-events-none absolute inset-y-0 z-30 w-0.5 -translate-x-1/2 bg-sky-400 shadow-[0_0_6px_rgb(56_189_248/0.8)]'
                 style={{ left: labelPx + ruler.toX(slot.time) }}
               />
+            )}
+
+            {/* Past the counted duration (60 s): blocks still play there,
+              but their hits do not count, so it is dimmed. */}
+            {view.countedDuration < view.duration && (
+              <div
+                aria-hidden
+                data-testid='timeline-not-counted'
+                className='pointer-events-none absolute inset-y-0 right-0 z-[15] border-l border-dashed border-amber-400/70 bg-slate-950/60'
+                style={{ left: labelPx + ruler.toX(view.countedDuration) }}
+              >
+                <span className='sticky top-6 ml-1 inline-block rounded-sm bg-slate-900/90 px-1 py-px text-[9px] leading-none whitespace-nowrap text-amber-300'>
+                  Not counted after {view.countedDuration} s
+                </span>
+              </div>
             )}
 
             {/* The playhead's line through every track. */}

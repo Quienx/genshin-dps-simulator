@@ -127,6 +127,9 @@ export type HitLogEntry = {
   damage: number;
   maxDamage: number;
   cumulativeDamage: number;
+  // In the run's totals: false for a hit after its counted duration (it is
+  // logged, so the chart can show it, but it adds nothing).
+  counted: boolean;
   // The factors it was dealt with (the inspector's breakdown):
   // (stat × multiplier / 100 + flatDamage) × (1 + totalBonus / 100) is
   // `baseDamage`; then × critMultiplier (the average in expected runs) ×
@@ -159,6 +162,8 @@ export type DamageContext = {
   highestHit: HighestHit | null;
   hitLog: HitLogEntry[];
   cumulativeDamage: number;
+  // Hits from this frame on are logged but not counted (none: all count).
+  countUntilFrame?: number;
 };
 
 export type SimulationDetail = {

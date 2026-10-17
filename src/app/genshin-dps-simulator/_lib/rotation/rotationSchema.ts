@@ -10,6 +10,8 @@ export const rotationActionKindSchema = z.enum([
   'move',
   'dodge',
   'wait',
+  // A team member comes on the field and does nothing else.
+  'swap',
 ]);
 
 // An action the user can drop into a rotation. The character file lists its

@@ -7,6 +7,7 @@ import { payloadOf, TRASH_DROP_ID } from './rotationDnd';
 import { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload } from './timelineData';
 import RotationActionIcon from '../rotation/RotationActionIcon';
+import { describeActionCost, getActionCost } from '../../_lib/actionCosts';
 import {
   isFieldAction,
   splitTeamActionId,
@@ -14,7 +15,7 @@ import {
 import { removeBlock, updateBlock } from '../../_lib/rotation/blocks';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { RotationSetting } from '../../_lib/rotation/types';
-import { getGeneralPaletteActions } from '../../_lib/team';
+import { getGeneralPaletteActions, retargetSwap } from '../../_lib/team';
 
 type RotationEditBarProps = {
   members: TimelineMember[];
@@ -99,7 +100,12 @@ const PaletteItem = ({
       {...listeners}
       {...attributes}
       data-testid={`timeline-add-${action.id}`}
-      title={`Drag ${action.label} onto the chart (a click adds it at the end)`}
+      title={[
+        `Drag ${action.label} onto the chart (a click adds it at the end)`,
+        ...describeActionCost(
+          getActionCost(splitTeamActionId(action.id).characterId, action.id)
+        ),
+      ].join('\n')}
       onClick={onAdd}
       className={cn(
         'flex h-7 cursor-grab touch-none items-center gap-1 rounded-md border border-slate-700/60 bg-slate-800/60 pr-1.5 pl-0.5 hover:bg-slate-700/70 active:cursor-grabbing',
@@ -116,6 +122,53 @@ const PaletteItem = ({
     </button>
   );
 };
+
+// A Swap's target: the party's faces, the one it goes to lit; the member
+// already on the field there is off.
+const SwapTarget = ({
+  members,
+  target,
+  onField,
+  onPick,
+}: {
+  members: TimelineMember[];
+  target: string;
+  onField: string | null;
+  onPick: (characterId: string) => void;
+}) => (
+  <span data-testid='timeline-swap-target' className='flex items-center gap-1'>
+    <span className='mr-0.5 text-slate-400'>To</span>
+    {members.map((member) => (
+      <button
+        key={member.characterId}
+        type='button'
+        title={
+          member.characterId === onField
+            ? `${member.name} is already on the field`
+            : `Swap to ${member.name}`
+        }
+        aria-pressed={member.characterId === target}
+        disabled={member.characterId === onField}
+        onClick={() => onPick(member.characterId)}
+        className={cn(
+          'rounded-full p-px disabled:opacity-30',
+          member.characterId === target
+            ? member.color.bar
+            : 'bg-slate-700 hover:bg-slate-500'
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={member.avatar}
+          alt={member.name}
+          width={20}
+          height={20}
+          className='size-5 rounded-full bg-slate-800'
+        />
+      </button>
+    ))}
+  </span>
+);
 
 // Drop a block here to remove it; a click removes the one picked.
 const Trash = ({
@@ -192,14 +245,27 @@ const RotationEditBar = ({
     >
       {members.map((member) => (
         <div key={member.characterId} className='flex items-center gap-1'>
-          <span className={cn('mr-1 font-semibold', member.color.text)}>
-            {member.name}
+          {/* The member's face, ringed in its color (its name on hover). */}
+          <span
+            title={member.name}
+            className={cn('mr-1 shrink-0 rounded-full p-px', member.color.bar)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={member.avatar}
+              alt={member.name}
+              width={24}
+              height={24}
+              className='size-6 rounded-full bg-slate-700'
+            />
           </span>
           {actions
             .filter(
               (entry) =>
                 !entry.hidden &&
                 !isFieldAction(entry.id) &&
+                // Swap is in the General group.
+                entry.kind !== 'swap' &&
                 splitTeamActionId(entry.id).characterId === member.characterId
             )
             .map((entry) => (
@@ -216,13 +282,16 @@ const RotationEditBar = ({
         className='flex items-center gap-1 border-l border-slate-700/60 pl-4'
       >
         <span className='mr-1 font-semibold text-slate-300'>General</span>
-        {getGeneralPaletteActions(actions).map((entry) => (
-          <PaletteItem
-            key={entry.id}
-            action={entry}
-            onAdd={() => drop({ kind: 'new', actionId: entry.id }, null)}
-          />
-        ))}
+        {getGeneralPaletteActions(actions)
+          // Alone, a swap does nothing.
+          .filter((entry) => members.length > 1 || entry.kind !== 'swap')
+          .map((entry) => (
+            <PaletteItem
+              key={entry.id}
+              action={entry}
+              onAdd={() => drop({ kind: 'new', actionId: entry.id }, null)}
+            />
+          ))}
       </div>
 
       <div className='ml-auto flex items-center gap-2'>
@@ -231,6 +300,18 @@ const RotationEditBar = ({
             <span className='font-semibold text-slate-100'>
               {action.label.replace(/^[^:]+:\s*/, '')}
             </span>
+            {/* What it costs: its Energy, cheaper forms, what it needs. */}
+            {describeActionCost(
+              getActionCost(splitTeamActionId(action.id).characterId, action.id)
+            ).map((line) => (
+              <span
+                key={line}
+                data-testid='timeline-block-cost'
+                className='rounded bg-slate-800/80 px-1.5 py-0.5 text-[10px] text-sky-200'
+              >
+                {line}
+              </span>
+            ))}
             {action.kind === 'normal' && (
               <Stepper
                 label='Hits'
@@ -247,6 +328,23 @@ const RotationEditBar = ({
                   onChange(
                     updateBlock(rotation, block.uid, { hits: block.hits + 1 })
                   )
+                }
+              />
+            )}
+            {block && action.kind === 'swap' && (
+              <SwapTarget
+                members={members}
+                target={splitTeamActionId(block.action).characterId}
+                // Swapping to the one on the field would do nothing.
+                onField={(() => {
+                  const index = rotation.blocks.indexOf(block);
+                  return index > 0
+                    ? splitTeamActionId(rotation.blocks[index - 1].action)
+                        .characterId
+                    : null;
+                })()}
+                onPick={(characterId) =>
+                  onChange(retargetSwap(rotation, block.uid, characterId))
                 }
               />
             )}

@@ -1,4 +1,10 @@
-import { ChevronsRight, Hourglass, Swords, Waves } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  ChevronsRight,
+  Hourglass,
+  Swords,
+  Waves,
+} from 'lucide-react';
 import Image from 'next/image';
 
 import { cn } from '@/lib/utils';
@@ -15,11 +21,12 @@ type RotationActionIconProps = {
   className?: string;
 };
 
-// Dodge and Wait have no in-game icon, so they (and any action whose file
+// Dodge, Wait and Swap have no in-game icon, so they (and any action whose file
 // has no icon) get a generic one.
 const FALLBACK_ICONS: Partial<Record<RotationActionKind, typeof Swords>> = {
   dodge: ChevronsRight,
   wait: Hourglass,
+  swap: ArrowLeftRight,
   move: Waves,
 };
 

@@ -15,6 +15,13 @@
       "shortLabel": "Wait",
       "description": "Do nothing for a set time (e.g. a teammate is on the field). The combo restarts at N1.",
       "defaultSeconds": 1
+    },
+    {
+      "id": "swap",
+      "kind": "swap",
+      "label": "Swap in",
+      "shortLabel": "Swap",
+      "description": "Come on the field (after the swap cooldown and delay) and do nothing else: a Wait or Dash after it is this member's. The combo restarts at N1."
     }
   ]
 }

@@ -16,13 +16,28 @@ export const payloadOf = (
 // run (capture phase), so a drag's move and end see where it is now. A
 // drag's `delta` would not do: dnd-kit adjusts it for scrolled containers.
 let pointerX: number | null = null;
+let pointerY: number | null = null;
 if (typeof window !== 'undefined') {
   window.addEventListener(
     'pointermove',
     (event) => {
       pointerX = event.clientX;
+      pointerY = event.clientY;
     },
     { capture: true, passive: true }
   );
 }
 export const currentPointerX = (): number | null => pointerX;
+
+// The member whose action row is under the pointer (a Dash or Wait dropped
+// there is theirs), or null off those rows.
+export const memberRowAtPointer = (): string | null => {
+  if (pointerX === null || pointerY === null) {
+    return null;
+  }
+  const row = document
+    .elementsFromPoint(pointerX, pointerY)
+    .map((element) => element.closest<HTMLElement>('[data-row-member]'))
+    .find((element) => element !== null);
+  return row?.dataset.rowMember ?? null;
+};

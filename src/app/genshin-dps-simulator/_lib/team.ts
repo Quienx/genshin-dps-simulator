@@ -44,10 +44,10 @@ const VARESA_ROUND: [string, string][] = [
   ['varesa', 'skill'],
   ['varesa', 'charged'],
   ['varesa', 'plunge'],
-  ['varesa', 'eSpecial'],
+  ['varesa', 'skill'],
   ['varesa', 'charged'],
   ['varesa', 'plunge'],
-  ['varesa', 'qSpecial'],
+  ['varesa', 'burst'],
 ];
 
 export const TEAM_PRESET_ROTATION: [string, string][] = [
@@ -60,10 +60,10 @@ export const TEAM_PRESET_ROTATION: [string, string][] = [
   ['chevreuse', 'skillHold'],
   ['iansan', 'skill'],
   ['iansan', 'burst'],
-  ['varesa', 'eSpecial'],
+  ['varesa', 'skill'],
   ['varesa', 'charged'],
   ['varesa', 'plunge'],
-  ['varesa', 'qSpecial'],
+  ['varesa', 'burst'],
   ...VARESA_ROUND,
   ...VARESA_ROUND,
   // ~18 s: Chevreuse's second Hold E (her Q has no Energy yet).
@@ -204,8 +204,12 @@ const SOLO_TEAM_FIELDS = new Set([
 export const isSoloTeamField = (name: string): boolean =>
   SOLO_TEAM_FIELDS.has(name);
 
+// Swap: a member comes on the field (the General group's ⇄, pointed at one).
+export const isSwapAction = (actionId: string): boolean =>
+  splitTeamActionId(actionId).actionId === 'swap';
+
 // The palette, one group per member, labelled with the member's name.
-// Dash and Wait are not in them: they are in the General group.
+// Dash, Wait and Swap are not in them: they are in the General group.
 export type TeamPaletteGroup = {
   characterId: string;
   name: string;
@@ -239,12 +243,13 @@ export const getTeamPaletteGroups = (
       (action) =>
         splitTeamActionId(action.id).characterId === characterId &&
         !action.hidden &&
-        !isFieldAction(action.id)
+        !isFieldAction(action.id) &&
+        !isSwapAction(action.id)
     ),
   }));
 
-// The General group: each field action (Dash, Wait) once, without a
-// member's name. Whoever is on the field does it, so the block takes the
+// The General group: each field action (Dash, Wait) and Swap once,
+// without a member's name. Whoever is on the field does it, so the block takes the
 // member on the field where it is dropped (stampFieldActions). A kit's own
 // special dash is a `move` action of its own, in its member's group.
 export const getGeneralPaletteActions = (
@@ -253,12 +258,112 @@ export const getGeneralPaletteActions = (
   const seen = new Set<string>();
   return actions.flatMap((action) => {
     const { actionId } = splitTeamActionId(action.id);
-    if (action.hidden || !isFieldAction(action.id) || seen.has(actionId)) {
+    if (
+      action.hidden ||
+      !(isFieldAction(action.id) || isSwapAction(action.id)) ||
+      seen.has(actionId)
+    ) {
       return [];
     }
     seen.add(actionId);
     return [{ ...action, label: action.label.replace(/^[^:]+:\s*/, '') }];
   });
+};
+
+// A Swap in before a block whose member is off the field there (the block
+// before it is another member's), so the swap the run makes anyway is a
+// block of its own to see and move. A Dash or Wait is the field's, so it
+// gets one only when dropped on a member's row (`rowMember`): then it is
+// theirs. Not at the start (that member starts), nor twice.
+export const swapInBefore = (
+  rotation: RotationSetting,
+  uid: string,
+  rowMember: string | null = null
+): RotationSetting => {
+  const index = rotation.blocks.findIndex((entry) => entry.uid === uid);
+  if (index <= 0) {
+    return rotation;
+  }
+  const entry = rotation.blocks[index];
+  if (isSwapAction(entry.action)) {
+    return rotation;
+  }
+  const field = isFieldAction(entry.action);
+  if (field && !rowMember) {
+    return rotation;
+  }
+  const characterId = field
+    ? (rowMember as string)
+    : splitTeamActionId(entry.action).characterId;
+  const onField = splitTeamActionId(
+    rotation.blocks[index - 1].action
+  ).characterId;
+  if (onField === characterId) {
+    return rotation;
+  }
+  return {
+    ...rotation,
+    blocks: [
+      ...rotation.blocks.slice(0, index),
+      createTeamBlock(toTeamActionId(characterId, 'swap')),
+      ...rotation.blocks.slice(index),
+    ],
+  };
+};
+
+// A Swap block pointed at `characterId`.
+export const retargetSwap = (
+  rotation: RotationSetting,
+  uid: string,
+  characterId: string
+): RotationSetting => ({
+  ...rotation,
+  blocks: rotation.blocks.map((entry) =>
+    entry.uid === uid && isSwapAction(entry.action)
+      ? { ...entry, action: toTeamActionId(characterId, 'swap') }
+      : entry
+  ),
+});
+
+// Who a Swap just dropped goes to: the next block's member when they are
+// off the field there, else the first member off it (party order).
+export const aimSwap = (
+  rotation: RotationSetting,
+  uid: string,
+  memberIds: string[]
+): RotationSetting => {
+  const index = rotation.blocks.findIndex((entry) => entry.uid === uid);
+  if (index < 0 || !isSwapAction(rotation.blocks[index].action)) {
+    return rotation;
+  }
+  const memberOf = (action: string) => splitTeamActionId(action).characterId;
+  const onField =
+    index > 0 ? memberOf(rotation.blocks[index - 1].action) : null;
+  const next = rotation.blocks
+    .slice(index + 1)
+    .find(
+      (entry) => !isFieldAction(entry.action) && !isSwapAction(entry.action)
+    );
+  const target =
+    next && memberOf(next.action) !== onField
+      ? memberOf(next.action)
+      : memberIds.find((id) => id !== onField);
+  return target ? retargetSwap(rotation, uid, target) : rotation;
+};
+
+// Without the Swaps that do nothing: to the member already on the field
+// (left behind when a block of theirs was dropped before one).
+export const dropIdleSwaps = (rotation: RotationSetting): RotationSetting => {
+  const blocks = rotation.blocks.filter(
+    (entry, index) =>
+      !isSwapAction(entry.action) ||
+      index === 0 ||
+      splitTeamActionId(rotation.blocks[index - 1].action).characterId !==
+        splitTeamActionId(entry.action).characterId
+  );
+  return blocks.length === rotation.blocks.length
+    ? rotation
+    : { ...rotation, blocks };
 };
 
 // Each Dash or Wait block named after the member on the field there: the
@@ -326,10 +431,14 @@ export type TeamMemberRun = {
 };
 
 export type TeamRun = {
+  // Over the counted duration.
   dps: number;
-  // DMG over the whole run.
+  // DMG within the counted duration.
   totalDamage: number;
+  // How long the run played (s): its blocks past the counted duration too.
   duration: number;
+  // The part of it that counts (s): the build's duration, 60 by default.
+  countedDuration: number;
   trace: RotationTraceEntry[];
   // Every member's cooldowns, ids prefixed like its actions.
   cooldowns: CooldownTrack[];
@@ -426,6 +535,8 @@ export const runTeamExpected = (team: TeamState): TeamRun =>
 export type TeamRunSetup = Omit<TeamState, 'rotation'> & {
   rotation: RotationSetting | null;
   auras?: boolean;
+  // Hits after it (s) are played but not counted. None: the run's duration.
+  countedSeconds?: number;
 };
 
 // The team's rotation with CRITs rolled (the Simulate button), or expected.
@@ -436,19 +547,30 @@ export const runTeam = (
     fillWhileWaiting,
     swapDelayFrames,
     auras = true,
+    countedSeconds,
   }: TeamRunSetup,
   critMode: CritMode
 ): TeamRun => {
   const parsed = members.map(parseValues);
-  const duration = Math.max(1, readNumber(parsed[0], 'duration'));
+  const played = Math.max(1, readNumber(parsed[0], 'duration'));
+  const duration = Math.min(played, countedSeconds ?? played);
   const result = simulateTeam(
     members.map((values, index) => ({
       characterId: values.character,
       values: parsed[index],
     })),
     rotation,
-    { critMode, fillWhileWaiting, swapDelayFrames, auras }
+    {
+      critMode,
+      fillWhileWaiting,
+      swapDelayFrames,
+      auras,
+      countUntilFrame:
+        duration < played ? duration * FRAMES_PER_SECOND : undefined,
+    }
   );
+  const countedHits = (hitLog: HitLogEntry[]) =>
+    hitLog.filter((hit) => hit.counted);
   const total = result.totalDamage;
   const swaps = result.swaps.map(({ frame, characterId }) => ({
     time: frame / 60,
@@ -465,7 +587,8 @@ export const runTeam = (
   return {
     dps: total / duration,
     totalDamage: total,
-    duration,
+    duration: played,
+    countedDuration: duration,
     trace: result.rotationTrace,
     cooldowns: result.members.flatMap((member) =>
       (member.cooldowns ?? []).map((track) => ({
@@ -475,13 +598,17 @@ export const runTeam = (
       }))
     ),
     damageByBlock: getDamageByBlock(
-      result.members.flatMap((member) => member.context.hitLog),
+      result.members.flatMap((member) => countedHits(member.context.hitLog)),
       total,
       critMode === 'random'
     ),
     highestHit: result.members
       .map((member) =>
-        getHighestHit(member.characterId, member.name, member.context.hitLog)
+        getHighestHit(
+          member.characterId,
+          member.name,
+          countedHits(member.context.hitLog)
+        )
       )
       .reduce<TeamHighestHit | null>(
         (top, hit) => (hit && (!top || hit.damage > top.damage) ? hit : top),
@@ -500,7 +627,7 @@ export const runTeam = (
       highestHit: getHighestHit(
         member.characterId,
         member.name,
-        member.context.hitLog
+        countedHits(member.context.hitLog)
       ),
       dps: member.context.totalDamage / duration,
       damage: member.context.totalDamage,
@@ -519,7 +646,8 @@ const MAX_OWN_SECONDS = 600;
 
 // A rotation of one's own (edit mode): it plays every block, so the run
 // lasts past its duration when the blocks need it (to the second after
-// the last one ends); a looped one keeps its duration.
+// the last one ends), but only its duration counts: the blocks past it
+// are shown, not counted. A looped one keeps its duration.
 export const runOwnRotation = (team: TeamState, critMode: CritMode) => {
   const withSeconds = (seconds: number): TeamState => ({
     ...team,
@@ -535,7 +663,10 @@ export const runOwnRotation = (team: TeamState, critMode: CritMode) => {
   const probe = runTeam(withSeconds(MAX_OWN_SECONDS), 'expected');
   const lastEnd = Math.max(0, ...probe.trace.map((entry) => entry.endTime));
   const seconds = Math.min(MAX_OWN_SECONDS, Math.max(base, Math.ceil(lastEnd)));
-  return runTeam(seconds === base ? team : withSeconds(seconds), critMode);
+  return runTeam(
+    seconds === base ? team : { ...withSeconds(seconds), countedSeconds: base },
+    critMode
+  );
 };
 
 export type CooldownState = {

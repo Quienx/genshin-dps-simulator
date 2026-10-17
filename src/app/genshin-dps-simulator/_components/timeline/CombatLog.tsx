@@ -19,6 +19,7 @@ import { TimelineMember } from './TimelineChart';
 import {
   actionTitle,
   countUpTo,
+  displayAction,
   eventTimes,
   hitsOfAction,
   isReactionHit,
@@ -145,7 +146,7 @@ const CombatLog = ({
     const actionRows: LogRow[] = view.actions
       .filter((action) => action.start <= now)
       .map((action) => {
-        const rotationAction = actionsById.get(action.actionId);
+        const rotationAction = displayAction(action, actionsById);
         const all = actionHits.get(action.key) ?? [];
         const hits = all.filter((hit) => hit.time <= now);
         const pending = all.length - hits.length;

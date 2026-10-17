@@ -135,6 +135,10 @@ export const createKitAdapter = ({
         frames: Math.max(1, Math.round(seconds * FRAMES_PER_SECOND)),
       };
     }
+    // A swap in takes no time of its own (the team adds the swap).
+    if (id === 'swap') {
+      return { kind: 'wait', frames: 0 };
+    }
     return actions[id] ? { kind: 'cast', id } : null;
   };
 

@@ -10,12 +10,14 @@ type DamageSummaryProps = {
 };
 
 // The DMG dealt up to the playhead, out of the whole run's, and the DPS
-// so far.
+// so far. Only the counted duration (60 s) adds up: past it, both stay.
 const DamageSummary = ({ view, time }: DamageSummaryProps) => {
   // Every hit's time and the total up to it (once per run): each frame
   // only looks the total up.
   const damage = useMemo(() => {
-    const hits = [...view.hits].sort((a, b) => a.time - b.time);
+    const hits = view.hits
+      .filter((hit) => hit.counted)
+      .sort((a, b) => a.time - b.time);
     const times: number[] = [];
     const totals: number[] = [];
     let total = 0;
@@ -38,7 +40,12 @@ const DamageSummary = ({ view, time }: DamageSummaryProps) => {
       <div className='flex items-baseline justify-between gap-2'>
         <h2 className='text-sm font-semibold text-slate-50'>Damage</h2>
         <span className='text-[10px] text-slate-400 tabular-nums'>
-          {formatNumber(Math.round(time > 0 ? dealt / time : 0))} DPS
+          {formatNumber(
+            Math.round(
+              time > 0 ? dealt / Math.min(time, view.countedDuration) : 0
+            )
+          )}{' '}
+          DPS
         </span>
       </div>
       <p className='mt-1 text-xs text-slate-400 tabular-nums'>

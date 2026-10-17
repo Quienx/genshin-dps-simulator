@@ -156,6 +156,9 @@ type TeamOptions = {
   // The enemy's Pyro / Electro aura: Overloaded only happens when an
   // Electro hit lands on Pyro (or the reverse), and uses the aura up.
   auras?: boolean;
+  // Hits from this frame on are logged but not counted (a rotation played
+  // past its duration). None: every hit counts.
+  countUntilFrame?: number;
 };
 
 // Element auras (gcsim's gauge theory, simplified): a hit of U units on a
@@ -179,6 +182,7 @@ export const simulateTeam = (
     fillWhileWaiting = false,
     auras = false,
     swapDelayFrames = 0,
+    countUntilFrame,
   }: TeamOptions = {}
 ): TeamSimulationResult => {
   if (team.length === 0) {
@@ -344,7 +348,7 @@ export const simulateTeam = (
 
   team.forEach(({ characterId, values }, index) => {
     const loaded = getLoadedCharacter(characterId);
-    const context = createDamageContext(values, critMode);
+    const context = createDamageContext(values, critMode, countUntilFrame);
     const runtime = createRuntime({
       character: loaded.character,
       values,

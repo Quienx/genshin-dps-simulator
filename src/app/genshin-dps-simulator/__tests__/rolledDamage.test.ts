@@ -10,17 +10,17 @@ import { buildDefaultTeam, runTeam } from '../_lib/team';
 
 const block: RotationBlock = {
   uid: 'b1',
-  action: 'varesa:qSpecial',
+  action: 'varesa:burst',
   hits: 1,
   repeat: 1,
   seconds: 0,
   dashCancel: false,
 };
 const action = {
-  id: 'varesa:qSpecial',
+  id: 'varesa:burst',
   kind: 'burst',
-  label: 'Varesa: Q special',
-  shortLabel: 'Q special',
+  label: 'Varesa: Elemental Burst',
+  shortLabel: 'Q',
 } as RotationAction;
 const piece: TimelinePiece = {
   uid: 'b1',

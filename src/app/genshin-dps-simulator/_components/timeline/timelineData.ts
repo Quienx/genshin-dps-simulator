@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- reads systems params and ops as loose records */
 import { getLoadedCharacter } from '../../_lib/characterData';
 import {
+  isFieldAction,
+  splitTeamActionId,
+} from '../../_lib/engine/simulateTeam';
+import {
   ActionPiece,
   BlockChip,
   EnemyHit,
@@ -10,9 +14,12 @@ import { insertBlock, removeBlock } from '../../_lib/rotation/blocks';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
 import {
+  aimSwap,
   createTeamBlock,
+  dropIdleSwaps,
   getCharacterState,
   stampFieldActions,
+  swapInBefore,
   TeamMemberRun,
 } from '../../_lib/team';
 
@@ -123,15 +130,35 @@ export const blockFor = (action: RotationAction): RotationBlock => ({
   seconds: action.defaultSeconds ?? 1,
 });
 
+// The party, in order, from its actions' ids.
+const memberIdsOf = (actions: RotationAction[]) =>
+  Array.from(
+    new Set(actions.map((action) => splitTeamActionId(action.id).characterId))
+  );
+
+// After a drop: Dash and Wait name the member on the field, a block
+// dropped where its member is off the field gets a Swap in before it, and
+// a Swap that does nothing any more goes.
+const withSwapIn = (
+  rotation: RotationSetting,
+  uid: string,
+  rowMember: string | null
+) =>
+  stampFieldActions(
+    dropIdleSwaps(swapInBefore(stampFieldActions(rotation), uid, rowMember))
+  );
+
 // A drop before `beforeUid` (null: at the end): a palette action becomes a
 // new block there (picked), or a block moves there. Dropped on its own
 // place, nothing changes. Dash and Wait blocks then name the member on the
-// field where they are (stampFieldActions).
+// field where they are, and a Swap in is added if needed (withSwapIn).
 export const applyDrop = (
   rotation: RotationSetting,
   actions: RotationAction[],
   payload: DragPayload,
-  beforeUid: string | null
+  beforeUid: string | null,
+  // The member's row it was dropped on (a Wait there is theirs).
+  rowMember: string | null = null
 ): { rotation: RotationSetting; selected: string | null } => {
   if (payload.kind === 'new') {
     const action = actions.find((entry) => entry.id === payload.actionId);
@@ -140,7 +167,15 @@ export const applyDrop = (
     }
     const block = blockFor(action);
     return {
-      rotation: stampFieldActions(insertBlock(rotation, block, beforeUid)),
+      rotation: withSwapIn(
+        aimSwap(
+          insertBlock(rotation, block, beforeUid),
+          block.uid,
+          memberIdsOf(actions)
+        ),
+        block.uid,
+        rowMember
+      ),
       selected: block.uid,
     };
   }
@@ -148,16 +183,28 @@ export const applyDrop = (
     (block) => block.uid === payload.blockUid
   );
   const next = rotation.blocks[index + 1]?.uid ?? null;
-  if (index < 0 || beforeUid === payload.blockUid || beforeUid === next) {
+  // Dropped on its own place, it stays; a Dash or Wait put on another
+  // member's row there changes hands, though.
+  const changesHands =
+    index >= 0 &&
+    rowMember !== null &&
+    isFieldAction(rotation.blocks[index].action) &&
+    splitTeamActionId(rotation.blocks[index].action).characterId !== rowMember;
+  if (
+    index < 0 ||
+    (!changesHands && (beforeUid === payload.blockUid || beforeUid === next))
+  ) {
     return { rotation, selected: payload.blockUid };
   }
   return {
-    rotation: stampFieldActions(
+    rotation: withSwapIn(
       insertBlock(
         removeBlock(rotation, payload.blockUid),
         rotation.blocks[index],
-        beforeUid
-      )
+        beforeUid === payload.blockUid ? next : beforeUid
+      ),
+      payload.blockUid,
+      rowMember
     ),
     selected: payload.blockUid,
   };
@@ -186,6 +233,33 @@ export const eventCharacterState = (
   time: number
 ) => getCharacterState(member, time, action.start);
 
+// What a character had when it used an action (a block's tooltip): its
+// mechanic (Nightsoul points, Bond of Life) and Energy, out of the max,
+// just before the action changed them.
+export const resourcesAtAction = (
+  member: TeamMemberRun,
+  action: Pick<ActionPiece, 'start'>
+): {
+  label: string;
+  value: number | null;
+  max: number | null;
+  format?: 'percent';
+}[] => {
+  const state = getCharacterState(member, action.start, action.start);
+  return [state.mechanic, state.energy].flatMap((row) =>
+    row
+      ? [
+          {
+            label: row.label,
+            value: row.before ?? row.value,
+            max: row.max,
+            format: row.format,
+          },
+        ]
+      : []
+  );
+};
+
 // Every hit of a block's presses.
 export const hitsOfGroup = (view: InspectorView, group: ActionGroup) =>
   group.parts.flatMap((part) => hitsOfAction(view, part));
@@ -209,6 +283,144 @@ export const hitsOfAction = (view: InspectorView, action: ActionPiece) => {
       hit.time >= action.start - 1e-6 &&
       hit.time < nextTurn
   );
+};
+
+// Where each batch of particles is caught (edit mode draws a line there),
+// in time order: who made it, how many and of what element.
+export const particleArrivals = (
+  view: InspectorView
+): {
+  key: string;
+  time: number;
+  characterId: string;
+  count: number;
+  element: string;
+}[] =>
+  view.chips
+    .flatMap((chip) =>
+      chip.kind === 'particles' && chip.particles && !chip.hidden
+        ? [
+            {
+              key: chip.key,
+              time: chip.end ?? chip.start,
+              characterId: chip.characterId,
+              count: chip.particles.count,
+              element: chip.particles.element,
+            },
+          ]
+        : []
+    )
+    .sort((first, second) => first.time - second.time);
+
+// What a block on the chart is shown as: its palette action, named and
+// drawn as the form it was played as (Varesa's E in Fiery Passion is
+// Fiery Passion Rush, with its icon). So one E in the editor covers both.
+export const displayAction = (
+  piece: Pick<ActionPiece, 'shownActionId' | 'performedActionId'>,
+  actionsById: Map<string, RotationAction>
+): RotationAction | undefined => {
+  const action = actionsById.get(piece.shownActionId);
+  if (!action || !piece.performedActionId) {
+    return action;
+  }
+  const { characterId, actionId } = splitTeamActionId(piece.performedActionId);
+  const form = getLoadedCharacter(characterId).actions[actionId];
+  if (!form) {
+    return action;
+  }
+  const owner = action.label.match(/^[^:]+:\s*/)?.[0] ?? '';
+  return {
+    ...action,
+    label: `${owner}${form.label}`,
+    shortLabel: form.shortLabel,
+    icon: form.icon || action.icon,
+  };
+};
+
+// A status's applications as stretches on the chart: one renewed while up
+// (each hit refreshing it) is one stretch, not a bar per application drawn
+// over the others; `count` says how many it took.
+export const mergeSpans = (
+  spans: { start: number; end: number }[]
+): { start: number; end: number; count: number }[] =>
+  [...spans]
+    .sort((first, second) => first.start - second.start)
+    .reduce<{ start: number; end: number; count: number }[]>((merged, span) => {
+      const last = merged.at(-1);
+      if (last && span.start <= last.end + 1e-6) {
+        last.end = Math.max(last.end, span.end);
+        last.count += 1;
+      } else {
+        merged.push({ ...span, count: 1 });
+      }
+      return merged;
+    }, []);
+
+// The Selected Event's pin: a rotation block, which of its plays (combo
+// parts, loop repeats) and which of that play's hits (null: the latest).
+// Edits re-run the rotation, so it names those, not the run's positions.
+export type EventPin = { blockUid: string; turn: number; hit: number | null };
+
+const playsOf = (view: InspectorView, blockUid: string) =>
+  view.actions
+    .filter((action) => action.blockUid === blockUid)
+    .sort((first, second) => first.start - second.start);
+
+export const pinOf = (
+  view: InspectorView,
+  action: ActionPiece,
+  hit: Pick<EnemyHit, 'characterId' | 'index'> | null
+): EventPin => {
+  const index = hit
+    ? hitsOfAction(view, action).findIndex(
+        (entry) =>
+          entry.characterId === hit.characterId && entry.index === hit.index
+      )
+    : -1;
+  return {
+    blockUid: action.blockUid,
+    turn: Math.max(
+      0,
+      playsOf(view, action.blockUid).findIndex(
+        (entry) => entry.key === action.key
+      )
+    ),
+    hit: index < 0 ? null : index,
+  };
+};
+
+// What the Selected Event shows besides the playhead's: the pinned event
+// first (picking other blocks, such as a Wait to change it, leaves it),
+// else the block picked in edit mode.
+export const shownEvent = (
+  view: InspectorView,
+  pin: EventPin | null,
+  pickedBlock: string | null
+): { action: ActionPiece; hit: EnemyHit | null } | null =>
+  (pin && resolvePin(view, pin)) ||
+  (pickedBlock
+    ? resolvePin(view, { blockUid: pickedBlock, turn: 0, hit: null })
+    : null);
+
+// The pinned event in a (re-run) view: the same block's play and hit,
+// the last one if it has fewer now; null once the block is gone.
+export const resolvePin = (
+  view: InspectorView,
+  pin: EventPin
+): { action: ActionPiece; hit: EnemyHit | null } | null => {
+  const plays = playsOf(view, pin.blockUid);
+  if (plays.length === 0) {
+    return null;
+  }
+  const action = plays[Math.min(pin.turn, plays.length - 1)];
+  const hits = hitsOfAction(view, action);
+  return {
+    action,
+    hit:
+      pin.hit === null || hits.length === 0
+        ? null
+        : hits[Math.min(pin.hit, hits.length - 1)],
+  };
 };
 
 // Every moment something happens in a run (an action starts, a hit lands,

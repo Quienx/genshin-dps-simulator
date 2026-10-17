@@ -9,7 +9,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { Pencil } from 'lucide-react';
+import { Pencil, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -24,6 +24,11 @@ import PanelToggle from './PanelToggle';
 import { payloadOf } from './rotationDnd';
 import RotationEditBar from './RotationEditBar';
 import { buildRuler, fitPxPerSecond } from './ruler';
+import {
+  loadSavedRotations,
+  SavedRotation,
+  storeSavedRotations,
+} from './savedRotations';
 import { SourceLegend } from './sourceStyles';
 import TimelineChart, { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
@@ -56,7 +61,7 @@ import { getWeaponRefinement } from '../../_lib/weapons';
 
 const ZOOM_STEP = 1.25;
 // Edit mode: empty seconds after the run, room to drop new blocks in.
-const EDIT_ROOM_SECONDS = 20;
+const EDIT_ROOM_SECONDS = 10;
 // Wide enough to read every action: the timeline scrolls, as in a video
 // editor.
 const DEFAULT_PX_PER_SECOND = 60;
@@ -134,6 +139,17 @@ const SCENARIOS: Scenario[] = [
 const scenarioOf = (id: string) =>
   SCENARIOS.find((entry) => entry.id === id) ?? SCENARIOS[0];
 
+// The actions a scenario's members have now (a saved rotation is checked
+// against them).
+const scenarioActions = (id: string) =>
+  new Set(
+    getTeamActions(
+      scenarioOf(id)
+        .defaults()
+        .map((values) => values.character)
+    ).map((action) => action.id)
+  );
+
 // The new inspector: the party and the player on top, the run's timeline
 // below. CRITs are rolled, so the run is made in the browser only (the
 // server's would not match it).
@@ -164,13 +180,27 @@ const CombatTimelinePage = () => {
     },
     []
   );
-  useEffect(() => simulate(SCENARIOS[0].id), [simulate]);
+  // Edited rotations, per scenario, kept in this browser across reloads.
+  const saved = useRef<Record<string, SavedRotation>>({});
+  const keep = (id: string, next: OwnSetup | null) => {
+    const rest = { ...saved.current };
+    delete rest[id];
+    saved.current = next ? { ...rest, [id]: next } : rest;
+    storeSavedRotations(saved.current);
+  };
+  useEffect(() => {
+    saved.current = loadSavedRotations(scenarioActions);
+    const restored = saved.current[SCENARIOS[0].id] ?? null;
+    setOwn(restored);
+    simulate(SCENARIOS[0].id, undefined, restored);
+  }, [simulate]);
   const handleScenarioChange = useCallback(
     (id: string) => {
+      const restored = saved.current[id] ?? null;
       setScenario(id);
       setEditing(false);
-      setOwn(null);
-      simulate(id);
+      setOwn(restored);
+      simulate(id, undefined, restored);
     },
     [simulate]
   );
@@ -187,6 +217,7 @@ const CombatTimelinePage = () => {
     }
     const next = { ...own, ...patch };
     setOwn(next);
+    keep(scenario, next);
     simulate(scenario, state.members, next);
   };
   return (
@@ -205,6 +236,17 @@ const CombatTimelinePage = () => {
           : null
       }
       editing={editing}
+      // Back to the scenario's own rotation (the saved one is dropped).
+      onResetRotation={
+        own
+          ? () => {
+              keep(scenario, null);
+              setOwn(null);
+              setEditing(false);
+              simulate(scenario, state.members, null);
+            }
+          : undefined
+      }
       onEditToggle={() => {
         if (!editing && !own) {
           // What the chart shows, as blocks: each combo one block. Run
@@ -244,6 +286,7 @@ const CombatTimeline = ({
   edit,
   editing,
   onEditToggle,
+  onResetRotation,
 }: {
   builds: SimulationValues[];
   run: TeamRun;
@@ -259,6 +302,7 @@ const CombatTimeline = ({
   } | null;
   editing: boolean;
   onEditToggle: () => void;
+  onResetRotation?: () => void;
 }) => {
   const view = useMemo(
     () =>
@@ -353,11 +397,25 @@ const CombatTimeline = ({
     () => chartActions.filter((action) => !action.skipped),
     [chartActions]
   );
-  // The axis: the run, plus room for new blocks in edit mode.
+  // The axis: the run (to its last block, past the counted 60 s if the
+  // blocks go on), plus room to drop new blocks after them in edit mode.
   const axisSeconds = view.duration + (edit ? EDIT_ROOM_SECONDS : 0);
   // Edit mode: the block picked on the chart, and what is being dragged.
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
+  // The buff or debuff bar hovered on the chart (lit in the Event panel).
+  const [hoveredChip, setHoveredChip] = useState<string | null>(null);
+  // A click right after a drag ends (the browser's, on release) is not a
+  // pick: it would unpick the block just dropped.
+  const dragEndedAt = useRef(0);
+  // A click on a block picks it; on the picked one, unpicks it (the Event
+  // panel follows the playhead again).
+  const pickBlock = (blockUid: string) => {
+    if (performance.now() - dragEndedAt.current < 250) {
+      return;
+    }
+    setSelectedBlock((current) => (current === blockUid ? null : blockUid));
+  };
   // A drag starts past 5 px, so a click still picks a block or adds one.
   const dragSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -458,6 +516,18 @@ const CombatTimeline = ({
                 {!panels.chart && (
                   <SourceLegend className='mr-auto ml-4 hidden md:flex' />
                 )}
+                {onResetRotation && (
+                  <button
+                    type='button'
+                    data-testid='timeline-reset-rotation'
+                    title='Drop your edits and go back to the scenario rotation'
+                    onClick={onResetRotation}
+                    className='mr-2 flex h-7 items-center gap-1.5 rounded-md border border-slate-700/60 bg-slate-800/60 px-2.5 text-[11px] font-medium text-slate-300 hover:bg-slate-700/70'
+                  >
+                    <RotateCcw className='size-3.5' />
+                    Reset rotation
+                  </button>
+                )}
                 <button
                   type='button'
                   data-testid='timeline-edit-rotation'
@@ -485,8 +555,14 @@ const CombatTimeline = ({
                 sensors={dragSensors}
                 collisionDetection={pointerWithin}
                 onDragStart={(event) => setDragging(payloadOf(event))}
-                onDragEnd={() => setDragging(null)}
-                onDragCancel={() => setDragging(null)}
+                onDragEnd={() => {
+                  dragEndedAt.current = performance.now();
+                  setDragging(null);
+                }}
+                onDragCancel={() => {
+                  dragEndedAt.current = performance.now();
+                  setDragging(null);
+                }}
               >
                 {!panels.chart && edit && (
                   <RotationEditBar
@@ -513,16 +589,19 @@ const CombatTimeline = ({
                       onZoom={zoomBy}
                       onTrackWidthChange={handleTrackWidth}
                       selectedBlock={edit ? selectedBlock : null}
-                      onSelectBlock={edit ? setSelectedBlock : undefined}
+                      onSelectBlock={edit ? pickBlock : undefined}
                       axisSeconds={axisSeconds}
+                      onHoverChip={setHoveredChip}
+                      memberRuns={run.members}
                       onDropBlock={
                         edit
-                          ? (payload, beforeUid) => {
+                          ? (payload, beforeUid, rowMember) => {
                               const result = applyDrop(
                                 edit.rotation,
                                 Array.from(actionsById.values()),
                                 payload,
-                                beforeUid
+                                beforeUid,
+                                rowMember
                               );
                               edit.onChange(result.rotation);
                               setSelectedBlock(result.selected);
@@ -588,6 +667,9 @@ const CombatTimeline = ({
                 builds={builds}
                 collapsed={panels.event}
                 onToggle={() => togglePanel('event')}
+                pickedBlock={edit ? selectedBlock : null}
+                hoveredChip={hoveredChip}
+                onSeek={playback.seek}
               />
             </div>
             <EnemyPanel

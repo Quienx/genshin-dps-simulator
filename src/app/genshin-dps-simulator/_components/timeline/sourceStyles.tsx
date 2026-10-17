@@ -23,8 +23,10 @@ export type SourceKind =
 
 type SourceStyle = {
   label: string;
-  // A bar or a stripe.
+  // A bar or a stripe (and the legend's dot).
   bar: string;
+  // A buff's or debuff's bar on its row: see-through, with a border.
+  track: string;
   // An action's rectangle: border, fill and text.
   chip: string;
 };
@@ -34,61 +36,73 @@ export const SOURCE_STYLES: Record<SourceKind, SourceStyle> = {
     label: 'Normal',
     bar: 'bg-blue-500',
     chip: 'border-blue-400/60 bg-blue-500/25 text-blue-100',
+    track: 'border border-blue-400/70 bg-blue-500/25',
   },
   charged: {
     label: 'Charged',
     bar: 'bg-yellow-400',
     chip: 'border-yellow-300/60 bg-yellow-400/25 text-yellow-100',
+    track: 'border border-yellow-300/70 bg-yellow-400/25',
   },
   plunge: {
     label: 'Plunge',
     bar: 'bg-red-500',
     chip: 'border-red-400/60 bg-red-500/25 text-red-100',
+    track: 'border border-red-400/70 bg-red-500/25',
   },
   skill: {
     label: 'Skill (E)',
     bar: 'bg-orange-500',
     chip: 'border-orange-400/60 bg-orange-500/25 text-orange-100',
+    track: 'border border-orange-400/70 bg-orange-500/25',
   },
   burst: {
     label: 'Burst (Q)',
     bar: 'bg-violet-500',
     chip: 'border-violet-400/60 bg-violet-500/25 text-violet-100',
+    track: 'border border-violet-400/70 bg-violet-500/25',
   },
   talent: {
     label: 'Talent',
     bar: 'bg-slate-400',
     chip: 'border-slate-300/60 bg-slate-400/25 text-slate-100',
+    track: 'border border-slate-300/70 bg-slate-400/25',
   },
   passive: {
     label: 'Passive',
     bar: 'bg-green-500',
     chip: 'border-green-400/60 bg-green-500/25 text-green-100',
+    track: 'border border-green-400/70 bg-green-500/25',
   },
   constellation: {
     label: 'Constellation',
     bar: 'bg-fuchsia-500',
     chip: 'border-fuchsia-400/60 bg-fuchsia-500/25 text-fuchsia-100',
+    track: 'border border-fuchsia-400/70 bg-fuchsia-500/25',
   },
   weapon: {
     label: 'Weapon',
     bar: 'bg-cyan-400',
     chip: 'border-cyan-300/60 bg-cyan-400/25 text-cyan-100',
+    track: 'border border-cyan-300/70 bg-cyan-400/25',
   },
   artifact: {
     label: 'Set',
     bar: 'bg-pink-300',
     chip: 'border-pink-200/60 bg-pink-300/25 text-pink-50',
+    track: 'border border-pink-200/70 bg-pink-300/25',
   },
   system: {
     label: 'System',
     bar: 'bg-slate-100',
     chip: 'border-slate-100/60 bg-slate-100/20 text-slate-50',
+    track: 'border border-slate-100/70 bg-slate-100/25',
   },
   other: {
     label: 'Other',
     bar: 'bg-slate-600',
     chip: 'border-slate-500/50 bg-slate-600/25 text-slate-100',
+    track: 'border border-slate-500/70 bg-slate-600/25',
   },
 };
 

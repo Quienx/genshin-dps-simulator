@@ -1,5 +1,6 @@
 import { DAMAGE_ELEMENTS } from './characterSchema';
 import { getResistanceFieldName } from './enemyDummy';
+import { FRAMES_PER_SECOND } from './frames';
 import { getReactionMultiplier, getTransformativeReaction } from './reactions';
 import { readNumber } from './readValue';
 import {
@@ -80,7 +81,8 @@ const buildResistanceMultipliers = (
 
 export const createDamageContext = (
   values: ParsedValues,
-  critMode: CritMode = 'random'
+  critMode: CritMode = 'random',
+  countUntilFrame?: number
 ): DamageContext => ({
   values,
   critMode,
@@ -94,6 +96,7 @@ export const createDamageContext = (
   highestHit: null,
   hitLog: [],
   cumulativeDamage: 0,
+  countUntilFrame,
 });
 
 const getElementDamageBonus = (
@@ -271,12 +274,25 @@ export const addHit = (
   });
 };
 
-// Adds a dealt hit to the run's totals and its log.
+// Adds a dealt hit to the run's totals and its log. One after the counted
+// duration is only logged.
 const recordHit = (
   context: DamageContext,
-  entry: Omit<HitLogEntry, 'index' | 'cumulativeDamage'>
+  entry: Omit<HitLogEntry, 'index' | 'cumulativeDamage' | 'counted'>
 ) => {
   const { category, damage, maxDamage, isCrit } = entry;
+  if (
+    context.countUntilFrame !== undefined &&
+    Math.round(entry.time * FRAMES_PER_SECOND) >= context.countUntilFrame
+  ) {
+    context.hitLog.push({
+      ...entry,
+      index: context.hitLog.length + 1,
+      cumulativeDamage: context.cumulativeDamage,
+      counted: false,
+    });
+    return;
+  }
   context.totalDamage += damage;
   context.cumulativeDamage += damage;
   context.totalHits++;
@@ -294,8 +310,9 @@ const recordHit = (
 
   context.hitLog.push({
     ...entry,
-    index: context.totalHits,
+    index: context.hitLog.length + 1,
     cumulativeDamage: context.cumulativeDamage,
+    counted: true,
   });
 };
 

@@ -111,6 +111,7 @@ export const playRotation = <A>(
       warning: description.warning,
       note: null,
       performedAction: description.performedAction,
+      blockAction: step.blockAction,
       skipped: description.skipped ?? false,
     };
     trace.push(entry);
