@@ -8,6 +8,7 @@ import {
   simulateFile,
 } from './fixtures';
 import { loadCharacterFile } from '../_lib/characterData';
+import { simulateTeam } from '../_lib/engine/simulateTeam';
 import formatNumber from '../_lib/formatNumber';
 import { buildDefaultValues, parseValues } from '../_lib/simulationValues';
 import { getRowMultiplier } from '../_lib/talents';
@@ -1773,5 +1774,176 @@ describe('a skipped step in the trace', () => {
     expect(second.skipped).toBe(true);
     expect(second.warning).toBeTruthy();
     expect(skill.startTime).toBeCloseTo(second.startTime, 5);
+  });
+});
+
+describe('a bonus with an `if` condition', () => {
+  // Arlecchino's copy: +100% DMG while she is off the field. Her
+  // Directive ticks 5 s after her E, when Nicole is on the field.
+  const offField = loadCharacterFile(
+    editCharacter('arlecchino', (file) => {
+      file.id = 'offfielddummy';
+      (file.blocks as unknown[]).push({
+        id: 'off-field-dmg',
+        type: 'bonus',
+        source: 'talent',
+        label: 'Off the field: +100% DMG',
+        stat: 'dmgBonus',
+        value: 100,
+        if: { not: { onField: true } },
+      });
+    })
+  );
+  const team = simulateTeam(
+    [
+      {
+        characterId: 'offfielddummy',
+        values: parseValues(buildDefaultValues('arlecchino')),
+        loaded: offField,
+      },
+      {
+        characterId: 'nicole',
+        values: parseValues(buildDefaultValues('nicole')),
+      },
+    ],
+    {
+      loop: false,
+      blocks: [
+        block('e', 'offfielddummy:skill'),
+        block('n', 'nicole:skill'),
+        block('w', 'nicole:wait', { seconds: 6 }),
+      ],
+    },
+    { auras: false }
+  );
+  const hits = team.members.find(
+    (member) => member.characterId === 'offfielddummy'
+  )!.context.hitLog;
+
+  it('applies while it holds (a Directive tick off the field)', () => {
+    const tick = hits.find((hit) => hit.category === 'Directive')!;
+    expect(tick.extraBonus).toBeGreaterThanOrEqual(100);
+  });
+
+  it('does not apply while it does not (her E, on the field)', () => {
+    const e = hits.find((hit) => hit.category === 'Skill')!;
+    expect(e.extraBonus).toBeLessThan(100);
+  });
+});
+
+describe('status ticks with a fractional interval and their own first tick', () => {
+  // A Mek-like status: first tick 148 frames after it starts, then every
+  // 58.5 frames, rounded up per tick as gcsim does (ceil(58.5 × i)).
+  const ticking = loadCharacterFile(
+    editCharacter('arlecchino', (file) => {
+      file.id = 'tickdummy';
+      const directive = (file.blocks as { id: string; ticks?: object }[]).find(
+        (entry) => entry.id === 'directive'
+      )!;
+      directive.ticks = {
+        firstAfterFrames: 148,
+        everyFrames: 58.5,
+        count: 3,
+        row: 'elementalSkill/blood-debt-directive',
+        element: 'Pyro',
+        category: 'Directive',
+        gauge: 1,
+        icd: 'directive',
+        icdGroup: 'escoffierSkill',
+      };
+    })
+  );
+  const team = simulateTeam(
+    [
+      {
+        characterId: 'tickdummy',
+        values: parseValues(buildDefaultValues('arlecchino')),
+        loaded: ticking,
+      },
+    ],
+    {
+      loop: false,
+      blocks: [
+        block('e', 'tickdummy:skill'),
+        block('w', 'tickdummy:wait', { seconds: 10 }),
+      ],
+    },
+    {}
+  );
+  const ticks = team.members[0].context.hitLog.filter(
+    (hit) => hit.category === 'Directive'
+  );
+  const placed = team.members[0].context.hitLog.find(
+    (hit) => hit.category === 'Skill'
+  )!;
+
+  it('lands at the first tick, then every 58.5 frames rounded up', () => {
+    const offsets = ticks.map((hit) =>
+      Math.round((hit.time - ticks[0].time) * 60)
+    );
+    expect(offsets).toEqual([0, 59, 117]);
+    expect(ticks).toHaveLength(3);
+    expect(placed).toBeDefined();
+  });
+});
+
+describe('party element count', () => {
+  // Arlecchino's copy: DMG Bonus by how many Pyro members the party has
+  // (Escoffier's A4 tiers), and +100% only with a Pyro-only party.
+  const counting = loadCharacterFile(
+    editCharacter('arlecchino', (file) => {
+      file.id = 'pyrocountdummy';
+      (file.blocks as unknown[]).push(
+        {
+          id: 'per-pyro',
+          type: 'bonus',
+          source: 'talent',
+          label: 'By Pyro members',
+          stat: 'dmgBonus',
+          value: [1000, 2000, 3000, 4000],
+          scaleBy: { partyElements: ['Pyro'] },
+        },
+        {
+          id: 'all-pyro',
+          type: 'bonus',
+          source: 'talent',
+          label: 'Pyro-only party',
+          stat: 'dmgBonus',
+          value: 100000,
+          if: { partyElements: ['Pyro'], everyone: true },
+        }
+      );
+    })
+  );
+  const member = (id: string) => ({
+    characterId: id,
+    values: parseValues(buildDefaultValues(id)),
+  });
+  const bonusWith = (others: string[]) => {
+    const team = simulateTeam(
+      [
+        {
+          characterId: 'pyrocountdummy',
+          values: parseValues(buildDefaultValues('arlecchino')),
+          loaded: counting,
+        },
+        ...others.map(member),
+      ],
+      { loop: false, blocks: [block('e', 'pyrocountdummy:skill')] },
+      {}
+    );
+    return team.members[0].context.hitLog[0].extraBonus;
+  };
+
+  it('picks the value by how many members are of those elements', () => {
+    // Alone 1 Pyro, with Nicole 2, plus Chevreuse 3.
+    const one = bonusWith([]);
+    expect(bonusWith(['nicole']) - one).toBeCloseTo(1000, 6);
+    expect(bonusWith(['nicole', 'chevreuse']) - one).toBeCloseTo(2000, 6);
+  });
+
+  it('holds `everyone` only when every member is of those elements', () => {
+    expect(bonusWith(['nicole'])).toBeGreaterThan(100000);
+    expect(bonusWith(['nicole', 'varesa'])).toBeLessThan(100000);
   });
 });

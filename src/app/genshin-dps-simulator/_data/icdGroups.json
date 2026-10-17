@@ -1,0 +1,19 @@
+{
+  "_comment": "gcsim's ICD groups (pkg/core/attacks/icd_groups.dm.go): frames until the count restarts, and which hits apply their element (1), none (0) or a share. Past the sequence's end, none.",
+  "standard": {
+    "resetFrames": 150,
+    "sequence": [
+      1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0
+    ]
+  },
+  "poleExtraAttack": {
+    "resetFrames": 30,
+    "sequence": [
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ]
+  },
+  "escoffierSkill": {
+    "resetFrames": 90,
+    "sequence": [1, 0, 0, 0, 0, 0]
+  }
+}

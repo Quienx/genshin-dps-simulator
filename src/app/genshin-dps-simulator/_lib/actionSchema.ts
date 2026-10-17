@@ -73,6 +73,8 @@ export const rowTimingSchema = z.object({
   // sharing a tag apply their element on the 1st, 4th, 7th… hit, or the
   // first one 2.5 s after the count restarted. None: every hit applies.
   icd: z.string().optional(),
+  // Its ICD group (gcsim's, in _data/icdGroups.json); "standard" if none.
+  icdGroup: z.string().optional(),
 });
 
 export const cooldownSchema = z.object({
@@ -120,6 +122,7 @@ export const talentActionSchema = z.object({
         element: z.string().optional(),
         gauge: z.number().min(0).optional(),
         icd: z.string().optional(),
+        icdGroup: z.string().optional(),
       })
     )
     .optional(),
@@ -205,8 +208,9 @@ export type ActionHitData = {
   category?: string;
   // Element units it applies (1 when missing).
   gauge?: number;
-  // Its elemental application ICD tag (none: it always applies).
+  // Its elemental application ICD tag (none: it always applies) and group.
   icd?: string;
+  icdGroup?: string;
 };
 
 type ComboStepData = {
@@ -312,6 +316,7 @@ const toHits = (talentId: string, row: TimedRow): ActionHitData[] =>
     category: row.timing.category,
     gauge: row.timing.gauge,
     icd: row.timing.icd,
+    icdGroup: row.timing.icdGroup,
   }));
 
 // The actions every talent defines, keyed by the rotation block id

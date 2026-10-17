@@ -1,6 +1,7 @@
 import { DescribeContext, describeEffect } from './describeBlock';
 import { causeId, createEventLog, EventLog, SimEventKind } from './eventLog';
 import { CONDITION_HOOKS, HookContext, OPERATION_HOOKS } from './hooks';
+import { createIcd } from './icd';
 import { expandSystems } from './modules';
 import {
   createHitEnergy,
@@ -55,9 +56,6 @@ const OFF_FIELD_PARTICLES = 0.6;
 
 // How long a dropped particle takes to be caught (gcsim's default).
 const ENEMY_PARTICLE_DELAY_FRAMES = 100;
-// The standard elemental application ICD: every 3rd hit, or after 2.5 s.
-const ICD_HITS = 3;
-const ICD_RESET_FRAMES = 150;
 
 type StatusInstance = {
   uid: number;
@@ -167,8 +165,9 @@ export type HitRequest = {
   row?: string;
   // Element units the hit applies to the enemy (1 when missing).
   gauge?: number;
-  // Its elemental application ICD tag (none: it always applies).
+  // Its elemental application ICD tag (none: it always applies) and group.
   icd?: string;
+  icdGroup?: string;
   // Trace entry of the action the hit belongs to, for notes.
   entry: RotationTraceEntry | null;
 };
@@ -187,6 +186,8 @@ export type EvalContext = {
 export type PartyLink = {
   // The shared clock.
   queue: EventQueue;
+  // Every member's element (this character's included).
+  elements: string[];
   // Whether this character is on the field at `frame`.
   isOnField: (frame: number) => boolean;
   // The id of the member on the field at `frame`.
@@ -379,8 +380,14 @@ export const createRuntime = ({
     return value;
   };
 
+  // The party's elements (alone, its own), for party element counts.
+  const partyElements = party?.elements ?? [character.element];
+  const partyElementCount = (elements: string[]) =>
+    partyElements.filter((element) => elements.includes(element)).length;
+
   // Bonuses that read a talent row get its value at this run's level; those
-  // that read a form field, the field's.
+  // that read a form field, the field's; those scaled by a party element
+  // count, the value for it (1-based, as a field's).
   const allBonuses = blocks
     .filter((block): block is BonusBlock => block.type === 'bonus')
     .map((block) => ({
@@ -390,6 +397,20 @@ export const createRuntime = ({
         ? { value: readNumber(values, block.valueField) }
         : {}),
       ...(block.capRow ? { cap: rowMultiplier(block.capRow) } : {}),
+      ...(block.scaleBy &&
+      'partyElements' in block.scaleBy &&
+      Array.isArray(block.value)
+        ? {
+            value:
+              block.value[
+                Math.min(
+                  block.value.length,
+                  Math.max(1, partyElementCount(block.scaleBy.partyElements))
+                ) - 1
+              ],
+            scaleBy: undefined,
+          }
+        : {}),
     }));
   // Team buffs are for the rest of the party: only the details read them.
   const bonuses = allBonuses.filter((block) => !block.teamBuff);
@@ -458,6 +479,10 @@ export const createRuntime = ({
     ).length;
     return Math.min(block.stacks.max, active);
   };
+
+  // A bonus's `if` (any condition, e.g. off the field) at `frame`.
+  const bonusIfHolds = (block: BonusBlock, frame: number): boolean =>
+    !block.if || evaluate(block.if, frame);
 
   const isActive = (id: string, frame: number): boolean => {
     const block = statusBlocks.get(id);
@@ -685,8 +710,10 @@ export const createRuntime = ({
 
     const { ticks } = block;
     if (ticks) {
+      const first = ticks.firstAfterFrames ?? ticks.everyFrames;
       for (let tick = 1; tick <= ticks.count; tick++) {
-        queue.push(frame + ticks.everyFrames * tick, (tickFrame) => {
+        const at = Math.ceil(first + ticks.everyFrames * (tick - 1));
+        queue.push(frame + at, (tickFrame) => {
           if (instances.get(id)?.uid !== instance.uid) {
             return;
           }
@@ -699,6 +726,9 @@ export const createRuntime = ({
             element: ticks.element,
             scaling: rowScaling(ticks.row),
             sourceId: id,
+            gauge: ticks.gauge,
+            icd: ticks.icd,
+            icdGroup: ticks.icdGroup,
             entry: null,
           });
         });
@@ -1036,6 +1066,12 @@ export const createRuntime = ({
     if ('onField' in condition) {
       return party?.isOnField(frame) ?? true;
     }
+    if ('partyElements' in condition) {
+      const count = partyElementCount(condition.partyElements);
+      return condition.everyone
+        ? count === partyElements.length
+        : count >= (condition.gte ?? 1);
+    }
     if ('all' in condition) {
       return condition.all.every((entry) =>
         evaluate(entry, frame, evalContext)
@@ -1235,6 +1271,7 @@ export const createRuntime = ({
           blockUid: entry?.blockUid,
           gauge: hit.gauge,
           icd: hit.icd,
+          icdGroup: hit.icdGroup,
           entry: null,
         };
         if (attacker && party) {
@@ -1519,6 +1556,7 @@ export const createRuntime = ({
   performHit = (request: HitRequest) => {
     const state = getStateValues(request.frame);
     const holdsFor = (target: HitRequest, block: BonusBlock, element: string) =>
+      bonusIfHolds(block, target.frame) &&
       matchesHit(block.match, target, element) &&
       Object.entries(block.while ?? {}).every(([id, bounds]) =>
         meetsBounds(state[id] ?? 0, bounds)
@@ -1563,7 +1601,11 @@ export const createRuntime = ({
 
     const effects = [
       ...statBonuses
-        .filter(({ block }) => matchesHit(block.match, hit, element))
+        .filter(
+          ({ block }) =>
+            bonusIfHolds(block, hit.frame) &&
+            matchesHit(block.match, hit, element)
+        )
         .map(({ effect }) => effect),
       ...(party?.receiveEffects(hit.frame) ?? []),
     ];
@@ -1601,10 +1643,19 @@ export const createRuntime = ({
     // On the enemy's aura: the reaction this hit triggers. An amplifying
     // one (Melt) multiplies this hit; a transformative one (Overloaded) is
     // dealt after it, by this character.
+    // The share of its element the ICD lets it apply (0: none).
+    const applied =
+      element === 'Physical' || !party?.applyElement
+        ? 0
+        : icd.applies(hit.icd, hit.icdGroup, hit.frame);
     const auraReaction =
-      element === 'Physical' || !appliesElement(hit.icd, hit.frame)
-        ? null
-        : party?.applyElement?.(element, hit.gauge ?? 1, hit.frame) ?? null;
+      applied > 0
+        ? party?.applyElement?.(
+            element,
+            (hit.gauge ?? 1) * applied,
+            hit.frame
+          ) ?? null
+        : null;
     const amplified =
       auraReaction && isAmplifyingReaction(auraReaction) ? auraReaction : null;
 
@@ -1712,22 +1763,9 @@ export const createRuntime = ({
     shareHit(hitKeys, hit.frame);
   };
 
-  // gcsim's standard elemental application ICD, per tag: a hit applies on
-  // the 1st, 4th, 7th… hit of the tag, or on the first one 2.5 s after the
-  // count restarted (which restarts it). Untagged hits always apply.
-  const icdCounters = new Map<string, { start: number; hits: number }>();
-  const appliesElement = (tag: string | undefined, frame: number) => {
-    if (!tag) {
-      return true;
-    }
-    const counter = icdCounters.get(tag);
-    if (!counter || frame - counter.start >= ICD_RESET_FRAMES) {
-      icdCounters.set(tag, { start: frame, hits: 1 });
-      return true;
-    }
-    counter.hits += 1;
-    return (counter.hits - 1) % ICD_HITS === 0;
-  };
+  // gcsim's elemental application ICD, per tag (groups in
+  // _data/icdGroups.json).
+  const icd = createIcd();
 
   // `party:` triggers react to any member's hit, `active:` ones to the
   // active member's (a character alone is its whole party, on the field).
@@ -1806,7 +1844,11 @@ export const createRuntime = ({
     };
     const effects = [
       ...statBonuses
-        .filter(({ block }) => matchesHit(block.match, request, element))
+        .filter(
+          ({ block }) =>
+            bonusIfHolds(block, frame) &&
+            matchesHit(block.match, request, element)
+        )
         .map(({ effect }) => effect),
       ...(party?.receiveEffects(frame) ?? []),
     ].filter(
@@ -1860,7 +1902,9 @@ export const createRuntime = ({
     const state = getStateValues(frame);
     const effects = [
       ...statBonuses
-        .filter(({ block }) => !block.match?.actions)
+        .filter(
+          ({ block }) => !block.match?.actions && bonusIfHolds(block, frame)
+        )
         .map(({ effect }) => effect),
       ...(party?.receiveEffects(frame, true) ?? []),
     ].filter((effect) => !effect.extra);
@@ -1899,9 +1943,11 @@ export const createRuntime = ({
       if (block.teamBuff === 'active' && !receiverActive) {
         return [];
       }
-      const holdsNow = Object.entries(block.while ?? {}).every(([id, bounds]) =>
-        meetsBounds(state[id] ?? 0, bounds)
-      );
+      const holdsNow =
+        bonusIfHolds(block, frame) &&
+        Object.entries(block.while ?? {}).every(([id, bounds]) =>
+          meetsBounds(state[id] ?? 0, bounds)
+        );
       if (!holdsNow) {
         return [];
       }

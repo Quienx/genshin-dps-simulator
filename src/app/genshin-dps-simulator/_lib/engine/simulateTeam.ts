@@ -351,6 +351,9 @@ export const simulateTeam = (
 
   const linkFor = (index: number): PartyLink => ({
     queue,
+    elements: team.map(
+      ({ characterId }) => loadedOf(characterId).character.element
+    ),
     isOnField: (frame) => activeAt(frame) === index,
     activeMember: (frame) => ids[Math.max(0, activeAt(frame))],
     events: eventLog,

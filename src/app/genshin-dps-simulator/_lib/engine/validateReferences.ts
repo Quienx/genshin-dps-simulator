@@ -1,3 +1,4 @@
+import { isIcdGroup } from './icd';
 import { expandSystems } from './modules';
 import { Block, Condition, Op } from './schema';
 import { CharacterData } from '../characterSchema';
@@ -24,6 +25,25 @@ export const validateReferences = (character: CharacterData) => {
       `${character.name}: ${where} names an unknown ${kind} "${id}"`
     );
   };
+
+  // An ICD group named anywhere (rows, hits, hit ops) must be one of
+  // _data/icdGroups.json's.
+  const icdGroups = (value: unknown, where: string): void => {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => icdGroups(entry, where));
+    } else if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, entry]) => {
+        if (key === 'icdGroup' && typeof entry === 'string') {
+          if (!isIcdGroup(entry)) {
+            fail(where, 'ICD group', entry);
+          }
+        } else {
+          icdGroups(entry, where);
+        }
+      });
+    }
+  };
+  icdGroups(character, 'the file');
   const resource = (where: string, id: string) => {
     if (!resources.has(id)) {
       fail(where, 'resource', id);
@@ -103,6 +123,7 @@ export const validateReferences = (character: CharacterData) => {
     }
     if (block.type === 'bonus') {
       Object.keys(block.while ?? {}).forEach((id) => state(where, id));
+      condition(where, block.if);
       if (block.perStack) {
         state(where, block.perStack.state);
       }

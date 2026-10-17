@@ -51,6 +51,10 @@ export type Condition =
   | { previous: string }
   // On the field (a character alone always is).
   | { onField: true }
+  // How many party members are of these elements: at least `gte` (1 when
+  // missing), or every member with `everyone`. Alone, the party is the
+  // character.
+  | { partyElements: string[]; gte?: number; everyone?: true }
   | { all: Condition[] }
   | { any: Condition[] }
   | { not: Condition }
@@ -65,6 +69,13 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
     z.object({ ready: z.string() }).strict(),
     z.object({ previous: z.string() }).strict(),
     z.object({ onField: z.literal(true) }).strict(),
+    z
+      .object({
+        partyElements: z.array(z.string()).min(1),
+        gte: z.number().int().min(0).optional(),
+        everyone: z.literal(true).optional(),
+      })
+      .strict(),
     z.object({ all: z.array(conditionSchema) }).strict(),
     z.object({ any: z.array(conditionSchema) }).strict(),
     z.object({ not: conditionSchema }).strict(),
@@ -145,8 +156,10 @@ export const opSchema = z.union([
           element: z.union([elementSchema, z.literal('attacker')]),
           // Element units it applies to the enemy (1 when missing).
           gauge: z.number().min(0).optional(),
-          // Its elemental application ICD tag (see the talents' rows).
+          // Its elemental application ICD tag and group (see the talents'
+          // rows).
           icd: z.string().optional(),
+          icdGroup: z.string().optional(),
           // Dealt by the member whose hit fired the trigger (a `party:` or
           // `active:` one), with that member's stats: Nicole's Arcane
           // Projections. Alone, the character itself deals it.
@@ -303,7 +316,14 @@ export const bonusBlockSchema = z
     stat: z.enum(BONUS_STATS).optional(),
     // One value, or one per refinement / level picked by `scaleBy`.
     value: z.union([z.number(), z.array(z.number()).min(1)]).optional(),
-    scaleBy: z.object({ field: z.string() }).optional(),
+    // By a number field (refinement, level), or by how many party members
+    // are of these elements (Escoffier's A4: 1, 2, 3 or 4 Hydro/Cryo).
+    scaleBy: z
+      .union([
+        z.object({ field: z.string() }).strict(),
+        z.object({ partyElements: z.array(z.string()).min(1) }).strict(),
+      ])
+      .optional(),
     // `value` is a % of this stat's total at the moment of the hit (after
     // the other bonuses, but not other `ofStat` ones): flat DMG equal to 60%
     // of DEF, or 1% ATK per 1,000 Max HP (0.1).
@@ -337,6 +357,10 @@ export const bonusBlockSchema = z
     match: hitMatchSchema.optional(),
     // State values that must hold at the moment of the hit.
     while: z.record(stateConditionSchema).optional(),
+    // Any condition that must hold then, as a trigger's `if` (e.g. off the
+    // field: `{ "not": { "onField": true } }`). A team buff checks it on
+    // the giver.
+    if: conditionSchema.optional(),
     // "Extra" (gcsim): buffs that convert a stat (`ofStat`, like Iansan's
     // Scale from her ATK) never count it, so they do not feed each other.
     extra: z.boolean().optional(),
@@ -401,11 +425,19 @@ export const statusBlockSchema = z
     // Periodic hits while the status lasts.
     ticks: z
       .object({
-        everyFrames: frames,
+        // May be fractional (58.5): tick n lands ceil(everyFrames × n)
+        // after the first, as gcsim rounds it.
+        everyFrames: z.number().positive(),
+        // The first tick, from the start (everyFrames when missing).
+        firstAfterFrames: frames.optional(),
         count: z.number().int().min(1),
         row: z.string(),
         element: elementSchema,
         category: z.string(),
+        // Element units each tick applies (1 when missing), and its ICD.
+        gauge: z.number().min(0).optional(),
+        icd: z.string().optional(),
+        icdGroup: z.string().optional(),
       })
       .optional(),
     // A stack status: each stack lasts on its own; the value is the count.

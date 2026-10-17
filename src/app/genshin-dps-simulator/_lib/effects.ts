@@ -12,7 +12,9 @@ export type EffectData = {
   label: string;
   stat: StatBonusBlock['stat'];
   value: StatBonusBlock['value'];
-  scaleBy?: BonusBlock['scaleBy'];
+  // A field's value picks it; a party element count is resolved by the
+  // runtime before (the party never changes in a run).
+  scaleBy?: { field: string };
   perStack?: BonusBlock['perStack'];
   ofStat?: BonusBlock['ofStat'];
   cap?: number;
@@ -31,7 +33,8 @@ export const toEffect = (block: StatBonusBlock): EffectData => ({
   label: block.label,
   stat: block.stat,
   value: block.value,
-  scaleBy: block.scaleBy,
+  scaleBy:
+    block.scaleBy && 'field' in block.scaleBy ? block.scaleBy : undefined,
   perStack: block.perStack,
   ofStat: block.ofStat,
   cap: block.cap,
