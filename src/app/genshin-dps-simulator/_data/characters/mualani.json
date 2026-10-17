@@ -1,0 +1,1226 @@
+{
+  "id": "mualani",
+  "name": "Mualani",
+  "element": "Hydro",
+  "weaponType": "Catalyst",
+  "rarity": 5,
+  "scalingStat": "hp",
+  "baseStats": {
+    "hp": 15185,
+    "atk": 182,
+    "def": 570
+  },
+  "ascensionStat": {
+    "stat": "critRate",
+    "value": 19.2
+  },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Mualani"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Cooling Treatment",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "normal-1",
+          "label": "1st Normal Attack hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                51.4, 55.25, 59.11, 64.24, 68.1, 71.95, 77.09, 82.23, 87.37,
+                92.51, 97.65, 102.79, 109.22
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [11],
+            "end": 23,
+            "element": "Hydro",
+            "note": "Catalyst combo outside Nightsoul's Blessing; while surfing, the Normal Attack is Sharky's Bite."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-2",
+          "label": "2nd Normal Attack hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                44.63, 47.97, 51.32, 55.78, 59.13, 62.48, 66.94, 71.4, 75.86,
+                80.33, 84.79, 89.25, 94.83
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [9],
+            "end": 22,
+            "element": "Hydro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-3",
+          "label": "3rd Normal Attack hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                70.03, 75.29, 80.54, 87.54, 92.8, 98.05, 105.05, 112.05, 119.06,
+                126.06, 133.07, 140.07, 148.82
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [31],
+            "end": 54,
+            "element": "Hydro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charged",
+          "label": "Charged Attack",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                142.88, 153.6, 164.31, 178.6, 189.32, 200.03, 214.32, 228.61,
+                242.9, 257.18, 271.47, 285.76, 303.62
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Normal Attack\nPerforms up to 3 attacks that deal Hydro DMG.\n\nCharged Attack\nConsumes a certain amount of Stamina to smack a Pufferball into the air that deals AoE Hydro DMG upon landing.\n\nPlunging Attack\nGathers the power of Hydro and plunges towards the ground from mid-air, damaging all opponents in her path. Deals AoE Hydro DMG upon impact with the ground."
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Surfshark Wavebreaker",
+      "icon": "Skill_S_Mualani_01",
+      "levelField": "biteTalentLevel",
+      "boostedBy": "c3",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "bite-base",
+          "label": "Sharky's Bite base DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                8.68, 9.33, 9.98, 10.85, 11.5, 12.15, 13.02, 13.89, 14.76,
+                15.62, 16.49, 17.36, 18.45
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "bite-per-stack",
+          "label": "Wave Momentum bonus",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                4.34, 4.67, 4.99, 5.43, 5.75, 6.08, 6.51, 6.94, 7.38, 7.81,
+                8.25, 8.68, 9.22
+              ]
+            }
+          ],
+          "suffix": "per stack",
+          "note": "Up to 3 stacks, one per enemy contact."
+        },
+        {
+          "type": "multiplier",
+          "id": "surging-bite",
+          "label": "Sharky's Surging Bite extra DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                21.7, 23.33, 24.95, 27.13, 28.75, 30.38, 32.55, 34.72, 36.89,
+                39.06, 41.23, 43.4, 46.11
+              ]
+            }
+          ],
+          "note": "At 3 stacks the bite becomes a Surging Bite and consumes them."
+        },
+        {
+          "type": "text",
+          "id": "surf-duration",
+          "label": "Nightsoul surf duration",
+          "value": "6 s + 2 s per Puffer (max 2)"
+        }
+      ],
+      "end": 19,
+      "cooldown": {
+        "frames": 360,
+        "deferred": true
+      },
+      "note": "Starts Nightsoul's Blessing (surfing). Waits for the cooldown, which starts when the Blessing ends.",
+      "actions": [
+        {
+          "id": "contact",
+          "label": "Surf into the enemy",
+          "shortLabel": "Hit",
+          "kind": "move",
+          "end": 42,
+          "note": "Surfs into the enemy for 0.7 s; +1 Wave Momentum (max 3) when it reaches it. Only while surfing."
+        }
+      ],
+      "forms": [
+        {
+          "id": "surging",
+          "replaces": "normal",
+          "while": {
+            "all": [
+              {
+                "status": "nightsoulBlessing"
+              },
+              {
+                "resource": "momentum",
+                "gte": 3
+              }
+            ]
+          },
+          "label": "Sharky's Surging Bite",
+          "shortLabel": "Surging",
+          "icon": "Skill_A_Catalyst_MD",
+          "cooldownId": "bite",
+          "end": 98,
+          "hits": [
+            {
+              "row": "elementalSkill/bite-base",
+              "frame": 42,
+              "category": "Bite",
+              "element": "Hydro"
+            }
+          ],
+          "note": "Bite with 3 Wave Momentum (gcsim: hit at frame 42; only a Dash cancels it, at 78, +20 for the Dash).",
+          "cooldown": {
+            "frames": 108,
+            "delayFrames": 0
+          }
+        },
+        {
+          "id": "bite",
+          "replaces": "normal",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "Sharky's Bite",
+          "shortLabel": "Bite",
+          "icon": "Skill_A_Catalyst_MD",
+          "cooldownId": "bite",
+          "end": 40,
+          "hits": [
+            {
+              "row": "elementalSkill/bite-base",
+              "frame": 7,
+              "category": "Bite",
+              "element": "Hydro"
+            }
+          ],
+          "note": "Bite with under 3 Wave Momentum (gcsim: hit at frame 7, can move at 40).",
+          "cooldown": {
+            "frames": 108,
+            "delayFrames": 0
+          }
+        }
+      ],
+      "description": "Combining her mastery of speed and the waves and water, Mualani can surf anytime, anywhere.\nAfter using this skill, Mualani will gain 60 Nightsoul points and enter the Nightsoul's Blessing state.\n\nNightsoul's Blessing: Mualani\nContinuously consume Nightsoul points. When they are depleted or when the skill is used again, Mualani's Nightsoul's Blessing will end. The state itself has the following traits:\n·Mualani mounts her Sharky Surfboard, increasing Mualani's Movement SPD and interruption resistance. Mualani can move on water and liquid Phlogiston while this state is active, and she will take no DMG from the latter.\n·Normal Attacks will be converted to Sharky's Bites, dealing Nightsoul-aligned Hydro DMG based on Mualani's Max HP. Sharky's Bites can be used in mid-air. DMG dealt this way is considered Normal Attack DMG.\n·When she makes contact with opponents in this state, Mualani applies \"Marked as Prey\" to them and gains 1 Wave Momentum stack. Max 3 stacks. 1 stack can be gained from the same opponent every 0.7s.\n\nWave Momentum and Marked as Prey\nWhen Mualani uses Sharky's Bite, her DMG dealt increases based on Wave Momentum stacks. When she has 3 stacks, Sharky's Bite will be converted to Sharky's Surging Bite, further increasing her DMG and removing all her stacks when hitting an opponent.\nWhen Sharky's Bite hits an opponent Marked as Prey, that mark will be removed, and she will fire Shark Missiles at up to 5 nearby opponents Marked as Prey, dealing DMG to them equal to this Sharky's Bite instance and clearing their Marks. If more than 1 opponent is the target of Sharky's Bite and Shark Missiles, the DMG dealt will decrease, decreasing at most to 72% of the original DMG when 3 opponents are targeted.\n\nFirst off, Sharky is a freshwater shark on top of being a surfboard. Second, it's not that it wants to eat for real, just that it definitely bites for real."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Boomsharka-laka",
+      "icon": "Skill_E_Mualani_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                58.44, 62.82, 67.21, 73.05, 77.43, 81.81, 87.66, 93.5, 99.35,
+                105.19, 111.03, 116.88, 124.18
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [108]
+          }
+        }
+      ],
+      "end": 167,
+      "cooldown": {
+        "frames": 900,
+        "delayFrames": 0
+      },
+      "energyCost": 60,
+      "note": "Mualani cannot act again until 167 frames after the cast (gcsim). Needs full Energy and waits for its cooldown.",
+      "description": "Fires a Super Shark Missile that can track opponents, dealing Nightsoul-aligned AoE Hydro DMG based on Mualani's Max HP.\n\nMualani picked this moniker for launching her Shark Missile because it combines the warmth of explosive passion with a more chill, laid-back vibe — most hot spring-ish."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "momentum",
+      "type": "resource",
+      "source": "talent",
+      "label": "Wave Momentum",
+      "icon": "Skill_S_Mualani_01",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "puffers",
+      "type": "resource",
+      "source": "passive",
+      "label": "Puffers picked up this Blessing",
+      "min": 0,
+      "max": 2,
+      "icon": "UI_Talent_S_Mualani_05"
+    },
+    {
+      "id": "surfParticles",
+      "type": "resource",
+      "source": "talent",
+      "label": "E particles given this surf",
+      "icon": "Skill_S_Mualani_01",
+      "min": 0,
+      "max": 1
+    },
+    {
+      "id": "surf-start",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Surfshark Wavebreaker starts Nightsoul's Blessing",
+      "icon": "Skill_S_Mualani_01",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "setResource": "nightsoul",
+          "value": 60
+        },
+        {
+          "applyStatus": "nightsoulBlessing"
+        },
+        {
+          "setResource": "momentum",
+          "value": 0
+        },
+        {
+          "setResource": "puffers",
+          "value": 0
+        },
+        {
+          "setResource": "surfParticles",
+          "value": 0
+        },
+        {
+          "reduceCooldown": "bite",
+          "frames": 100000
+        }
+      ]
+    },
+    {
+      "id": "surf-end",
+      "type": "trigger",
+      "source": "talent",
+      "label": "The E cooldown starts when the Blessing ends",
+      "icon": "Skill_S_Mualani_01",
+      "when": {
+        "statusEnds": "nightsoulBlessing"
+      },
+      "do": [
+        {
+          "startCooldown": "skill"
+        }
+      ]
+    },
+    {
+      "id": "contact-momentum",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Reaching the enemy: +1 Wave Momentum",
+      "icon": "Skill_S_Mualani_01",
+      "when": {
+        "use": "contact"
+      },
+      "do": [
+        {
+          "addResource": "momentum",
+          "amount": 1,
+          "delayFrames": 42,
+          "if": {
+            "status": "nightsoulBlessing"
+          }
+        },
+        {
+          "note": "{resource:momentum} Wave Momentum",
+          "delayFrames": 42
+        }
+      ]
+    },
+    {
+      "id": "bite-momentum",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Wave Momentum",
+      "icon": "Skill_S_Mualani_01",
+      "addMultiplier": {
+        "row": "elementalSkill/bite-per-stack",
+        "perResource": "momentum",
+        "per": 1
+      },
+      "match": {
+        "actions": ["bite", "surging"]
+      }
+    },
+    {
+      "id": "surging-bite-category",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Surging Bite",
+      "icon": "Skill_S_Mualani_01",
+      "setCategory": "Surging Bite",
+      "match": {
+        "actions": ["bite", "surging"]
+      },
+      "while": {
+        "momentum": {
+          "gte": 3
+        }
+      }
+    },
+    {
+      "id": "surging-bite",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Surging Bite",
+      "icon": "Skill_S_Mualani_01",
+      "addMultiplier": {
+        "row": "elementalSkill/surging-bite",
+        "perResource": "momentum",
+        "per": 3
+      },
+      "match": {
+        "actions": ["bite", "surging"]
+      },
+      "while": {
+        "momentum": {
+          "gte": 3
+        }
+      }
+    },
+    {
+      "id": "vaporize",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Vaporize",
+      "ifFlag": "vaporize",
+      "reaction": "Vaporize",
+      "match": {
+        "actions": ["bite", "surging"]
+      }
+    },
+    {
+      "id": "bite-momentum-note",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Bite: Wave Momentum spent",
+      "icon": "Skill_S_Mualani_01",
+      "when": {
+        "hit": "elementalSkill/bite-base"
+      },
+      "do": [
+        {
+          "note": "Bit with {resource:momentum} Wave Momentum"
+        }
+      ]
+    },
+    {
+      "id": "bite-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "First bite of a surf: E particles",
+      "icon": "Skill_S_Mualani_01",
+      "when": {
+        "hit": "elementalSkill/bite-base"
+      },
+      "if": {
+        "resource": "surfParticles",
+        "lt": 1
+      },
+      "do": [
+        {
+          "particles": {
+            "min": 4,
+            "max": 5,
+            "maxChance": 0.5
+          }
+        },
+        {
+          "setResource": "surfParticles",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "puffer",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Surging Bite: Puffer picked up, +20 Nightsoul points",
+      "icon": "UI_Talent_S_Mualani_05",
+      "when": {
+        "hit": "elementalSkill/bite-base"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 20,
+          "delayFrames": 20,
+          "if": {
+            "all": [
+              {
+                "status": "nightsoulBlessing"
+              },
+              {
+                "resource": "puffers",
+                "lt": 2
+              }
+            ]
+          }
+        },
+        {
+          "addResource": "puffers",
+          "amount": 1,
+          "delayFrames": 20,
+          "if": {
+            "status": "nightsoulBlessing"
+          }
+        }
+      ],
+      "if": {
+        "resource": "momentum",
+        "gte": 3
+      }
+    },
+    {
+      "id": "bite-spends-momentum",
+      "type": "trigger",
+      "source": "talent",
+      "label": "A bite spends all Wave Momentum",
+      "icon": "Skill_S_Mualani_01",
+      "when": {
+        "hit": "elementalSkill/bite-base"
+      },
+      "do": [
+        {
+          "setResource": "momentum",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "wavechaserStacks",
+      "type": "status",
+      "source": "passive",
+      "label": "Wavechaser's Exploits stacks",
+      "icon": "UI_Talent_S_Mualani_06",
+      "ifFlag": "wavechaserPassive",
+      "stacks": {
+        "max": 3,
+        "durationFrames": 1200
+      }
+    },
+    {
+      "id": "wavechaser",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Wavechaser's Exploits",
+      "stat": "flatMultiplier",
+      "value": 15,
+      "perStack": {
+        "state": "wavechaserStacks",
+        "max": 3
+      },
+      "ifFlag": "wavechaserPassive",
+      "match": {
+        "categories": ["Burst"]
+      }
+    },
+    {
+      "id": "wavechaser-consume",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Boomsharka-laka uses the Wavechaser's Exploits stacks",
+      "icon": "UI_Talent_S_Mualani_06",
+      "ifFlag": "wavechaserPassive",
+      "when": {
+        "hit": "burst"
+      },
+      "do": [
+        {
+          "removeStatus": "wavechaserStacks"
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "mualani-passive-1",
+      "name": "Heat-Resistant Freshwater Floater",
+      "icon": "UI_Talent_S_Mualani_05",
+      "value": "When Sharky's Surging Bite hits an opponent, a Puffer will be generated nearby. Mualani will restore 20 Nightsoul points when she picks up a Puffer. Only 2 such Puffers can be created in this way during a single instance of being in Nightsoul's Blessing.",
+      "description": "When Sharky's Surging Bite hits an opponent, a Puffer will be generated nearby. Mualani will restore 20 Nightsoul points when she picks up a Puffer. Only 2 such Puffers can be created in this way during a single instance of being in Nightsoul's Blessing."
+    },
+    {
+      "id": "mualani-passive-2",
+      "name": "Natlan's Greatest Guide",
+      "icon": "UI_Talent_S_Mualani_06",
+      "value": "After a nearby party member triggers a Nightsoul Burst, Mualani will gain 1 stack of Wavechaser's Exploits, which lasts for 20s. Max 3 stacks. When she uses Boomsharka-laka, Mualani will clear all Wavechaser's Exploits stacks and increase the DMG of this Boomsharka-laka by 15%/30%/45% of her Max HP based on the number of stacks cleared.",
+      "toggleFlag": "wavechaserPassive",
+      "note": "Simulated: each Nightsoul Burst (any Elemental hit, once every 18/12/9 s with 1/2/3+ Natlan party members) adds a stack; the Burst consumes them.",
+      "description": "After a nearby party member triggers a Nightsoul Burst, Mualani will gain 1 stack of Wavechaser's Exploits, which lasts for 20s. Max 3 stacks. When she uses Boomsharka-laka, Mualani will clear all Wavechaser's Exploits stacks and increase the DMG of this Boomsharka-laka by 15%/30%/45% of her Max HP based on the number of stacks cleared."
+    },
+    {
+      "id": "mualani-passive-3",
+      "name": "Night Realm's Gift: Crests and Troughs",
+      "icon": "UI_Talent_S_Mualani_07",
+      "value": "After her Nightsoul points are depleted, Mualani will switch to consuming Phlogiston to maintain her Nightsoul's Blessing. While in an area with Phlogiston Mechanics within Natlan, she can use Nightsoul Transmission: Mualani. When the active character is currently sprinting, swimming, in a movement mode caused by certain Talents, or at a certain height in the air, the following will trigger when switching to Mualani: Mualani will enter the Nightsoul's Blessing state and gain 40 Nightsoul points. Nightsoul Transmission can be triggered once every 10s by your own team. Additionally, Mualani's Nightsoul point or Phlogiston consumption while moving on water and Liquid Phlogiston during Nightsoul's Blessing is decreased by 75% while in Natlan, and her Nightsoul point consumption is decreased by 35% while doing the same outside Natlan.",
+      "description": "After her Nightsoul points are depleted, Mualani will switch to consuming Phlogiston to maintain her Nightsoul's Blessing.\nWhile in an area with Phlogiston Mechanics within Natlan, she can use Nightsoul Transmission: Mualani. When the active character is currently sprinting, swimming, in a movement mode caused by certain Talents, or at a certain height in the air, the following will trigger when switching to Mualani: Mualani will enter the Nightsoul's Blessing state and gain 40 Nightsoul points. Nightsoul Transmission can be triggered once every 10s by your own team.\n\nAdditionally, Mualani's Nightsoul point or Phlogiston consumption while moving on water and Liquid Phlogiston during Nightsoul's Blessing is decreased by 75% while in Natlan, and her Nightsoul point consumption is decreased by 35% while doing the same outside Natlan."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "The Leisurely \"Meztli\"...",
+      "icon": "UI_Talent_S_Mualani_01",
+      "effect": "The DMG dealt by the first Sharky's Surging Bite after Mualani enters Nightsoul's Blessing and the Shark Missiles it triggers is increased by 66% of Mualani's Max HP. This instance of increased DMG is subject to the diminishing DMG rules of Surfshark Wavebreaker. In addition, while out of combat, Mualani's Nightsoul's Blessing state consumes 30% less Phlogiston and Nightsoul points.",
+      "impact": "not-simulated",
+      "note": "Not simulated yet.",
+      "description": "The DMG dealt by the first Sharky's Surging Bite after Mualani enters Nightsoul's Blessing and the Shark Missiles it triggers is increased by 66% of Mualani's Max HP. This instance of increased DMG is subject to the diminishing DMG rules of Surfshark Wavebreaker.\nIn addition, while out of combat, Mualani's Nightsoul's Blessing state consumes 30% less Phlogiston and Nightsoul points."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Mualani, Going All Out!",
+      "icon": "UI_Talent_S_Mualani_02",
+      "effect": "Mualani gains 2 of Surfshark Wavebreaker's Wave Momentum stacks when she enters Nightsoul's Blessing state. She will gain 1 stack when obtaining a Puffer. In addition, whenever Mualani obtains 2 Puffers within a single instance of the Nightsoul's Blessing state, she will recover an additional 12 Nightsoul points over 2s. You must first unlock the Ascension Talent \"Heat-Resistant Freshwater Floater.\"",
+      "impact": "not-simulated",
+      "note": "Not simulated yet.",
+      "description": "Mualani gains 2 of Surfshark Wavebreaker's Wave Momentum stacks when she enters Nightsoul's Blessing state. She will gain 1 stack when obtaining a Puffer.\nIn addition, whenever Mualani obtains 2 Puffers within a single instance of the Nightsoul's Blessing state, she will recover an additional 12 Nightsoul points over 2s. You must first unlock the Ascension Talent \"Heat-Resistant Freshwater Floater.\""
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Surfing Atop Joyous Seas",
+      "icon": "UI_Talent_U_Mualani_01",
+      "effect": "Increases the Level of Surfshark Wavebreaker by 3. Maximum upgrade level is 15.",
+      "impact": "simulated",
+      "note": "Raises the bite multipliers (Lv. 10 → 13).",
+      "description": "Increases the Level of Surfshark Wavebreaker by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Sharky Eats Puffies",
+      "icon": "UI_Talent_S_Mualani_03",
+      "effect": "Mualani regenerates 8 Energy when obtaining a Puffer. You must first unlock the Ascension Talent \"Heat-Resistant Freshwater Floater.\" Additionally, Boomsharka-laka deals 75% increased DMG.",
+      "impact": "not-simulated",
+      "note": "Not simulated yet.",
+      "description": "Mualani regenerates 8 Energy when obtaining a Puffer. You must first unlock the Ascension Talent \"Heat-Resistant Freshwater Floater.\"\nAdditionally, Boomsharka-laka deals 75% increased DMG."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Same Style of Surfboard on Sale!",
+      "icon": "UI_Talent_U_Mualani_02",
+      "effect": "Increases the Level of Boomsharka-laka by 3. Maximum upgrade level is 15.",
+      "impact": "partial",
+      "note": "Raises the Burst multiplier when the Burst is used.",
+      "description": "Increases the Level of Boomsharka-laka by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Spirit of the Springs' People",
+      "icon": "UI_Talent_S_Mualani_04",
+      "effect": "The DMG increase from the Constellation \"The Leisurely 'Meztli'...\" is no longer limited to being triggered once every Nightsoul's Blessing.",
+      "impact": "not-simulated",
+      "note": "Not simulated yet.",
+      "description": "The DMG increase from the Constellation \"The Leisurely 'Meztli'...\" is no longer limited to being triggered once every Nightsoul's Blessing."
+    }
+  ],
+  "artifactSet": {
+    "name": "Obsidian Codex",
+    "pieces": [
+      {
+        "id": "flower",
+        "label": "Flower",
+        "icon": "UI_RelicIcon_15038_4"
+      },
+      {
+        "id": "plume",
+        "label": "Plume",
+        "icon": "UI_RelicIcon_15038_2"
+      },
+      {
+        "id": "sands",
+        "label": "Sands",
+        "icon": "UI_RelicIcon_15038_5"
+      },
+      {
+        "id": "goblet",
+        "label": "Goblet",
+        "icon": "UI_RelicIcon_15038_1"
+      },
+      {
+        "id": "circlet",
+        "label": "Circlet",
+        "icon": "UI_RelicIcon_15038_3"
+      }
+    ],
+    "rows": [
+      {
+        "id": "set-two-piece",
+        "label": "2-piece",
+        "value": "While the equipping character is in Nightsoul's Blessing and is on the field, their DMG dealt is increased by 15%.",
+        "flag": "obsidian2",
+        "note": "Applies to every hit (bites and the Q) while Mualani is in Nightsoul's Blessing."
+      },
+      {
+        "id": "set-four-piece",
+        "label": "4-piece",
+        "value": "After the equipping character consumes 1 Nightsoul point while on the field, CRIT Rate increases by 40% for 6s. This effect can trigger once every second.",
+        "flag": "obsidian4",
+        "note": "Applies to every hit. Approximation: stays up while surfing and for 6 s after Nightsoul's Blessing ends."
+      }
+    ],
+    "params": {
+      "critLingerSeconds": 6
+    },
+    "blocks": [
+      {
+        "id": "obsidian-2pc",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Obsidian Codex 2-piece",
+        "stat": "dmgBonus",
+        "value": 15,
+        "ifFlag": "obsidian2",
+        "while": {
+          "nightsoulBlessing": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "obsidian-4pc",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Obsidian Codex CRIT bonus",
+        "stat": "critRate",
+        "value": 40,
+        "ifFlag": "obsidian4",
+        "while": {
+          "obsidianCrit": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "obsidianCrit",
+        "type": "status",
+        "source": "artifact",
+        "label": "Obsidian Codex CRIT window",
+        "ifFlag": "obsidian4",
+        "durationFrames": 361
+      },
+      {
+        "id": "obsidian-crit-refresh",
+        "type": "trigger",
+        "source": "artifact",
+        "label": "Nightsoul points used: CRIT window refreshed",
+        "ifFlag": "obsidian4",
+        "when": {
+          "resourceChanges": "nightsoul",
+          "change": "decrease"
+        },
+        "icdFrames": 60,
+        "do": [
+          {
+            "applyStatus": "obsidianCrit"
+          }
+        ]
+      }
+    ]
+  },
+  "defaults": {
+    "numbers": {
+      "atk": 1082,
+      "hp": 42334,
+      "cr": 58.4,
+      "cd": 245.5,
+      "bonus": 0,
+      "elementalBonus": 0,
+      "duration": 60,
+      "normalAttackLevel": 10,
+      "biteTalentLevel": 9,
+      "burstLevel": 8,
+      "surfsUpRefinement": 1,
+      "energyRecharge": 109.7,
+      "startingEnergy": 60,
+      "natlanPartyMembers": 1
+    },
+    "flags": {
+      "vaporize": false,
+      "obsidian2": true,
+      "obsidian4": true,
+      "surfsUp": true,
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "useBurst": true,
+      "wavechaserPassive": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Burst whenever it is ready (60 Energy + 15 s cooldown)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "natlanPartyMembers",
+      "label": "Natlan party members (Nightsoul Burst every 18/12/9 s)",
+      "min": 1,
+      "max": 4,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "obsidian2",
+      "label": "Obsidian Codex 2-piece (+15% DMG)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "obsidian4",
+      "label": "Obsidian Codex 4-piece (+40% CRIT Rate)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "vaporize",
+      "label": "Vaporize every bite (2x Hydro trigger, scales with EM)"
+    }
+  ],
+  "weapon": {
+    "name": "Surf's Up",
+    "icon": "UI_EquipIcon_Catalyst_MechaPufferfish",
+    "type": "Catalyst",
+    "rarity": 5,
+    "level": 90,
+    "enabledFlag": "surfsUp",
+    "refinementField": "surfsUpRefinement",
+    "baseAtk": 542,
+    "substat": {
+      "stat": "critDamage",
+      "value": 88.2
+    },
+    "rows": [
+      {
+        "id": "weapon-hp-bonus",
+        "label": "R{refinement} passive: Max HP",
+        "status": "included",
+        "template": "+{param:hpBonus}% Max HP",
+        "params": {
+          "hpBonus": [20, 25, 30, 35, 40]
+        },
+        "screenStat": {
+          "stat": "hpPercent",
+          "param": "hpBonus"
+        }
+      },
+      {
+        "id": "weapon-passive",
+        "label": "R{refinement} passive: Aqua Remembrance",
+        "status": "toggle",
+        "template": "+{effect:scorching-summer}% Normal Attack DMG per Scorching Summer stack (max {mechanic:maxStacks}) for {mechanic:durationSeconds} s after the E (once every {mechanic:cooldownSeconds} s)",
+        "note": "Sharky's bites count as Normal Attack DMG. Each bite hit removes 1 stack and each Vaporize adds 1 (each once every 1.5 s)."
+      }
+    ],
+    "mechanics": {
+      "maxStacks": 4,
+      "durationSeconds": 14,
+      "cooldownSeconds": 15,
+      "stackChangeIcdSeconds": 1.5
+    },
+    "blocks": [
+      {
+        "id": "scorching-summer",
+        "type": "bonus",
+        "source": "weapon",
+        "label": "Surf's Up Scorching Summer",
+        "stat": "dmgBonus",
+        "value": [12, 15, 18, 21, 24],
+        "scaleBy": {
+          "field": "surfsUpRefinement"
+        },
+        "perStack": {
+          "state": "scorching",
+          "max": 4
+        },
+        "ifFlag": "surfsUp",
+        "match": {
+          "categories": ["Normal", "Bite", "Surging Bite"]
+        },
+        "while": {
+          "scorchingWindow": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "scorching",
+        "type": "resource",
+        "source": "weapon",
+        "label": "Scorching Summer stacks",
+        "ifFlag": "surfsUp",
+        "min": 0,
+        "max": 4
+      },
+      {
+        "id": "scorchingWindow",
+        "type": "status",
+        "source": "weapon",
+        "label": "Scorching Summer",
+        "ifFlag": "surfsUp",
+        "durationFrames": 841
+      },
+      {
+        "id": "scorching-start",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "The E grants 4 Scorching Summer stacks",
+        "ifFlag": "surfsUp",
+        "when": {
+          "use": "skill"
+        },
+        "icdFrames": 900,
+        "do": [
+          {
+            "setResource": "scorching",
+            "value": 4
+          },
+          {
+            "applyStatus": "scorchingWindow"
+          }
+        ]
+      },
+      {
+        "id": "scorching-loss",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "A bite spends a stack",
+        "ifFlag": "surfsUp",
+        "when": {
+          "hit": "normal"
+        },
+        "if": {
+          "status": "scorchingWindow"
+        },
+        "icdFrames": 90,
+        "do": [
+          {
+            "addResource": "scorching",
+            "amount": -1
+          }
+        ]
+      },
+      {
+        "id": "scorching-gain",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "A Vaporize bite regains a stack",
+        "ifFlag": "surfsUp",
+        "when": {
+          "hit": "normal"
+        },
+        "if": {
+          "all": [
+            {
+              "status": "scorchingWindow"
+            },
+            {
+              "flag": "vaporize"
+            }
+          ]
+        },
+        "icdFrames": 90,
+        "do": [
+          {
+            "addResource": "scorching",
+            "amount": 1
+          }
+        ]
+      }
+    ]
+  },
+  "rotation": {
+    "automaticDescription": "Opens with the Q (167-frame animation), then uses the E whenever it is ready, surfs into the enemy until Wave Momentum reaches 3 and bites, so every bite is a Surging Bite. Between surfs it casts the Q again when it has the Energy and Normal Attacks while the E is on cooldown.",
+    "extraActions": [
+      {
+        "id": "momentum",
+        "kind": "skill",
+        "label": "Surf (Wave Momentum)",
+        "shortLabel": "Surf",
+        "icon": "Skill_S_Mualani_01",
+        "description": "Surfs into the enemy: 0.7 s and +1 Wave Momentum each time (max 3). Then use Bite.",
+        "steps": [
+          {
+            "action": "contact",
+            "times": "hits"
+          }
+        ],
+        "maxHits": 3,
+        "minHits": 1,
+        "hitsLabel": "Wave Momentum"
+      },
+      {
+        "id": "sharkBite",
+        "kind": "skill",
+        "label": "Sharky's Bite",
+        "shortLabel": "Bite",
+        "icon": "Skill_S_Mualani_01",
+        "description": "Bites with the Wave Momentum built: at 3 it is a Surging Bite. Counts as Normal Attack DMG.",
+        "steps": [
+          {
+            "action": "normal",
+            "performed": ["bite", "surging"]
+          }
+        ]
+      }
+    ]
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "nightsoul": {
+      "maxPoints": 60,
+      "label": "Nightsoul points",
+      "icon": "Skill_S_Mualani_01",
+      "blessing": {
+        "label": "Nightsoul's Blessing",
+        "icon": "Skill_S_Mualani_01",
+        "drain": {
+          "everyFrames": 6,
+          "firstAfterFrames": 8
+        }
+      },
+      "nightsoulBurst": {
+        "label": "Nightsoul Burst",
+        "icon": "UI_Talent_S_Mualani_06",
+        "do": [
+          {
+            "addStack": "wavechaserStacks",
+            "ifFlag": "wavechaserPassive"
+          }
+        ]
+      }
+    }
+  },
+  "actionRules": [
+    {
+      "action": "bite",
+      "requires": {
+        "status": "nightsoulBlessing"
+      },
+      "message": "Not surfing: Sharky's Bite needs Nightsoul's Blessing"
+    },
+    {
+      "action": "surging",
+      "requires": {
+        "status": "nightsoulBlessing"
+      },
+      "message": "Not surfing: Sharky's Bite needs Nightsoul's Blessing"
+    },
+    {
+      "action": "contact",
+      "requires": {
+        "status": "nightsoulBlessing"
+      },
+      "message": "Not surfing: use the E first"
+    }
+  ],
+  "actionWarnings": [
+    {
+      "action": "contact",
+      "unless": {
+        "resource": "momentum",
+        "lt": 3
+      },
+      "message": "Already at 3 Wave Momentum"
+    }
+  ],
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "all": [
+          {
+            "ready": "burst"
+          },
+          {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "use": "normal",
+      "if": {
+        "all": [
+          {
+            "resource": "momentum",
+            "gte": 3
+          },
+          {
+            "status": "nightsoulBlessing"
+          }
+        ]
+      }
+    },
+    {
+      "use": "contact",
+      "if": {
+        "resource": "momentum",
+        "lt": 3
+      }
+    },
+    {
+      "use": "normal",
+      "if": {
+        "all": [
+          {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          },
+          {
+            "not": {
+              "ready": "skill"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "use": "skill"
+    }
+  ],
+  "details": [
+    {
+      "label": "Skill uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Burst casts",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "Nightsoul Bursts triggered",
+      "value": "{count:nightsoulBursts}"
+    },
+    {
+      "label": "Wavechaser's Exploits stacks used by Bursts",
+      "value": "{bonusStacks:wavechaser}"
+    },
+    {
+      "label": "Particles generated by the E",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    },
+    {
+      "label": "Surging Bites",
+      "value": "{hits:Surging Bite}"
+    },
+    {
+      "label": "Regular bites",
+      "value": "{hits:Bite}"
+    },
+    {
+      "label": "Normal Attack hits (catalyst)",
+      "value": "{hits:Normal}"
+    },
+    {
+      "label": "Hits with the Obsidian Codex 2-piece bonus",
+      "value": "{bonusHits:obsidian-2pc}"
+    },
+    {
+      "label": "Hits with the Obsidian Codex CRIT bonus",
+      "value": "{bonusHits:obsidian-4pc}"
+    },
+    {
+      "label": "Hits with simulated Vaporize",
+      "value": "{bonusHits:vaporize}"
+    },
+    {
+      "label": "Hits with Surf's Up Scorching Summer stacks",
+      "value": "{bonusHits:scorching-summer}"
+    }
+  ]
+}

@@ -1,0 +1,2310 @@
+{
+  "id": "varesa",
+  "name": "Varesa",
+  "element": "Electro",
+  "weaponType": "Catalyst",
+  "rarity": 5,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 12699,
+    "atk": 356,
+    "def": 782
+  },
+  "ascensionStat": { "stat": "critRate", "value": 19.2 },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Varesa"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "By the Horns",
+      "description": "Normal Attack\nGotta try... to do battle like the greatest champion luchadors do! Varesa launches up to 3 strikes, dealing Electro DMG.\n\nCharged Attack\nConsumes a certain amount of Stamina to headbutt opponents in front, dealing Nightsoul-aligned Electro DMG and using the momentum to leap into the air.\n\nPlunging Attack\nPlunges from mid-air to strike the ground below, damaging opponents along the path and dealing Nightsoul-aligned AoE Electro DMG upon impact. If Varesa is in a combat state upon landing, or if the shockwave from her plunging attack hits an opponent, she will gain 25 Nightsoul points. She enters the Fiery Passion state upon reaching maximum Nightsoul points through this method.\n\nFiery Passion\nIn this state, Varesa's Normal, Charged, and Plunging Attacks will gain corresponding buffs:\n\nNormal Attack\nFight like a superstar champion luchador! Launches up to 3 fierce strikes, dealing greater Electro DMG.\n\nCharged Attack\nConsumes a certain amount of Stamina to slam into her opponents, dealing greater amounts of Nightsoul-aligned Electro DMG and using the momentum to leap into the air.\n\nPlunging Attack\nConsumes all her Nightsoul points and slams down on the ground from mid-air, dealing DMG to opponents in her path and dealing greater amounts of Nightsoul-aligned AoE Electro DMG upon hitting the ground.",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": "c5",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "normal-1",
+          "label": "1st Normal Attack hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                46.78, 50.29, 53.8, 58.47, 61.98, 65.49, 70.17, 74.85, 79.52,
+                84.2, 88.88, 93.56, 99.4
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [17],
+            "end": 27,
+            "cancels": {
+              "charged": 17
+            },
+            "element": "Electro",
+            "note": "Catalyst combo (Electro). gcsim: hit at 23 and Attack at 33, minus a 6-frame windup on the first hit."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-2",
+          "label": "2nd Normal Attack hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                40.03, 43.03, 46.03, 50.03, 53.04, 56.04, 60.04, 64.04, 68.05,
+                72.05, 76.05, 80.06, 85.06
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [7],
+            "end": 30,
+            "cancels": {
+              "charged": 17
+            },
+            "element": "Electro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-3",
+          "label": "3rd Normal Attack hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                56.31, 60.54, 64.76, 70.39, 74.61, 78.84, 84.47, 90.1, 95.73,
+                101.36, 106.99, 112.63, 119.66
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [33],
+            "end": 45,
+            "cancels": {
+              "charged": 32
+            },
+            "element": "Electro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charged",
+          "label": "Charged Attack",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                89.28, 95.98, 102.67, 111.6, 118.3, 124.99, 133.92, 142.85,
+                151.78, 160.7, 169.63, 178.56, 189.72
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [69],
+            "end": 142,
+            "cancels": {
+              "plunge": 77
+            },
+            "element": "Electro",
+            "label": "Jump (Charged Attack)",
+            "shortLabel": "Jump",
+            "note": "Leaps into the air: a Follow-Up Strike within 5 s of the E (Plunge at frame 20), else a slow Charged Attack (Plunge at 77)."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "high-plunge",
+          "label": "High Plunge DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                186.29, 201.45, 216.62, 238.28, 253.44, 270.77, 294.6, 318.42,
+                342.25, 368.25, 394.24, 420.23, 446.23
+              ]
+            }
+          ],
+          "timing": {
+            "action": "plunge",
+            "hitmarks": [37],
+            "element": "Electro",
+            "category": "Plunge"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-normal-1",
+          "label": "Fiery Passion 1st hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                54.41, 58.49, 62.57, 68.01, 72.09, 76.17, 81.61, 87.05, 92.49,
+                97.93, 103.37, 108.81, 115.62
+              ]
+            }
+          ],
+          "timing": {
+            "action": "fieryNormal",
+            "hitmarks": [11],
+            "end": 23,
+            "cancels": {
+              "charged": 25
+            },
+            "element": "Electro",
+            "note": "gcsim: hit at 17 and Attack at 29, minus a 6-frame windup when it does not follow a Normal Attack."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-normal-2",
+          "label": "Fiery Passion 2nd hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                52.03, 55.93, 59.83, 65.04, 68.94, 72.84, 78.04, 83.25, 88.45,
+                93.65, 98.85, 104.06, 110.56
+              ]
+            }
+          ],
+          "timing": {
+            "action": "fieryNormal",
+            "hitmarks": [29],
+            "end": 39,
+            "cancels": {
+              "charged": 25
+            },
+            "element": "Electro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-normal-3",
+          "label": "Fiery Passion 3rd hit",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                73.59, 79.11, 84.62, 91.98, 97.5, 103.02, 110.38, 117.74, 125.1,
+                132.46, 139.81, 147.17, 156.37
+              ]
+            }
+          ],
+          "timing": {
+            "action": "fieryNormal",
+            "hitmarks": [37],
+            "end": 63,
+            "cancels": {
+              "charged": 37
+            },
+            "element": "Electro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-charged",
+          "label": "Fiery Passion Charged Attack",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                92.64, 99.59, 106.54, 115.8, 122.75, 129.7, 138.96, 148.22,
+                157.49, 166.75, 176.02, 185.28, 196.86
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-high-plunge",
+          "label": "Fiery Passion High Plunge DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                279.43, 302.18, 324.92, 357.41, 380.16, 406.15, 441.89, 477.64,
+                513.38, 552.37, 591.36, 630.35, 669.34
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "plunge",
+          "label": "High Plunging Attack",
+          "shortLabel": "Plunge",
+          "icon": "Skill_A_Catalyst_MD",
+          "end": 47,
+          "cancels": {
+            "normal": 40,
+            "skill": 40,
+            "burst": 40,
+            "dodge": 40
+          },
+          "note": "Only right after a Charged Attack. Outside Fiery Passion: +25 Nightsoul points; at 40 she enters Fiery Passion."
+        }
+      ],
+      "forms": [
+        {
+          "id": "fieryNormal",
+          "replaces": "normal",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "Fiery Passion Normal Attack",
+          "shortLabel": "Fiery N",
+          "element": "Electro"
+        },
+        {
+          "id": "fieryFollowUp",
+          "replaces": "charged",
+          "while": {
+            "all": [
+              {
+                "status": "nightsoulBlessing"
+              },
+              {
+                "status": "followUp"
+              }
+            ]
+          },
+          "label": "Fiery Passion Follow-Up Strike",
+          "shortLabel": "Fiery FU",
+          "element": "Electro",
+          "end": 142,
+          "cancels": {
+            "plunge": 23
+          },
+          "hits": [
+            {
+              "row": "normalAttack/fiery-charged",
+              "frame": 11
+            }
+          ],
+          "note": "Charged Attack within 5 s of the E: hits at 11, Plunge at 23 (gcsim)."
+        },
+        {
+          "id": "followUp",
+          "replaces": "charged",
+          "while": {
+            "status": "followUp"
+          },
+          "label": "Follow-Up Strike",
+          "shortLabel": "FU",
+          "element": "Electro",
+          "end": 142,
+          "cancels": {
+            "plunge": 20
+          },
+          "hits": [
+            {
+              "row": "normalAttack/charged",
+              "frame": 11
+            }
+          ],
+          "note": "Charged Attack within 5 s of the E: hits at 11, Plunge at 20 (gcsim)."
+        },
+        {
+          "id": "fieryCharged",
+          "replaces": "charged",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "Fiery Passion Charged Attack",
+          "shortLabel": "Fiery CA",
+          "element": "Electro",
+          "end": 142,
+          "cancels": {
+            "plunge": 81
+          },
+          "hits": [
+            {
+              "row": "normalAttack/fiery-charged",
+              "frame": 69
+            }
+          ]
+        },
+        {
+          "id": "fieryPlunge",
+          "replaces": "plunge",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "Fiery Passion High Plunge",
+          "shortLabel": "Fiery P",
+          "element": "Electro",
+          "end": 47,
+          "cancels": {
+            "dodge": 40
+          },
+          "hits": [
+            {
+              "row": "normalAttack/fiery-high-plunge",
+              "frame": 41,
+              "category": "Plunge"
+            }
+          ],
+          "note": "Spends every Nightsoul point, ends Fiery Passion and grants Apex Drive (Volcano Kablam)."
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Riding the Night-Rainbow",
+      "description": "With footwork swift as lightning and fierce as thunder, Varesa displays the true spirit of lucha libre, rushing forward a certain distance and dealing Nightsoul-aligned Electro DMG to opponents in her path.\nAfter using this Skill, Varesa gains 20 Nightsoul points and gains the \"Follow-Up Strike\" effect: Varesa has increased interruption resistance during this time, and upon pressing her Normal Attack, she will quickly unleash a Charged Attack that does not consume Stamina. \"Follow-Up Strike\" will be canceled after Varesa uses a Charged Attack.\nShe will use different techniques based on whether the skill is Tapped or Held.\n\nTap\nQuickly rush a certain distance forward.\n\nHold\nVaresa enters the Nightsoul's Blessing state and switches to Sudden Onrush mode.\n\nSudden Onrush\nContinuously consumes Nightsoul points. In this state, Varesa's Movement SPD and interruption resistance are increased. She can use terrain to execute flying leaps or consume additional Nightsoul points to traverse atop water or liquid Phlogiston while remaining immune to DMG from the latter.\n\nNightsoul's Blessing: Varesa\nWhen she runs out of Nightsoul points, her Nightsoul's Blessing state will be canceled. When Varesa is in the Sudden Onrush state or Fiery Passion state, she will always be counted as being in the Nightsoul's Blessing state.\n\nHas 2 charges. When Varesa enters the Fiery Passion state, she will obtain an additional Tap charge of her Elemental Skill and its DMG will be increased.\n\nFiery Passion\n· While not in the Fiery Passion state, Varesa can use Plunging Attacks to gain Nightsoul points. She will enter Fiery Passion when she reaches maximum Nightsoul points via this method, or when she uses her Elemental Burst Guardian Vent!\n· While in the Fiery Passion state, her Normal Attacks, Elemental Skill, and Elemental Burst will gain unique buffs. She can also use a special Elemental Burst shortly after using a Plunging Attack.\n· The Fiery Passion state lasts for up to 15s and will end when she runs out of Nightsoul points or after she leaves combat for a period of time.\n\n\"Right now, I'm my own hero.\"",
+      "icon": "Skill_S_Varesa_01",
+      "levelField": "skillLevel",
+      "boostedBy": null,
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "rush",
+          "label": "Rush DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                74.48, 80.07, 85.65, 93.1, 98.69, 104.27, 111.72, 119.17,
+                126.62, 134.06, 141.51, 148.96, 158.27
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [5]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-rush",
+          "label": "Fiery Passion Rush DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                106.4, 114.38, 122.36, 133.0, 140.98, 148.96, 159.6, 170.24,
+                180.88, 191.52, 202.16, 212.8, 226.1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "skill-cd",
+          "label": "Cooldown",
+          "value": "9 s, 2 charges"
+        }
+      ],
+      "end": 22,
+      "cooldown": {
+        "frames": 540,
+        "charges": 2
+      },
+      "note": "+20 Nightsoul points. For 5 s, the next Charged Attack is a fast Follow-Up Strike. Cancels Apex Drive.",
+      "forms": [
+        {
+          "id": "freeFieryRush",
+          "while": {
+            "resource": "freeSkill",
+            "gte": 1
+          },
+          "label": "Fiery Passion Rush (free)",
+          "shortLabel": "Free E",
+          "icon": "Skill_S_Varesa_02",
+          "cooldown": "none",
+          "end": 23,
+          "cancels": {
+            "skill": 22,
+            "burst": 22
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/fiery-rush",
+              "frame": 2
+            }
+          ],
+          "note": "The first E after entering Fiery Passion: no cooldown and no particles (gcsim)."
+        },
+        {
+          "id": "fieryRush",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "Fiery Passion Rush",
+          "shortLabel": "Fiery E",
+          "icon": "Skill_S_Varesa_02",
+          "end": 23,
+          "cancels": {
+            "skill": 22,
+            "burst": 22
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/fiery-rush",
+              "frame": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Guardian Vent!",
+      "description": "Leaps into the air before using the momentum of the drop to unleash a powerful flying kick, dealing Nightsoul-aligned AoE Electro DMG to opponents — just like those heroes of justice in woven scrolls for kids!\nAfter using this Skill, Varesa's Nightsoul points will be restored to maximum and she will enter the Fiery Passion state.\n\nIn the Fiery Passion state, Varesa's Elemental Burst will deal a greater amount of Nightsoul-aligned AoE Electro DMG.\n\nAdditionally, she will briefly activate Apex Drive after using a Plunging Attack while in her Fiery Passion state.\n\nApex Drive\nIncreases Varesa's interruption resistance. While affected by Apex Drive, Varesa can ignore her Elemental Burst CD and consume less Energy to use her special Elemental Burst, \"Guardian Vent: Volcano Kablam\": This causes her to use the especially powerful Plunging Attack, the \"Thunderous Tornado Eruption,\" which deals Nightsoul-aligned AoE Electro DMG upon landing before causing her to exit Apex Drive. This DMG is considered Plunging Attack DMG.\nVaresa will exit Apex Drive after using her Elemental Skill.\n\nIn truth, the original name Varesa gave this move was the \"Invincible Dynamic Heroic Justice Super Mega Ultimate Thundercrash Sky-Splitting Supersonic Boom Kick.\" Alas, this name proved too long, and she was too embarrassed to shout it in front of everyone, even with her mask on. As such, she changed it to its present title instead.",
+      "icon": "Skill_E_Varesa_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c3",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "kick",
+          "label": "Flying Kick DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                345.12, 371.0, 396.89, 431.4, 457.28, 483.17, 517.68, 552.19,
+                586.7, 621.22, 655.73, 690.24, 733.38
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [88]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "fiery-kick",
+          "label": "Fiery Passion Flying Kick DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                575.2, 618.34, 661.48, 719.0, 762.14, 805.28, 862.8, 920.32,
+                977.84, 1035.36, 1092.88, 1150.4, 1222.3
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "kablam",
+          "label": "Volcano Kablam DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                402.64, 432.84, 463.04, 503.3, 533.5, 563.7, 603.96, 644.22,
+                684.49, 724.75, 765.02, 805.28, 855.61
+              ]
+            }
+          ]
+        }
+      ],
+      "end": 93,
+      "cancels": {
+        "skill": 90
+      },
+      "cooldown": {
+        "frames": 1080
+      },
+      "energyCost": 70,
+      "note": "Fills Nightsoul points and enters Fiery Passion (with a free E) if she was not in it.",
+      "forms": [
+        {
+          "id": "kablam",
+          "while": {
+            "status": "apexDrive"
+          },
+          "group": "kablam",
+          "label": "Volcano Kablam",
+          "shortLabel": "Kablam",
+          "energyCost": 30,
+          "cooldown": {
+            "frames": 60
+          },
+          "cooldownId": "burst",
+          "end": 46,
+          "cancels": {
+            "skill": 45,
+            "dodge": 43
+          },
+          "hits": [
+            {
+              "row": "elementalBurst/kablam",
+              "frame": 42,
+              "category": "Plunge"
+            }
+          ],
+          "note": "The Q during Apex Drive: 30 Energy, needs the Q cooldown ready and sets it to 1 s. Counts as Plunging Attack DMG."
+        },
+        {
+          "id": "fieryKick",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "Fiery Passion Flying Kick",
+          "shortLabel": "Fiery Q",
+          "hits": [
+            {
+              "row": "elementalBurst/fiery-kick",
+              "frame": 88
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "freeSkill",
+      "type": "resource",
+      "source": "talent",
+      "label": "Free E (entering Fiery Passion)",
+      "icon": "Skill_S_Varesa_01",
+      "min": 0,
+      "max": 1
+    },
+    {
+      "id": "followUp",
+      "type": "status",
+      "source": "talent",
+      "label": "Follow-Up Strike ready",
+      "icon": "Skill_S_Varesa_01",
+      "durationFrames": 300
+    },
+    {
+      "id": "apexDrive",
+      "type": "status",
+      "source": "talent",
+      "label": "Apex Drive",
+      "icon": "Skill_E_Varesa_01",
+      "durationFrames": 140
+    },
+    {
+      "id": "skill-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Rush: Electro particles",
+      "icon": "Skill_S_Varesa_01",
+      "when": {
+        "use": "skill"
+      },
+      "if": {
+        "resource": "freeSkill",
+        "lt": 1
+      },
+      "do": [
+        {
+          "particles": {
+            "min": 2,
+            "max": 3,
+            "maxChance": 0.5
+          },
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "skill-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Rush: Nightsoul points, Follow-Up Strike",
+      "icon": "Skill_S_Varesa_01",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "setResource": "freeSkill",
+          "value": 0
+        },
+        {
+          "addResource": "nightsoul",
+          "amount": 20,
+          "delayFrames": 5
+        },
+        {
+          "applyStatus": "followUp"
+        },
+        {
+          "removeStatus": "apexDrive"
+        }
+      ]
+    },
+    {
+      "id": "charged-follow-up",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Charged Attack uses the Follow-Up Strike",
+      "icon": "Skill_S_Varesa_01",
+      "when": {
+        "use": "charged"
+      },
+      "do": [
+        {
+          "removeStatus": "followUp"
+        }
+      ]
+    },
+    {
+      "id": "plunge-nightsoul",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Plunge: +25 Nightsoul points; at 40, Fiery Passion",
+      "icon": "Skill_A_Catalyst_MD",
+      "when": {
+        "hit": "normalAttack/high-plunge"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 25
+        },
+        {
+          "setResource": "freeSkill",
+          "value": 1,
+          "if": {
+            "all": [
+              {
+                "resource": "nightsoul",
+                "gte": 40
+              },
+              {
+                "not": {
+                  "status": "nightsoulBlessing"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "applyStatus": "nightsoulBlessing",
+          "if": {
+            "all": [
+              {
+                "resource": "nightsoul",
+                "gte": 40
+              },
+              {
+                "not": {
+                  "status": "nightsoulBlessing"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "fiery-plunge",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Fiery Plunge: points spent, Apex Drive, Fiery Passion ends",
+      "icon": "Skill_E_Varesa_01",
+      "when": {
+        "use": "fieryPlunge"
+      },
+      "do": [
+        {
+          "setResource": "nightsoul",
+          "value": 0,
+          "delayFrames": 2
+        },
+        {
+          "applyStatus": "apexDrive"
+        },
+        {
+          "addResource": "energy",
+          "amount": 30,
+          "ifFlag": "c6"
+        },
+        {
+          "removeStatus": "nightsoulBlessing",
+          "delayFrames": 46
+        }
+      ]
+    },
+    {
+      "id": "blessing-end",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Fiery Passion ends: the free E is lost",
+      "icon": "Skill_S_Varesa_01",
+      "when": {
+        "statusEnds": "nightsoulBlessing"
+      },
+      "do": [
+        {
+          "setResource": "freeSkill",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "burst-enter",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Guardian Vent!: full Nightsoul points, Fiery Passion",
+      "icon": "Skill_E_Varesa_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "setResource": "nightsoul",
+          "value": 40,
+          "delayFrames": 3
+        },
+        {
+          "setResource": "freeSkill",
+          "value": 1,
+          "delayFrames": 3,
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        },
+        {
+          "applyStatus": "nightsoulBlessing",
+          "delayFrames": 3,
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "kablam-ends-apex",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Volcano Kablam ends Apex Drive",
+      "icon": "Skill_E_Varesa_01",
+      "when": {
+        "hit": "kablam"
+      },
+      "do": [
+        {
+          "removeStatus": "apexDrive"
+        }
+      ]
+    },
+    {
+      "id": "rainbowCrash",
+      "type": "status",
+      "source": "passive",
+      "label": "Rainbow Crash",
+      "icon": "UI_Talent_S_Varesa_05",
+      "ifFlag": "rainbowCrashPassive",
+      "durationFrames": 300
+    },
+    {
+      "id": "rainbow-crash-gain",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Rush grants Rainbow Crash",
+      "icon": "UI_Talent_S_Varesa_05",
+      "ifFlag": "rainbowCrashPassive",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "rainbowCrash"
+        }
+      ]
+    },
+    {
+      "id": "rainbow-crash",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Rainbow Crash (50% ATK)",
+      "icon": "UI_Talent_S_Varesa_05",
+      "ifFlag": "rainbowCrashPassive",
+      "stat": "flatDamage",
+      "value": 50,
+      "ofStat": "atk",
+      "match": {
+        "categories": ["Plunge"]
+      },
+      "while": {
+        "rainbowCrash": {
+          "gte": 1
+        },
+        "nightsoulBlessing": {
+          "lt": 1
+        }
+      }
+    },
+    {
+      "id": "rainbow-crash-fiery",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Rainbow Crash in Fiery Passion (180% ATK)",
+      "icon": "UI_Talent_S_Varesa_05",
+      "ifFlag": "rainbowCrashPassive",
+      "stat": "flatDamage",
+      "value": 180,
+      "ofStat": "atk",
+      "match": {
+        "categories": ["Plunge"]
+      },
+      "while": {
+        "rainbowCrash": {
+          "gte": 1
+        },
+        "nightsoulBlessing": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "rainbow-crash-end",
+      "type": "trigger",
+      "source": "passive",
+      "label": "A ground impact uses Rainbow Crash",
+      "icon": "UI_Talent_S_Varesa_05",
+      "ifFlag": "rainbowCrashPassive",
+      "when": {
+        "hit": "category:Plunge"
+      },
+      "do": [
+        {
+          "removeStatus": "rainbowCrash"
+        }
+      ]
+    },
+    {
+      "id": "heroStacks",
+      "type": "status",
+      "source": "passive",
+      "label": "The Hero Twice-Returned! stacks",
+      "icon": "UI_Talent_S_Varesa_06",
+      "ifFlag": "heroPassive",
+      "stacks": {
+        "max": 2,
+        "durationFrames": 720
+      }
+    },
+    {
+      "id": "hero-atk",
+      "type": "bonus",
+      "source": "passive",
+      "label": "The Hero Twice-Returned!",
+      "icon": "UI_Talent_S_Varesa_06",
+      "ifFlag": "heroPassive",
+      "stat": "atkPercent",
+      "value": 35,
+      "perStack": {
+        "state": "heroStacks",
+        "max": 2
+      }
+    },
+    {
+      "id": "c1-kablam-crash",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: Volcano Kablam grants Rainbow Crash",
+      "ifFlag": "c1",
+      "when": {
+        "use": "kablam"
+      },
+      "do": [
+        {
+          "applyStatus": "rainbowCrash",
+          "ifFlag": "rainbowCrashPassive"
+        }
+      ]
+    },
+    {
+      "id": "c1-crash",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C1: Rainbow Crash always 180% ATK",
+      "ifFlag": "c1",
+      "stat": "flatDamage",
+      "value": 130,
+      "ofStat": "atk",
+      "match": {
+        "categories": ["Plunge"]
+      },
+      "while": {
+        "rainbowCrash": {
+          "gte": 1
+        },
+        "nightsoulBlessing": {
+          "lt": 1
+        }
+      }
+    },
+    {
+      "id": "c2-apex",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C2: any Plunge grants Apex Drive",
+      "ifFlag": "c2",
+      "when": {
+        "use": "plunge"
+      },
+      "do": [
+        {
+          "applyStatus": "apexDrive"
+        },
+        {
+          "addResource": "energy",
+          "amount": 30,
+          "ifFlag": "c6",
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c2-energy",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C2: Plunge hit restores 11.5 Energy",
+      "ifFlag": "c2",
+      "when": {
+        "hit": "plunge"
+      },
+      "do": [
+        {
+          "addResource": "energy",
+          "amount": 11.5
+        }
+      ]
+    },
+    {
+      "id": "diligentRefinement",
+      "type": "status",
+      "source": "constellation",
+      "label": "C4: Diligent Refinement",
+      "ifFlag": "c4",
+      "durationFrames": 900
+    },
+    {
+      "id": "c4-gain",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: Guardian Vent! outside Fiery Passion",
+      "ifFlag": "c4",
+      "when": {
+        "use": "burst"
+      },
+      "if": {
+        "not": {
+          "status": "nightsoulBlessing"
+        }
+      },
+      "do": [
+        {
+          "applyStatus": "diligentRefinement"
+        }
+      ]
+    },
+    {
+      "id": "c4-plunge",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C4: Diligent Refinement (500% ATK, max 20000)",
+      "ifFlag": "c4",
+      "stat": "flatDamage",
+      "value": 500,
+      "ofStat": "atk",
+      "cap": 20000,
+      "match": {
+        "actions": ["plunge", "fieryPlunge"]
+      },
+      "while": {
+        "diligentRefinement": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c4-end",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: a Plunge uses Diligent Refinement",
+      "ifFlag": "c4",
+      "when": {
+        "hit": "plunge"
+      },
+      "do": [
+        {
+          "removeStatus": "diligentRefinement"
+        }
+      ]
+    },
+    {
+      "id": "c4-burst",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C4: +100% Burst DMG in Fiery Passion or Apex Drive",
+      "ifFlag": "c4",
+      "stat": "dmgBonus",
+      "value": 100,
+      "match": {
+        "actions": ["fieryKick", "kablam"]
+      }
+    },
+    {
+      "id": "c6-crit-rate",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: +10% CRIT Rate (Plunge and Burst)",
+      "ifFlag": "c6",
+      "stat": "critRate",
+      "value": 10,
+      "match": {
+        "categories": ["Plunge", "Burst"]
+      }
+    },
+    {
+      "id": "c6-crit-dmg",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: +100% CRIT DMG (Plunge and Burst)",
+      "ifFlag": "c6",
+      "stat": "critDamage",
+      "value": 100,
+      "match": {
+        "categories": ["Plunge", "Burst"]
+      }
+    },
+    {
+      "id": "team-overloaded-1s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on Pyro, once every 1 s)",
+      "icon": "Skill_S_Varesa_01",
+      "ifFlag": "teamOverloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 1,
+        "lt": 2
+      },
+      "icdFrames": 60,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "team-overloaded-2s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on Pyro, once every 2 s)",
+      "icon": "Skill_S_Varesa_01",
+      "ifFlag": "teamOverloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 2,
+        "lt": 3
+      },
+      "icdFrames": 120,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "team-overloaded-3s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on Pyro, once every 3 s)",
+      "icon": "Skill_S_Varesa_01",
+      "ifFlag": "teamOverloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 3,
+        "lt": 4
+      },
+      "icdFrames": 180,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "team-overloaded-4s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on Pyro, once every 4 s)",
+      "icon": "Skill_S_Varesa_01",
+      "ifFlag": "teamOverloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 4,
+        "lt": 5
+      },
+      "icdFrames": 240,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "team-overloaded-5s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on Pyro, once every 5 s)",
+      "icon": "Skill_S_Varesa_01",
+      "ifFlag": "teamOverloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 5,
+        "lt": 6
+      },
+      "icdFrames": 300,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "iansanScale",
+      "type": "status",
+      "source": "system",
+      "label": "Iansan's Kinetic Energy Scale",
+      "icon": "Skill_E_Iansan_01",
+      "ifFlag": "teamIansan",
+      "durationFrames": 720
+    },
+    {
+      "id": "iansanPrecise",
+      "type": "status",
+      "source": "system",
+      "label": "Iansan C2: Precise Movement",
+      "icon": "UI_Talent_S_Iansan_02",
+      "ifFlag": "teamIansanC2",
+      "durationFrames": 900
+    },
+    {
+      "id": "scrollBuff",
+      "type": "status",
+      "source": "system",
+      "label": "Iansan's Scroll 4-piece",
+      "icon": "UI_RelicIcon_15037_4",
+      "ifFlag": "teamScroll",
+      "durationFrames": 1200
+    },
+    {
+      "id": "team-iansan-window",
+      "type": "trigger",
+      "source": "system",
+      "label": "Iansan's Q (every 18 s)",
+      "icon": "Skill_E_Iansan_01",
+      "when": {
+        "hit": "*"
+      },
+      "icdFrames": 1080,
+      "do": [
+        {
+          "applyStatus": "iansanScale",
+          "ifFlag": "teamIansan"
+        },
+        {
+          "applyStatus": "iansanPrecise",
+          "ifFlag": "teamIansanC2"
+        },
+        {
+          "applyStatus": "scrollBuff",
+          "ifFlag": "teamScroll"
+        }
+      ]
+    },
+    {
+      "id": "team-iansan-atk",
+      "type": "bonus",
+      "source": "system",
+      "label": "Iansan's Scale (flat ATK)",
+      "icon": "Skill_E_Iansan_01",
+      "ifFlag": "teamIansan",
+      "stat": "flatAtk",
+      "valueField": "iansanAtk",
+      "while": {
+        "iansanScale": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "team-iansan-c2",
+      "type": "bonus",
+      "source": "system",
+      "label": "Iansan C2 (+30% ATK)",
+      "icon": "UI_Talent_S_Iansan_02",
+      "ifFlag": "teamIansanC2",
+      "stat": "atkPercent",
+      "value": 30,
+      "while": {
+        "iansanPrecise": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "team-scroll",
+      "type": "bonus",
+      "source": "system",
+      "label": "Scroll 4-piece (+12% and +28% Pyro / Electro DMG)",
+      "icon": "UI_RelicIcon_15037_4",
+      "ifFlag": "teamScroll",
+      "stat": "dmgBonus",
+      "value": 40,
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      },
+      "while": {
+        "scrollBuff": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "chevreuseShred",
+      "type": "status",
+      "source": "system",
+      "label": "Chevreuse A1: -40% Pyro / Electro RES",
+      "icon": "UI_Talent_S_Chevreuse_05",
+      "ifFlag": "teamChevreuse",
+      "durationFrames": 360
+    },
+    {
+      "id": "team-chevreuse-overloaded",
+      "type": "trigger",
+      "source": "system",
+      "label": "Overloaded: Chevreuse A1 RES shred (C1: 6 Energy, once every 10 s)",
+      "icon": "UI_Talent_S_Chevreuse_05",
+      "when": {
+        "hit": "reaction:Overloaded"
+      },
+      "do": [
+        {
+          "applyStatus": "chevreuseShred",
+          "ifFlag": "teamChevreuse"
+        },
+        {
+          "addResource": "energy",
+          "amount": 6,
+          "ifFlag": "teamChevreuseC1",
+          "icdFrames": 600
+        }
+      ]
+    },
+    {
+      "id": "team-chevreuse-shred",
+      "type": "bonus",
+      "source": "system",
+      "label": "Chevreuse A1 (-40% Pyro / Electro RES)",
+      "icon": "UI_Talent_S_Chevreuse_05",
+      "ifFlag": "teamChevreuse",
+      "stat": "resShred",
+      "value": 40,
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      },
+      "while": {
+        "chevreuseShred": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "team-chevreuse-a4",
+      "type": "bonus",
+      "source": "system",
+      "label": "Chevreuse A4 (ATK%)",
+      "icon": "UI_Talent_S_Chevreuse_06",
+      "ifFlag": "teamChevreuse",
+      "stat": "atkPercent",
+      "valueField": "chevreuseAtkPercent"
+    },
+    {
+      "id": "chevreuseC6",
+      "type": "status",
+      "source": "system",
+      "label": "Chevreuse C6 stacks",
+      "icon": "UI_Talent_S_Chevreuse_04",
+      "ifFlag": "teamChevreuseC6",
+      "stacks": {
+        "max": 3,
+        "durationFrames": 480
+      }
+    },
+    {
+      "id": "team-chevreuse-heal",
+      "type": "trigger",
+      "source": "system",
+      "label": "Chevreuse's E heals every 2 s: a C6 stack",
+      "icon": "UI_Talent_S_Chevreuse_04",
+      "ifFlag": "teamChevreuseC6",
+      "when": {
+        "hit": "*"
+      },
+      "icdFrames": 120,
+      "do": [
+        {
+          "addStack": "chevreuseC6"
+        }
+      ]
+    },
+    {
+      "id": "team-chevreuse-c6",
+      "type": "bonus",
+      "source": "system",
+      "label": "Chevreuse C6 (+20% Pyro / Electro DMG per stack)",
+      "icon": "UI_Talent_S_Chevreuse_04",
+      "ifFlag": "teamChevreuseC6",
+      "stat": "dmgBonus",
+      "value": 20,
+      "perStack": {
+        "state": "chevreuseC6",
+        "max": 3
+      },
+      "match": {
+        "elements": ["Pyro", "Electro"]
+      }
+    },
+    {
+      "id": "nicoleGrace",
+      "type": "status",
+      "source": "system",
+      "label": "Nicole's Grace of Kenosis",
+      "icon": "Skill_S_Nicole_01",
+      "ifFlag": "teamNicole",
+      "durationFrames": 1200
+    },
+    {
+      "id": "team-nicole-window",
+      "type": "trigger",
+      "source": "system",
+      "label": "Nicole's E (every 16 s)",
+      "icon": "Skill_S_Nicole_01",
+      "ifFlag": "teamNicole",
+      "when": {
+        "hit": "*"
+      },
+      "icdFrames": 960,
+      "do": [
+        {
+          "applyStatus": "nicoleGrace"
+        }
+      ]
+    },
+    {
+      "id": "team-nicole-atk",
+      "type": "bonus",
+      "source": "system",
+      "label": "Nicole's Grace / Guidance (flat ATK)",
+      "icon": "Skill_S_Nicole_01",
+      "ifFlag": "teamNicole",
+      "stat": "flatAtk",
+      "valueField": "nicoleAtk",
+      "while": {
+        "nicoleGrace": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "team-nicole-angelos",
+      "type": "bonus",
+      "source": "system",
+      "label": "Nicole's Angelos' Heptades (Elemental DMG)",
+      "icon": "UI_EquipIcon_Catalyst_FairyGarden",
+      "ifFlag": "teamNicole",
+      "stat": "dmgBonus",
+      "valueField": "nicoleDmgBonus",
+      "match": {
+        "elements": [
+          "Pyro",
+          "Hydro",
+          "Electro",
+          "Cryo",
+          "Anemo",
+          "Geo",
+          "Dendro"
+        ]
+      },
+      "while": {
+        "nicoleGrace": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "nicoleQ",
+      "type": "status",
+      "source": "system",
+      "label": "Nicole's Silent Contemplation",
+      "icon": "Skill_E_Nicole_01",
+      "ifFlag": "teamNicoleQ",
+      "durationFrames": 1200
+    },
+    {
+      "id": "nicoleProjections",
+      "type": "resource",
+      "source": "system",
+      "label": "Arcane Projections this Q",
+      "icon": "Skill_E_Nicole_01",
+      "ifFlag": "teamNicoleQ",
+      "min": 0,
+      "max": 4
+    },
+    {
+      "id": "team-nicole-q-window",
+      "type": "trigger",
+      "source": "system",
+      "label": "Nicole's Q (every 15 s)",
+      "icon": "Skill_E_Nicole_01",
+      "ifFlag": "teamNicoleQ",
+      "when": {
+        "hit": "*"
+      },
+      "icdFrames": 900,
+      "do": [
+        {
+          "setResource": "nicoleProjections",
+          "value": 0
+        },
+        {
+          "applyStatus": "nicoleQ"
+        }
+      ]
+    },
+    {
+      "id": "team-nicole-projection",
+      "type": "trigger",
+      "source": "system",
+      "label": "Arcane Projection (once every 3 s, 4 per Q)",
+      "icon": "Skill_E_Nicole_01",
+      "ifFlag": "teamNicoleQ",
+      "when": {
+        "hit": "*"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "nicoleQ"
+          },
+          {
+            "resource": "nicoleProjections",
+            "lt": 4
+          }
+        ]
+      },
+      "icdFrames": 180,
+      "do": [
+        {
+          "addResource": "nicoleProjections",
+          "amount": 1
+        },
+        {
+          "hit": {
+            "multiplierField": "nicoleProjection",
+            "element": "Electro",
+            "category": "Arcane Projection",
+            "afterFrames": 30
+          }
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "varesa-passive-1",
+      "name": "Tag-Team Triple Jump!",
+      "description": "After using the Elemental Skill Riding the Night-Rainbow, Varesa gains \"Rainbow Crash\" for 5s.\nDuring this time, when Varesa uses a Plunging Attack, the shockwave DMG dealt when she hits the ground is increased by 50% of her ATK. If Varesa is in the Fiery Passion state, this ground impact DMG is increased by 180% of her ATK instead.\n\nThe Rainbow Crash effect will be canceled once a ground impact hits an opponent, or when its duration expires.",
+      "icon": "UI_Talent_S_Varesa_05",
+      "value": "After using Riding the Night-Rainbow, Varesa gains Rainbow Crash for 5s: her next Plunging Attack ground impact deals +50% of her ATK as DMG (+180% in Fiery Passion). Cancelled when a ground impact hits.",
+      "toggleFlag": "rainbowCrashPassive",
+      "note": "Simulated on Plunge hits (Volcano Kablam counts as one). Fiery Passion is read at the hit."
+    },
+    {
+      "id": "varesa-passive-2",
+      "name": "The Hero Twice-Returned!",
+      "description": "When a nearby party member triggers a Nightsoul Burst, Varesa's ATK increases by 35% for 12s. Max 2 stacks. Each stack's duration is counted independently.",
+      "icon": "UI_Talent_S_Varesa_06",
+      "value": "When a nearby party member triggers a Nightsoul Burst, Varesa's ATK increases by 35% for 12s. Max 2 stacks, each with its own duration.",
+      "toggleFlag": "heroPassive",
+      "note": "Simulated: each Nightsoul Burst (once every 18/12/9 s with 1/2/3+ Natlan party members) adds a stack."
+    },
+    {
+      "id": "varesa-passive-3",
+      "name": "Night Realm's Gift: A Torch That Incinerates Evil",
+      "description": "After Nightsoul points have been fully depleted, Varesa will switch to using Phlogiston to maintain the Sudden Onrush mode from her Nightsoul's Blessing.\nWhile in an area with Phlogiston Mechanics within Natlan, Nightsoul Transmission: Varesa can be used. When the current active character is sprinting or in movement modes caused by certain Talents, or at a certain height in the air, switching to Varesa will trigger the following: Varesa enters the Nightsoul's Blessing state, switches to Sudden Onrush mode, and obtains 20 Nightsoul points. Nightsoul Transmission can be triggered once every 10s by your own party.\nWhile in an area with Phlogiston Mechanics within Natlan, Varesa will not take fall DMG when using terrain differences to make leaps.",
+      "icon": "UI_Talent_S_Varesa_07",
+      "value": "Exploration passive: Phlogiston and Nightsoul Transmission in Natlan."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Undying Passion",
+      "description": "The effects of the Ascension Talent \"Tag-Team Triple Jump!\" are enhanced:\nWhen performing the Special Plunging Attack \"Thunderous Tornado Eruption,\" Varesa will also gain \"Rainbow Crash\" for 5s.\nWhen \"Rainbow Crash\" is in effect, Varesa's Plunging Attack ground impact DMG is increased by 180% of her ATK, whether she is in the Fiery Passion state or not. You must first unlock the Ascension Talent \"Tag-Team Triple Jump!\" to access the above effect.\n\nAdditionally, when Varesa is in the Sudden Onrush mode of her Nightsoul's Blessing, she consumes 30% less Nightsoul points or Phlogiston.",
+      "icon": "UI_Talent_S_Varesa_01",
+      "effect": "Volcano Kablam also grants Rainbow Crash for 5s, and Rainbow Crash increases Plunging Attack ground impact DMG by 180% of ATK whether she is in Fiery Passion or not.",
+      "impact": "simulated",
+      "note": "Kablam grants Rainbow Crash; the bonus is 180% ATK outside Fiery Passion too."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Beyond the Edge of Light",
+      "description": "Varesa will enter Apex Drive after using a Plunging Attack, regardless of whether she is in the Fiery Passion state or not.\nWhen Apex Drive is active, Varesa's interruption resistance will also further increase.\nAdditionally, Varesa will restore 11.5 Energy when her Plunging Attack ground impact hits an opponent.",
+      "icon": "UI_Talent_S_Varesa_02",
+      "effect": "Varesa enters Apex Drive after any Plunging Attack, whether in Fiery Passion or not. Her Plunging Attack ground impact restores 11.5 Energy when it hits.",
+      "impact": "simulated",
+      "note": "Any Plunge grants Apex Drive; each Plunge hit restores 11.5 Energy."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Unbowed Resolve",
+      "description": "Increases the Level of Guardian Vent! by 3.\nMaximum upgrade level is 15.",
+      "icon": "UI_Talent_U_Varesa_01",
+      "effect": "Increases the Level of Guardian Vent! by 3. Maximum upgrade level is 15.",
+      "impact": "simulated",
+      "note": "Raises the Burst multipliers (Lv. 10 → 13)."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "The Courage to Press On",
+      "description": "Varesa will receive various buffs based on her state when using her Elemental Burst Guardian Vent! If Varesa:\n· Has neither Fiery Passion nor Apex Drive active, she will gain Diligent Refinement for 15s, which will increase her Plunging Attack ground impact DMG by 500% of her ATK, with a maximum increase of 20,000 DMG. This effect will be canceled once the ground impact hits an opponent, or if its duration ends.\n· If she has either Fiery Passion or Apex Drive active, this instance of her Elemental Burst Guardian Vent! deals 100% increased DMG.",
+      "icon": "UI_Talent_S_Varesa_03",
+      "effect": "Guardian Vent! without Fiery Passion or Apex Drive grants Diligent Refinement for 15s: the next Plunging Attack ground impact deals +500% ATK DMG (max 20,000). With Fiery Passion or Apex Drive, that Burst deals 100% more DMG.",
+      "impact": "simulated",
+      "note": "Diligent Refinement on the next Plunge; +100% DMG on Fiery Kick and Volcano Kablam."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Thoughts Floating on the Warm Breeze",
+      "description": "Increases the Level of Normal Attack: By the Horns by 3.\nMaximum upgrade level is 15.",
+      "icon": "UI_Talent_U_Varesa_02",
+      "effect": "Increases the Level of Normal Attack: By the Horns by 3. Maximum upgrade level is 15.",
+      "impact": "simulated",
+      "note": "Raises the Normal, Charged and Plunge multipliers (Lv. 10 → 13)."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "A Hero of Justice's Triumph",
+      "description": "Varesa restores 30 Energy when she enters Apex Drive.\nHer Plunging Attacks and Elemental Burst Guardian Vent! gain 10% CRIT Rate and 100% CRIT DMG.\nAdditionally, when Varesa uses the Hold version of her Elemental Skill Riding the Night-Rainbow, or Taps her Elemental Skill while in the Sudden Onrush mode, she will restore Nightsoul points up to her maximum.",
+      "icon": "UI_Talent_S_Varesa_04",
+      "effect": "Varesa restores 30 Energy when she enters Apex Drive. Her Plunging Attacks and Guardian Vent! gain 10% CRIT Rate and 100% CRIT DMG.",
+      "impact": "simulated",
+      "note": "+30 Energy on Apex Drive; CRIT bonus on Plunge (Kablam included) and Burst hits."
+    }
+  ],
+  "artifactSet": {
+    "name": "Long Night's Oath",
+    "pieces": [
+      {
+        "id": "flower",
+        "label": "Flower",
+        "icon": "UI_RelicIcon_15039_4"
+      },
+      {
+        "id": "plume",
+        "label": "Plume",
+        "icon": "UI_RelicIcon_15039_2"
+      },
+      {
+        "id": "sands",
+        "label": "Sands",
+        "icon": "UI_RelicIcon_15039_5"
+      },
+      {
+        "id": "goblet",
+        "label": "Goblet",
+        "icon": "UI_RelicIcon_15039_1"
+      },
+      {
+        "id": "circlet",
+        "label": "Circlet",
+        "icon": "UI_RelicIcon_15039_3"
+      }
+    ],
+    "rows": [
+      {
+        "id": "set-two-piece",
+        "label": "2-piece",
+        "value": "Plunging Attack DMG increased by 25%.",
+        "flag": "longNight2"
+      },
+      {
+        "id": "set-four-piece",
+        "label": "4-piece",
+        "value": "After the equipping character's Plunging Attack/Charged Attack/Elemental Skill hits an opponent, they will gain 1/2/2 stack(s) of \"Radiance Everlasting.\" Plunging Attacks, Charged Attacks, or Elemental Skills can each trigger this effect once every 1s. Radiance Everlasting: Plunging Attacks deal 15% increased DMG for 6s. Max 5 stacks. Each stack's duration is counted independently.",
+        "flag": "longNight4",
+        "note": "Plunge, Charged Attack and E hits give 1/2/2 stacks, each source once every 1 s."
+      }
+    ],
+    "blocks": [
+      {
+        "id": "long-night-2pc",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Long Night's Oath 2-piece",
+        "ifFlag": "longNight2",
+        "stat": "dmgBonus",
+        "value": 25,
+        "match": {
+          "categories": ["Plunge"]
+        }
+      },
+      {
+        "id": "radiance",
+        "type": "status",
+        "source": "artifact",
+        "label": "Radiance Everlasting",
+        "ifFlag": "longNight4",
+        "stacks": {
+          "max": 5,
+          "durationFrames": 360
+        }
+      },
+      {
+        "id": "long-night-4pc",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Long Night's Oath 4-piece",
+        "ifFlag": "longNight4",
+        "stat": "dmgBonus",
+        "value": 15,
+        "perStack": {
+          "state": "radiance",
+          "max": 5
+        },
+        "match": {
+          "categories": ["Plunge"]
+        }
+      },
+      {
+        "id": "radiance-plunge",
+        "type": "trigger",
+        "source": "artifact",
+        "label": "Plunge hit: +1 Radiance",
+        "ifFlag": "longNight4",
+        "when": {
+          "hit": "category:Plunge"
+        },
+        "icdFrames": 60,
+        "do": [
+          {
+            "addStack": "radiance"
+          }
+        ]
+      },
+      {
+        "id": "radiance-charged",
+        "type": "trigger",
+        "source": "artifact",
+        "label": "Charged Attack hit: +2 Radiance",
+        "ifFlag": "longNight4",
+        "when": {
+          "hit": "category:Charged"
+        },
+        "icdFrames": 60,
+        "do": [
+          {
+            "addStack": "radiance"
+          },
+          {
+            "addStack": "radiance"
+          }
+        ]
+      },
+      {
+        "id": "radiance-skill",
+        "type": "trigger",
+        "source": "artifact",
+        "label": "E hit: +2 Radiance",
+        "ifFlag": "longNight4",
+        "when": {
+          "hit": "category:Skill"
+        },
+        "icdFrames": 60,
+        "do": [
+          {
+            "addStack": "radiance"
+          },
+          {
+            "addStack": "radiance"
+          }
+        ]
+      }
+    ]
+  },
+  "defaults": {
+    "numbers": {
+      "atk": 2128,
+      "hp": 18624,
+      "cr": 91.5,
+      "cd": 182.9,
+      "bonus": 0,
+      "elementalBonus": 46.6,
+      "em": 79,
+      "duration": 60,
+      "normalAttackLevel": 10,
+      "skillLevel": 8,
+      "burstLevel": 10,
+      "lostPrayerRefinement": 3,
+      "lostPrayerStacks": 0,
+      "energyRecharge": 133.0,
+      "startingEnergy": 70,
+      "natlanPartyMembers": 2,
+      "overloadedEvery": 2,
+      "iansanAtk": 723.6,
+      "chevreuseAtkPercent": 40,
+      "nicoleAtk": 885.6,
+      "nicoleDmgBonus": 26,
+      "nicoleProjection": 162
+    },
+    "flags": {
+      "c1": true,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "lostPrayer": true,
+      "longNight2": true,
+      "longNight4": true,
+      "rainbowCrashPassive": true,
+      "heroPassive": true,
+      "useBurst": true,
+      "chargedFiller": true,
+      "teamOverloaded": false,
+      "teamIansan": false,
+      "teamIansanC2": false,
+      "teamScroll": false,
+      "teamChevreuse": false,
+      "teamChevreuseC1": false,
+      "teamChevreuseC6": false,
+      "teamNicole": false,
+      "teamNicoleQ": false
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use Volcano Kablam in Apex Drive (the Fiery Kick is skipped: its 18 s cooldown blocks Kablam)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "chargedFiller",
+      "label": "While the E recharges: Charged Attack → Plunge (instead of Normal Attacks)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-70)",
+      "min": 0,
+      "max": 70,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "natlanPartyMembers",
+      "label": "Natlan party members (Nightsoul Burst every 18/12/9 s)",
+      "min": 1,
+      "max": 4,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "weapon",
+      "name": "lostPrayerStacks",
+      "label": "Lost Prayer stacks at the start (0-4)",
+      "min": 0,
+      "max": 4,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "longNight2",
+      "label": "Long Night's Oath 2-piece (+25% Plunging Attack DMG)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "longNight4",
+      "label": "Long Night's Oath 4-piece (Radiance Everlasting)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamOverloaded",
+      "label": "Team: her Electro hits trigger Overloaded (Pyro from Chevreuse / Nicole)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "overloadedEvery",
+      "label": "Overloaded at most once every … s (1-5)",
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamIansan",
+      "label": "Team: Iansan's Scale (12 s every 18 s)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "iansanAtk",
+      "label": "Iansan's Scale ATK (her details: 27% of her ATK at 42+ points)",
+      "min": 0,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamIansanC2",
+      "label": "Team: Iansan C2 (+30% ATK, 15 s every 18 s)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamScroll",
+      "label": "Team: Iansan's Scroll 4-piece (+40% Pyro / Electro DMG, 20 s every 18 s)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamChevreuse",
+      "label": "Team: Chevreuse A1 (-40% Pyro / Electro RES after Overloaded) and A4 (ATK%)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "chevreuseAtkPercent",
+      "label": "Chevreuse A4 ATK% (1% per 1,000 of her Max HP, max 40)",
+      "min": 0,
+      "max": 40,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamChevreuseC1",
+      "label": "Team: Chevreuse C1 (6 Energy on Overloaded, once every 10 s)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamChevreuseC6",
+      "label": "Team: Chevreuse C6 (+20% Pyro / Electro DMG per heal, 3 stacks)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamNicole",
+      "label": "Team: Nicole's Grace of Kenosis and Angelos' Heptades (20 s every 16 s)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "nicoleAtk",
+      "label": "Nicole's flat ATK (Grace of Kenosis + 300 Guidance of Theosis)",
+      "min": 0,
+      "step": 0.1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "nicoleDmgBonus",
+      "label": "Nicole's Angelos' Heptades Elemental DMG (%)",
+      "min": 0,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "teamNicoleQ",
+      "label": "Team: Nicole's Arcane Projections (Varesa's ATK, Electro; 20 s every 15 s)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "nicoleProjection",
+      "label": "Arcane Projection DMG (% of Varesa's ATK; Nicole's Q level)",
+      "min": 0,
+      "step": 0.1
+    }
+  ],
+  "weapon": {
+    "name": "Lost Prayer to the Sacred Winds",
+    "icon": "UI_EquipIcon_Catalyst_Fourwinds",
+    "type": "Catalyst",
+    "rarity": 5,
+    "level": 90,
+    "enabledFlag": "lostPrayer",
+    "refinementField": "lostPrayerRefinement",
+    "baseAtk": 608,
+    "substat": {
+      "stat": "critRate",
+      "value": 33.1
+    },
+    "rows": [
+      {
+        "id": "weapon-passive",
+        "label": "R{refinement} passive: Boundless Blessing",
+        "status": "toggle",
+        "template": "+{effect:lost-prayer}% Elemental DMG every 4 s in combat (max 4 stacks)",
+        "note": "In-game, stacks keep coming every 4 s of combat off the field and are not lost on swapping (her stats in a team test). gcsim resets them on swap."
+      }
+    ],
+    "blocks": [
+      {
+        "id": "lostPrayerStacks",
+        "type": "resource",
+        "source": "weapon",
+        "label": "Lost Prayer stacks",
+        "ifFlag": "lostPrayer",
+        "min": 0,
+        "max": 4,
+        "initial": {
+          "field": "lostPrayerStacks"
+        }
+      },
+      {
+        "id": "lost-prayer",
+        "type": "bonus",
+        "source": "weapon",
+        "label": "Lost Prayer to the Sacred Winds",
+        "ifFlag": "lostPrayer",
+        "stat": "dmgBonus",
+        "value": [8, 10, 12, 14, 16],
+        "scaleBy": {
+          "field": "lostPrayerRefinement"
+        },
+        "perStack": {
+          "state": "lostPrayerStacks",
+          "max": 4
+        },
+        "match": {
+          "elements": [
+            "Pyro",
+            "Hydro",
+            "Electro",
+            "Cryo",
+            "Anemo",
+            "Geo",
+            "Dendro"
+          ]
+        }
+      },
+      {
+        "id": "lost-prayer-stack",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "In combat: +1 stack every 4 s (on or off the field)",
+        "ifFlag": "lostPrayer",
+        "when": {
+          "hit": "party:*"
+        },
+        "icdFrames": 240,
+        "do": [
+          {
+            "addResource": "lostPrayerStacks",
+            "amount": 1,
+            "delayFrames": 240
+          }
+        ]
+      }
+    ]
+  },
+  "rotation": {
+    "automaticDescription": "E, then a Follow-Up Strike (Charged Attack) and a Plunge. The Plunge fills Nightsoul points to 40 and enters Fiery Passion with a free E: free E, Fiery Follow-Up Strike, Fiery Plunge (Apex Drive) and Volcano Kablam if the Q cooldown and 30 Energy allow it. The full Q (Flying Kick or Fiery Kick) is never used: its 70 Energy and 18 s cooldown would block Kablam. While the E recharges: Charged Attack → Plunge (two of them fill Nightsoul points and enter Fiery Passion), or Normal Attacks if that option is off.",
+    "extraActions": [
+      {
+        "id": "eSpecial",
+        "kind": "skill",
+        "label": "E special (Fiery Passion Rush)",
+        "shortLabel": "E special",
+        "icon": "Skill_S_Varesa_02",
+        "description": "The E in Fiery Passion: free right after entering it, Fiery Passion Rush DMG. Outside Fiery Passion it is a plain E.",
+        "steps": [
+          {
+            "action": "skill",
+            "performed": ["freeFieryRush", "fieryRush"]
+          }
+        ]
+      },
+      {
+        "id": "qSpecial",
+        "kind": "burst",
+        "label": "Q special (Kablam / Fiery Kick)",
+        "shortLabel": "Q special",
+        "icon": "Skill_E_Varesa_01",
+        "description": "Volcano Kablam in Apex Drive (right after a Fiery Plunge, 30 Energy), or Fiery Kick in Fiery Passion (70 Energy).",
+        "steps": [
+          {
+            "action": "burst",
+            "performed": ["kablam", "fieryKick"]
+          }
+        ]
+      }
+    ],
+    "palette": ["skill", "charged", "plunge", "eSpecial", "qSpecial"]
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "nightsoul": {
+      "maxPoints": 40,
+      "label": "Nightsoul points",
+      "icon": "Skill_S_Varesa_01",
+      "blessing": {
+        "label": "Fiery Passion",
+        "icon": "Skill_S_Varesa_01",
+        "durationFrames": 900
+      },
+      "nightsoulBurst": {
+        "label": "Nightsoul Burst",
+        "icon": "UI_Talent_S_Varesa_06",
+        "do": [
+          {
+            "addStack": "heroStacks",
+            "ifFlag": "heroPassive"
+          }
+        ]
+      }
+    }
+  },
+  "actionRules": [
+    {
+      "action": "plunge",
+      "requires": {
+        "previous": "charged"
+      },
+      "message": "A Plunge needs a Charged Attack right before"
+    },
+    {
+      "action": "fieryPlunge",
+      "requires": {
+        "previous": "charged"
+      },
+      "message": "A Plunge needs a Charged Attack right before"
+    }
+  ],
+  "actionWarnings": [
+    {
+      "action": "burst",
+      "unless": {
+        "any": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "status": "apexDrive"
+          }
+        ]
+      },
+      "message": "Plain Flying Kick: use the Q in Fiery Passion (Fiery Kick) or Apex Drive (Kablam)"
+    },
+    {
+      "action": "charged",
+      "unless": {
+        "status": "followUp"
+      },
+      "message": "Slow jump: no Follow-Up Strike (an E within 5 s makes it quick)"
+    }
+  ],
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "all": [
+          {
+            "status": "apexDrive"
+          },
+          {
+            "ready": "kablam"
+          }
+        ]
+      }
+    },
+    {
+      "use": "plunge",
+      "if": {
+        "previous": "charged"
+      }
+    },
+    {
+      "use": "charged",
+      "if": {
+        "status": "followUp"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "resource": "freeSkill",
+        "gte": 1
+      }
+    },
+    {
+      "use": "skill",
+      "ifFlag": "chargedFiller",
+      "if": {
+        "all": [
+          {
+            "ready": "skill"
+          },
+          {
+            "resource": "nightsoul",
+            "lt": 15
+          }
+        ]
+      }
+    },
+    {
+      "use": "skill",
+      "unlessFlag": "chargedFiller",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "charged",
+      "ifFlag": "chargedFiller"
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "E uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Free E (entering Fiery Passion)",
+      "value": "{uses:freeFieryRush}"
+    },
+    {
+      "label": "Follow-Up Strikes",
+      "value": "{uses:followUp} + {uses:fieryFollowUp} Fiery"
+    },
+    {
+      "label": "Plunges",
+      "value": "{uses:plunge}"
+    },
+    {
+      "label": "Fiery Kicks (Q in Fiery Passion)",
+      "value": "{uses:fieryKick}"
+    },
+    {
+      "label": "Volcano Kablams",
+      "value": "{uses:kablam}"
+    },
+    {
+      "label": "Nightsoul Bursts triggered",
+      "value": "{count:nightsoulBursts}"
+    },
+    {
+      "label": "Particles generated by the E",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Clear particles dropped by the enemy",
+      "value": "{count:enemyParticles|number}"
+    },
+    {
+      "label": "Energy from Normal / Charged Attack hits",
+      "value": "{count:hitEnergy|fixed1}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 70"
+    },
+    {
+      "label": "Plunge hits",
+      "value": "{hits:Plunge}"
+    },
+    {
+      "label": "Hits with Rainbow Crash",
+      "value": "{bonusHits:rainbow-crash} + {bonusHits:rainbow-crash-fiery} Fiery"
+    },
+    {
+      "label": "Hits with Long Night's Oath stacks",
+      "value": "{bonusHits:long-night-4pc}"
+    },
+    {
+      "label": "Overloaded hits",
+      "value": "{hits:Overloaded}"
+    },
+    {
+      "label": "Arcane Projections (Nicole)",
+      "value": "{hits:Arcane Projection}"
+    }
+  ]
+}

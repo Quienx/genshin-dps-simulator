@@ -1,0 +1,614 @@
+'use client';
+
+import {
+  DndContext,
+  DragOverlay,
+  Modifier,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { Pencil } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { cn } from '@/lib/utils';
+
+import CharacterSheet from './CharacterSheet';
+import CombatLog from './CombatLog';
+import DamageSummary from './DamageSummary';
+import EnemyPanel from './EnemyPanel';
+import EventPanel from './EventPanel';
+import { buildMemberColors, MemberColor } from './memberColors';
+import PanelToggle from './PanelToggle';
+import { payloadOf } from './rotationDnd';
+import RotationEditBar from './RotationEditBar';
+import { buildRuler, fitPxPerSecond } from './ruler';
+import { SourceLegend } from './sourceStyles';
+import TimelineChart, { TimelineMember } from './TimelineChart';
+import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
+import TimelineHeader, { TimelineScenario } from './TimelineHeader';
+import usePlayback from './usePlayback';
+import RotationActionIcon from '../rotation/RotationActionIcon';
+import { getLoadedCharacter } from '../../_lib/characterData';
+import { CHARACTER_LIST } from '../../_lib/characters';
+import { iconUrl } from '../../_lib/genshinIcons';
+import { buildInspectorView } from '../../_lib/inspector';
+import { readNumber } from '../../_lib/readValue';
+import { RotationSetting } from '../../_lib/rotation/types';
+import { parseValues } from '../../_lib/simulationValues';
+import {
+  buildDefaultTeam,
+  buildMemberValues,
+  buildRotationFromRun,
+  DEFAULT_SWAP_DELAY_FRAMES,
+  getTeamActions,
+  INSPECTOR_TEST_IDS,
+  runInspectorTest,
+  runOwnRotation,
+  runSolo,
+  runTeam,
+  TeamRun,
+  TeamState,
+} from '../../_lib/team';
+import { SimulationValues } from '../../_lib/types';
+import { getWeaponRefinement } from '../../_lib/weapons';
+
+const ZOOM_STEP = 1.25;
+// Edit mode: empty seconds after the run, room to drop new blocks in.
+const EDIT_ROOM_SECONDS = 20;
+// Wide enough to read every action: the timeline scrolls, as in a video
+// editor.
+const DEFAULT_PX_PER_SECOND = 60;
+const MIN_PX_PER_SECOND = 1;
+const MAX_PX_PER_SECOND = 400;
+
+// `version` counts the runs (an open build sheet starts over on each).
+type ScenarioRun = {
+  members: SimulationValues[];
+  run: TeamRun;
+  version: number;
+};
+
+type Scenario = TimelineScenario & {
+  // Its members' default builds, and its run with any builds.
+  defaults: () => SimulationValues[];
+  run: (members: SimulationValues[]) => TeamRun;
+  // How its run plays, for a rotation of one's own (edit mode).
+  setup: Pick<TeamState, 'fillWhileWaiting' | 'swapDelayFrames' | 'auras'>;
+};
+
+// Edit mode: the dragged block's chip rides above the pointer.
+const liftOverlay: Modifier = ({ transform }) => ({
+  ...transform,
+  y: transform.y - 34,
+});
+
+// A rotation of one's own, and how it plays.
+type OwnSetup = Omit<TeamState, 'members'>;
+
+const TEAM_SETUP: Scenario['setup'] = {
+  fillWhileWaiting: false,
+  swapDelayFrames: DEFAULT_SWAP_DELAY_FRAMES,
+  auras: true,
+};
+
+// What the timeline can show, each with default builds:
+// - teams: the Team rotation card's run (the default), Varesa, Iansan,
+//   Chevreuse and Nicole with its preset rotation, as "Simulate team" runs
+//   it; and the team screen's inspector test (Chevreuse + Iansan);
+// - every character alone, as on its own screen (its automatic rotation).
+const SCENARIOS: Scenario[] = [
+  {
+    id: 'team',
+    label: 'Varesa team rotation',
+    group: 'team',
+    avatars: buildDefaultTeam().members.map((values) => values.character),
+    defaults: () => buildDefaultTeam().members,
+    run: (members) => runTeam({ ...buildDefaultTeam(), members }, 'random'),
+    setup: TEAM_SETUP,
+  },
+  {
+    id: 'inspector',
+    label: 'Chevreuse + Iansan test',
+    group: 'team',
+    avatars: INSPECTOR_TEST_IDS,
+    defaults: () => INSPECTOR_TEST_IDS.map(buildMemberValues),
+    run: runInspectorTest,
+    setup: TEAM_SETUP,
+  },
+  ...CHARACTER_LIST.map(
+    (character): Scenario => ({
+      id: `solo:${character.id}`,
+      label: character.name,
+      group: 'solo',
+      avatars: [character.id],
+      defaults: () => [buildMemberValues(character.id)],
+      run: ([values]) => runSolo(values, 'random'),
+      // As runSolo plays it.
+      setup: { fillWhileWaiting: false, swapDelayFrames: 0, auras: false },
+    })
+  ),
+];
+
+const scenarioOf = (id: string) =>
+  SCENARIOS.find((entry) => entry.id === id) ?? SCENARIOS[0];
+
+// The new inspector: the party and the player on top, the run's timeline
+// below. CRITs are rolled, so the run is made in the browser only (the
+// server's would not match it).
+const CombatTimelinePage = () => {
+  const [scenario, setScenario] = useState(SCENARIOS[0].id);
+  const [state, setState] = useState<ScenarioRun | null>(null);
+  // Edit mode: a rotation of one's own (null: the scenario's).
+  const [editing, setEditing] = useState(false);
+  const [own, setOwn] = useState<OwnSetup | null>(null);
+  // Each run rolls the CRITs again; without builds, with the defaults.
+  // (Run outside the state update, so it runs once.)
+  const version = useRef(0);
+  const simulate = useCallback(
+    (
+      id: string,
+      members?: SimulationValues[],
+      ownSetup: OwnSetup | null = null
+    ) => {
+      const builds = members ?? scenarioOf(id).defaults();
+      version.current += 1;
+      setState({
+        members: builds,
+        run: ownSetup
+          ? runOwnRotation({ ...ownSetup, members: builds }, 'random')
+          : scenarioOf(id).run(builds),
+        version: version.current,
+      });
+    },
+    []
+  );
+  useEffect(() => simulate(SCENARIOS[0].id), [simulate]);
+  const handleScenarioChange = useCallback(
+    (id: string) => {
+      setScenario(id);
+      setEditing(false);
+      setOwn(null);
+      simulate(id);
+    },
+    [simulate]
+  );
+  if (!state) {
+    return (
+      <main className='min-h-screen bg-[#070b14] p-4 text-sm text-slate-400'>
+        Simulating…
+      </main>
+    );
+  }
+  const change = (patch: Partial<OwnSetup>) => {
+    if (!own) {
+      return;
+    }
+    const next = { ...own, ...patch };
+    setOwn(next);
+    simulate(scenario, state.members, next);
+  };
+  return (
+    <CombatTimeline
+      builds={state.members}
+      run={state.run}
+      scenario={scenario}
+      onScenarioChange={handleScenarioChange}
+      version={state.version}
+      edit={
+        editing && own
+          ? {
+              rotation: own.rotation,
+              onChange: (rotation) => change({ rotation }),
+            }
+          : null
+      }
+      editing={editing}
+      onEditToggle={() => {
+        if (!editing && !own) {
+          // What the chart shows, as blocks: each combo one block. Run
+          // with them at once, so each block on the chart is one of them.
+          const next = {
+            ...scenarioOf(scenario).setup,
+            rotation: buildRotationFromRun(state.run),
+          };
+          setOwn(next);
+          simulate(scenario, state.members, next);
+        }
+        setEditing(!editing);
+      }}
+      // Again with the same builds (edited ones stay).
+      onSimulate={() => simulate(scenario, state.members, own)}
+      onSaveBuild={(build) =>
+        simulate(
+          scenario,
+          state.members.map((values) =>
+            values.character === build.character ? build : values
+          ),
+          own
+        )
+      }
+    />
+  );
+};
+
+const CombatTimeline = ({
+  builds,
+  run,
+  scenario,
+  onScenarioChange,
+  onSimulate,
+  version,
+  onSaveBuild,
+  edit,
+  editing,
+  onEditToggle,
+}: {
+  builds: SimulationValues[];
+  run: TeamRun;
+  scenario: string;
+  onScenarioChange: (id: string) => void;
+  onSimulate: () => void;
+  version: number;
+  onSaveBuild: (build: SimulationValues) => void;
+  // Edit mode: the rotation on the chart, and changing it.
+  edit: {
+    rotation: RotationSetting;
+    onChange: (rotation: RotationSetting) => void;
+  } | null;
+  editing: boolean;
+  onEditToggle: () => void;
+}) => {
+  const view = useMemo(
+    () =>
+      buildInspectorView(
+        run,
+        Object.fromEntries(
+          builds.map((values) => [
+            values.character,
+            getWeaponRefinement(
+              getLoadedCharacter(values.character).character.weapon,
+              parseValues(values)
+            ),
+          ])
+        )
+      ),
+    [run, builds]
+  );
+  const actionsById = useMemo(
+    () =>
+      new Map(
+        getTeamActions(run.members.map((member) => member.characterId)).map(
+          (action) => [action.id, action]
+        )
+      ),
+    [run]
+  );
+  const members: TimelineMember[] = useMemo(() => {
+    // Each member's own color, from their element (shades when it repeats).
+    const colors = buildMemberColors(
+      run.members.map((member) => ({
+        characterId: member.characterId,
+        element: getLoadedCharacter(member.characterId).character.element,
+      }))
+    );
+    return run.members.map((member, slot) => ({
+      characterId: member.characterId,
+      name: member.name,
+      avatar: iconUrl(
+        getLoadedCharacter(member.characterId).character.icons.avatar
+      ),
+      slot,
+      color: colors.get(member.characterId) as MemberColor,
+    }));
+  }, [run]);
+
+  // The enemy's HP and level (the build's enemy settings).
+  const enemy = useMemo(() => {
+    const parsed = parseValues(builds[0]);
+    return {
+      hp: readNumber(parsed, 'enemyHp'),
+      level: readNumber(parsed, 'enemyLevel'),
+    };
+  }, [builds]);
+
+  // The member whose build is open (clicked in the top bar).
+  const [openMember, setOpenMember] = useState<string | null>(null);
+
+  // Minimized panels: the others take their room.
+  const [panels, setPanels] = useState({
+    chart: false,
+    log: false,
+    event: false,
+    enemy: false,
+  });
+  const togglePanel = (panel: keyof typeof panels) =>
+    setPanels((current) => ({ ...current, [panel]: !current[panel] }));
+
+  const playback = usePlayback(view.duration, view.stepTimes);
+  // A new run starts from the beginning; one from an edit (edit mode)
+  // keeps the playhead, and the view, where they were.
+  const { seek } = playback;
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  useEffect(() => {
+    if (!editingRef.current) {
+      seek(0);
+    }
+  }, [run, seek]);
+
+  // Zoom: pixels per second; Fit shows the whole run on screen.
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [pxPerSecond, setPxPerSecond] = useState(DEFAULT_PX_PER_SECOND);
+  // Each Normal Attack combo is one block (N1–N6); editing, each block is
+  // one of the rotation's.
+  const chartActions = useMemo(
+    () => groupNormalCombos(view.actions, { byBlock: edit !== null }),
+    [view, edit]
+  );
+  // The ruler spaces the blocks that take time; a skipped one (no time) is
+  // a marker on top of where it was put.
+  const timedActions = useMemo(
+    () => chartActions.filter((action) => !action.skipped),
+    [chartActions]
+  );
+  // The axis: the run, plus room for new blocks in edit mode.
+  const axisSeconds = view.duration + (edit ? EDIT_ROOM_SECONDS : 0);
+  // Edit mode: the block picked on the chart, and what is being dragged.
+  const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<DragPayload | null>(null);
+  // A drag starts past 5 px, so a click still picks a block or adds one.
+  const dragSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+  const draggedAction = !dragging
+    ? undefined
+    : actionsById.get(
+        dragging.kind === 'new'
+          ? dragging.actionId
+          : edit?.rotation.blocks.find(
+              (block) => block.uid === dragging.blockUid
+            )?.action ?? ''
+      );
+  const fitted = useMemo(
+    () =>
+      trackWidth > 0
+        ? fitPxPerSecond(
+            timedActions,
+            axisSeconds,
+            trackWidth - 16,
+            MIN_PX_PER_SECOND,
+            MAX_PX_PER_SECOND
+          )
+        : 16,
+    [timedActions, axisSeconds, trackWidth]
+  );
+  // Every action at least as wide as its icon, so none overlap.
+  const ruler = useMemo(
+    () => buildRuler(timedActions, axisSeconds, pxPerSecond),
+    [timedActions, axisSeconds, pxPerSecond]
+  );
+  const zoomBy = useCallback(
+    (factor: number) =>
+      setPxPerSecond((current) =>
+        Math.min(
+          MAX_PX_PER_SECOND,
+          Math.max(MIN_PX_PER_SECOND, current * factor)
+        )
+      ),
+    []
+  );
+  const handleTrackWidth = useCallback(
+    (width: number) => setTrackWidth(width),
+    []
+  );
+
+  return (
+    // The page always fits the window (no page scroll): each panel scrolls
+    // on its own. Narrow screens stack the panels and scroll.
+    <main
+      data-testid='combat-timeline'
+      className='h-dvh overflow-auto bg-[#070b14] p-4 text-slate-100 lg:overflow-hidden'
+    >
+      <div className='flex flex-col gap-4 lg:h-full'>
+        <TimelineHeader
+          members={members}
+          duration={view.duration}
+          time={playback.time}
+          playing={playback.playing}
+          speed={playback.speed}
+          onTogglePlay={playback.togglePlay}
+          onStep={playback.stepTo}
+          onSpeedChange={playback.setSpeed}
+          onSeek={playback.seek}
+          onZoom={(direction) =>
+            zoomBy(direction === 1 ? ZOOM_STEP : 1 / ZOOM_STEP)
+          }
+          onFit={() => setPxPerSecond(fitted)}
+          onSimulate={onSimulate}
+          scenarios={SCENARIOS}
+          scenario={scenario}
+          onScenarioChange={onScenarioChange}
+          onMemberClick={setOpenMember}
+        />
+        <div
+          className={cn(
+            'grid gap-4 lg:min-h-0 lg:flex-1',
+            'lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]'
+          )}
+        >
+          <div className='flex min-w-0 flex-col gap-4 lg:min-h-0'>
+            <section
+              data-testid='timeline-panel'
+              className={cn(
+                'flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950',
+                panels.chart ? 'flex-none' : 'h-[60vh] lg:h-auto lg:flex-[2]'
+              )}
+            >
+              <div
+                className={cn(
+                  'flex shrink-0 items-center justify-between bg-slate-900/70 px-3 py-1.5',
+                  !panels.chart && 'border-b border-slate-700/60'
+                )}
+              >
+                <h2 className='text-sm font-semibold text-slate-50'>
+                  Timeline
+                </h2>
+                {!panels.chart && (
+                  <SourceLegend className='mr-auto ml-4 hidden md:flex' />
+                )}
+                <button
+                  type='button'
+                  data-testid='timeline-edit-rotation'
+                  aria-pressed={editing}
+                  onClick={onEditToggle}
+                  className={cn(
+                    'mr-2 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium',
+                    editing
+                      ? 'border-sky-500/60 bg-sky-600 text-white hover:bg-sky-500'
+                      : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
+                  )}
+                >
+                  <Pencil className='size-3.5' />
+                  {editing ? 'Done editing' : 'Edit rotation'}
+                </button>
+                <PanelToggle
+                  label='timeline'
+                  collapsed={panels.chart}
+                  onToggle={() => togglePanel('chart')}
+                />
+              </div>
+              {/* Edit mode's drag and drop: the palette and the chart's
+                  blocks drag onto the chart's tracks or the trash. */}
+              <DndContext
+                sensors={dragSensors}
+                collisionDetection={pointerWithin}
+                onDragStart={(event) => setDragging(payloadOf(event))}
+                onDragEnd={() => setDragging(null)}
+                onDragCancel={() => setDragging(null)}
+              >
+                {!panels.chart && edit && (
+                  <RotationEditBar
+                    members={members}
+                    actions={Array.from(actionsById.values())}
+                    rotation={edit.rotation}
+                    selected={selectedBlock}
+                    onChange={edit.onChange}
+                    onSelect={setSelectedBlock}
+                  />
+                )}
+                {!panels.chart && (
+                  <div className='min-h-0 flex-1'>
+                    <TimelineChart
+                      view={view}
+                      actions={chartActions}
+                      members={members}
+                      actionsById={actionsById}
+                      time={playback.time}
+                      ruler={ruler}
+                      pxPerSecond={pxPerSecond}
+                      onSeek={playback.seek}
+                      onTogglePlay={playback.togglePlay}
+                      onZoom={zoomBy}
+                      onTrackWidthChange={handleTrackWidth}
+                      selectedBlock={edit ? selectedBlock : null}
+                      onSelectBlock={edit ? setSelectedBlock : undefined}
+                      axisSeconds={axisSeconds}
+                      onDropBlock={
+                        edit
+                          ? (payload, beforeUid) => {
+                              const result = applyDrop(
+                                edit.rotation,
+                                Array.from(actionsById.values()),
+                                payload,
+                                beforeUid
+                              );
+                              edit.onChange(result.rotation);
+                              setSelectedBlock(result.selected);
+                            }
+                          : undefined
+                      }
+                    />
+                  </div>
+                )}
+                <DragOverlay
+                  dropAnimation={null}
+                  // Above the pointer, so the placeholder in the row (where
+                  // it will land) stays in sight.
+                  modifiers={[liftOverlay]}
+                >
+                  {draggedAction && (
+                    <span className='flex h-7 items-center gap-1 rounded-md border border-sky-400 bg-slate-800 px-1.5 text-[11px] text-slate-100 shadow-lg'>
+                      <RotationActionIcon
+                        action={draggedAction}
+                        size={18}
+                        className='bg-transparent p-0 ring-0'
+                      />
+                      {draggedAction.shortLabel}
+                    </span>
+                  )}
+                </DragOverlay>
+              </DndContext>
+            </section>
+            <div
+              className={cn(
+                'min-h-0',
+                panels.log ? 'flex-none' : 'h-[40vh] lg:h-auto lg:flex-[1]'
+              )}
+            >
+              <CombatLog
+                view={view}
+                members={members}
+                actionsById={actionsById}
+                time={playback.time}
+                onSeek={playback.seek}
+                collapsed={panels.log}
+                onToggle={() => togglePanel('log')}
+              />
+            </div>
+          </div>
+          {/* Right: the damage so far, the selected event (it takes the
+              room) and the enemy. */}
+          <div className='flex min-w-0 flex-col gap-4 lg:min-h-0'>
+            <DamageSummary view={view} time={playback.time} />
+            <div
+              className={cn(
+                'min-h-0',
+                panels.event ? 'flex-none' : 'h-[70vh] lg:h-auto lg:flex-1'
+              )}
+            >
+              <EventPanel
+                view={view}
+                run={run}
+                members={members}
+                actionsById={actionsById}
+                time={playback.time}
+                enemyLevel={enemy.level}
+                builds={builds}
+                collapsed={panels.event}
+                onToggle={() => togglePanel('event')}
+              />
+            </div>
+            <EnemyPanel
+              view={view}
+              time={playback.time}
+              hp={enemy.hp}
+              level={enemy.level}
+              collapsed={panels.enemy}
+              onToggle={() => togglePanel('enemy')}
+            />
+          </div>
+        </div>
+      </div>
+      <CharacterSheet
+        key={`${openMember ?? ''}:${version}`}
+        onSave={onSaveBuild}
+        build={builds.find((values) => values.character === openMember) ?? null}
+        onClose={() => setOpenMember(null)}
+      />
+    </main>
+  );
+};
+
+export default CombatTimelinePage;

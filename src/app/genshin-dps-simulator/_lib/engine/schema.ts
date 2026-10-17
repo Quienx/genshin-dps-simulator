@@ -1,0 +1,526 @@
+import { z } from 'zod';
+
+import { TRANSFORMATIVE_REACTIONS } from '../reactions';
+
+// Where a block comes from. It never changes how the engine treats it; it
+// is for grouping (UI, activity log) and for toggling sources on and off.
+export const blockSourceSchema = z.enum([
+  'talent',
+  'passive',
+  'constellation',
+  'weapon',
+  'artifact',
+  'system',
+]);
+
+// A numeric condition on a state value (a resource, a status or a stack
+// count, by id): all given bounds must hold.
+export const stateConditionSchema = z.object({
+  gt: z.number().optional(),
+  gte: z.number().optional(),
+  lt: z.number().optional(),
+  lte: z.number().optional(),
+});
+
+export const frames = z.number().int().min(0);
+const elementSchema = z.enum([
+  'Pyro',
+  'Hydro',
+  'Electro',
+  'Cryo',
+  'Anemo',
+  'Geo',
+  'Dendro',
+  'Physical',
+]);
+
+// ---------------------------------------------------------------- conditions
+
+export type Condition =
+  | ({ resource: string } & z.infer<typeof stateConditionSchema>)
+  // Active now, or (for the planner) at a named event of the action being
+  // considered, e.g. "absorb" of a Charged Attack.
+  | { status: string; atEvent?: string }
+  | { flag: string }
+  // A number form field (e.g. party members), by name.
+  | ({ field: string } & z.infer<typeof stateConditionSchema>)
+  | { ready: string }
+  // The action just before the one being planned, by id, group or kind
+  // ("charged": a plunge only right after a Charged Attack). Only the
+  // rotation planner knows it; elsewhere it never holds.
+  | { previous: string }
+  // On the field (a character alone always is).
+  | { onField: true }
+  | { all: Condition[] }
+  | { any: Condition[] }
+  | { not: Condition }
+  | { hook: string };
+
+export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
+  z.union([
+    z.object({ resource: z.string() }).merge(stateConditionSchema).strict(),
+    z.object({ status: z.string(), atEvent: z.string().optional() }).strict(),
+    z.object({ flag: z.string() }).strict(),
+    z.object({ field: z.string() }).merge(stateConditionSchema).strict(),
+    z.object({ ready: z.string() }).strict(),
+    z.object({ previous: z.string() }).strict(),
+    z.object({ onField: z.literal(true) }).strict(),
+    z.object({ all: z.array(conditionSchema) }).strict(),
+    z.object({ any: z.array(conditionSchema) }).strict(),
+    z.object({ not: conditionSchema }).strict(),
+    z.object({ hook: z.string() }).strict(),
+  ])
+);
+
+// ---------------------------------------------------------------- operations
+
+// How much: a number, one of two numbers depending on a status, a talent
+// row's value at the character's talent level, or a number form field.
+const amountSchema = z.union([
+  z.number(),
+  z.object({ ifStatus: z.string(), then: z.number(), else: z.number() }),
+  z.object({ row: z.string() }),
+  z.object({ field: z.string() }),
+]);
+
+// Every operation can be limited to a flag, a condition and an ICD of its own,
+// and delayed: with `delayFrames` the op runs that much later, and its
+// guards are checked then (e.g. a Puffer picked up 20 frames after a bite
+// only counts while the Blessing still lasts).
+const opGuardShape = {
+  ifFlag: z.string().optional(),
+  unlessFlag: z.string().optional(),
+  if: conditionSchema.optional(),
+  icdFrames: frames.optional(),
+  delayFrames: frames.optional(),
+};
+
+export const opSchema = z.union([
+  z
+    .object({
+      addResource: z.string(),
+      amount: amountSchema,
+      // Spends from another resource's room while a status lasts (e.g. at
+      // most 145% Bond of Life from Directives per E).
+      budget: z
+        .object({ resource: z.string(), whileStatus: z.string() })
+        .optional(),
+      ...opGuardShape,
+    })
+    .strict(),
+  z
+    .object({ multiplyResource: z.string(), by: z.number(), ...opGuardShape })
+    .strict(),
+  z
+    .object({ setResource: z.string(), value: z.number(), ...opGuardShape })
+    .strict(),
+  z
+    .object({
+      applyStatus: z.string(),
+      // Applied later; dropped if the status that scheduled it is gone.
+      afterFrames: frames.optional(),
+      ...opGuardShape,
+    })
+    .strict(),
+  z.object({ removeStatus: z.string(), ...opGuardShape }).strict(),
+  z.object({ addStack: z.string(), ...opGuardShape }).strict(),
+  z
+    .object({
+      // Cuts only what is left of the cooldown.
+      reduceCooldown: z.string(),
+      frames,
+      ...opGuardShape,
+    })
+    .strict(),
+  z
+    .object({
+      // How much: `multiplier` (% of the scaling stat) or a talent `row`.
+      hit: z
+        .object({
+          multiplier: z.number().optional(),
+          row: z.string().optional(),
+          // The multiplier a number form field holds.
+          multiplierField: z.string().optional(),
+          // "attacker": the element of the member whose hit fired it.
+          element: z.union([elementSchema, z.literal('attacker')]),
+          // Element units it applies to the enemy (1 when missing).
+          gauge: z.number().min(0).optional(),
+          // Dealt by the member whose hit fired the trigger (a `party:` or
+          // `active:` one), with that member's stats: Nicole's Arcane
+          // Projections. Alone, the character itself deals it.
+          asAttacker: z.boolean().optional(),
+          category: z.string(),
+          afterFrames: frames.optional(),
+        })
+        .refine(
+          (hit) =>
+            [hit.multiplier !== undefined, hit.row, hit.multiplierField].filter(
+              Boolean
+            ).length === 1,
+          {
+            message:
+              'A hit needs one of "multiplier", "row" or "multiplierField"',
+          }
+        ),
+      ...opGuardShape,
+    })
+    .strict(),
+  z
+    .object({
+      // A transformative reaction's own hit (Overloaded), with the
+      // character's EM. There is no aura model: the kit decides when it
+      // happens (a hit trigger with an ICD).
+      reactionHit: z.enum(TRANSFORMATIVE_REACTIONS as [string, ...string[]]),
+      afterFrames: frames.optional(),
+      ...opGuardShape,
+    })
+    .strict(),
+  z
+    .object({
+      // Elemental particles caught (needs the "energy" system): a count, or
+      // `min` with a `maxChance` of getting `max` instead (expected-damage
+      // runs use the average).
+      particles: z.union([
+        z.number().positive(),
+        z
+          .object({
+            min: z.number().min(0),
+            max: z.number().positive(),
+            maxChance: z.number().min(0).max(1),
+          })
+          .strict(),
+      ]),
+      // Particles fly for a while before they are caught.
+      afterFrames: frames.optional(),
+      // Elementless (clear) particles, 2 Energy each (Favonius).
+      clear: z.boolean().optional(),
+      ...opGuardShape,
+    })
+    .strict(),
+  z
+    .object({
+      count: z.string(),
+      // Adds what the trigger's previous `addResource` gained instead of 1.
+      by: z.literal('gained').optional(),
+      ...opGuardShape,
+    })
+    .strict(),
+  // Text for the current action's trace entry; {gained} and
+  // {secondsUntil:<status>} are filled in.
+  z.object({ note: z.string(), ...opGuardShape }).strict(),
+  // A heal: HP is not simulated, but it happens (the inspector shows it)
+  // and fires `heal` triggers (Chevreuse's C6 stacks). `from`: what heals,
+  // when it is not the block's own source (a talent's E or Q…).
+  z
+    .object({
+      heal: z
+        .object({
+          effect: z.string(),
+          // The amount in a few characters, for the block ("5.33% HP + 657").
+          short: z.string().optional(),
+          target: z.enum(['active', 'party']).default('active'),
+          from: z
+            .enum([
+              'normal',
+              'charged',
+              'plunge',
+              'skill',
+              'burst',
+              'passive',
+              'constellation',
+              'weapon',
+              'artifact',
+            ])
+            .optional(),
+        })
+        .strict(),
+      ...opGuardShape,
+    })
+    .strict(),
+  z.object({ warn: z.string(), ...opGuardShape }).strict(),
+  // Starts an action's cooldown now, for cooldowns marked `deferred` (the
+  // E's starts when Nightsoul's Blessing ends).
+  z.object({ startCooldown: z.string(), ...opGuardShape }).strict(),
+  z.object({ hook: z.string(), ...opGuardShape }).strict(),
+]);
+
+// ---------------------------------------------------------------- blocks
+
+const blockBaseShape = {
+  id: z.string(),
+  source: blockSourceSchema,
+  label: z.string(),
+  // UI toggle: the block only exists while this flag is on.
+  ifFlag: z.string().optional(),
+  // Project Amber UI asset name for the activity timeline. Without it the
+  // icon comes from the constellation, passive, weapon or set it belongs to.
+  icon: z.string().optional(),
+};
+
+const hitMatchSchema = z.object({
+  // Action ids ("normal", "charged", "skill", "burst").
+  actions: z.array(z.string()).optional(),
+  elements: z.array(z.string()).optional(),
+  categories: z.array(z.string()).optional(),
+});
+
+// What a stat bonus changes. Units: % for dmgBonus, critRate, critDamage,
+// the *Percent stats (of the base stat), defReduction, defIgnore and resShred
+// (RES points); flat numbers for flatAtk, flatHp, flatDef, elementalMastery
+// and flatDamage (added to the hit's base DMG); flatMultiplier is talent %
+// of the scaling stat. Negative values are debuffs.
+//
+// The stat fields the user fills in are the character screen's totals, so
+// these are only for bonuses that screen does not show (conditional buffs).
+export const BONUS_STATS = [
+  'dmgBonus',
+  'critRate',
+  'critDamage',
+  'flatMultiplier',
+  'atkPercent',
+  'hpPercent',
+  'defPercent',
+  'flatAtk',
+  'flatHp',
+  'flatDef',
+  'elementalMastery',
+  'flatDamage',
+  'defReduction',
+  'defIgnore',
+  'resShred',
+] as const;
+
+export const sheetStatSchema = z.enum(['atk', 'hp', 'def', 'em']);
+
+// Changes the hits it matches while its conditions hold: a stat, the
+// element (infusion) or an extra multiplier that scales with a resource.
+export const bonusBlockSchema = z
+  .object({
+    ...blockBaseShape,
+    type: z.literal('bonus'),
+    stat: z.enum(BONUS_STATS).optional(),
+    // One value, or one per refinement / level picked by `scaleBy`.
+    value: z.union([z.number(), z.array(z.number()).min(1)]).optional(),
+    scaleBy: z.object({ field: z.string() }).optional(),
+    // `value` is a % of this stat's total at the moment of the hit (after
+    // the other bonuses, but not other `ofStat` ones): flat DMG equal to 60%
+    // of DEF, or 1% ATK per 1,000 Max HP (0.1).
+    ofStat: sheetStatSchema.optional(),
+    // Multiplied by a state value (e.g. set stacks), capped at `max`.
+    perStack: z.object({ state: z.string(), max: z.number() }).optional(),
+    // The most it ever gives, after `ofStat` and `perStack` (in the stat's
+    // unit: "flat DMG up to 20000").
+    cap: z.number().optional(),
+    // `value` / `cap` read from a talent row ("talentId/rowId") at the
+    // character's talent level (a buff that grows with the E's level).
+    valueRow: z.string().optional(),
+    capRow: z.string().optional(),
+    // `value` read from a number form field (a teammate's buff).
+    valueField: z.string().optional(),
+    infuse: elementSchema.optional(),
+    // An amplifying reaction the hits trigger ("Vaporize", "Melt").
+    reaction: z.string().optional(),
+    // Renames the hits' category (a bite at 3 Wave Momentum is a "Surging
+    // Bite"); applied before every other bonus is matched.
+    setCategory: z.string().optional(),
+    addMultiplier: z
+      .object({
+        row: z.string(),
+        // row value × resource / per
+        perResource: z.string(),
+        per: z.number().positive(),
+      })
+      .optional(),
+    // Which hits it applies to; every hit when missing.
+    match: hitMatchSchema.optional(),
+    // State values that must hold at the moment of the hit.
+    while: z.record(stateConditionSchema).optional(),
+    // "Extra" (gcsim): buffs that convert a stat (`ofStat`, like Iansan's
+    // Scale from her ATK) never count it, so they do not feed each other.
+    extra: z.boolean().optional(),
+    // A buff for the rest of the party: it never applies to the
+    // character's own hits; in a team it applies to the other members'
+    // ("active": only to the one on the field). The details report it
+    // ({buffValue:<id>}).
+    teamBuff: z.union([z.boolean(), z.literal('active')]).optional(),
+  })
+  .refine(
+    (block) =>
+      [
+        block.stat !== undefined,
+        block.infuse,
+        block.addMultiplier,
+        block.reaction,
+        block.setCategory,
+      ].filter(Boolean).length === 1,
+    {
+      message:
+        'A bonus has exactly one of "stat", "infuse", "addMultiplier", "reaction", "setCategory"',
+    }
+  )
+  .refine(
+    (block) =>
+      block.stat === undefined ||
+      [
+        block.value !== undefined,
+        block.valueRow !== undefined,
+        block.valueField !== undefined,
+      ].filter(Boolean).length === 1,
+    {
+      message: 'A stat bonus needs one of "value", "valueRow" or "valueField"',
+    }
+  )
+  .refine((block) => block.ofStat === undefined || block.stat !== undefined, {
+    message: '"ofStat" needs a "stat"',
+  });
+
+export const resourceBlockSchema = z.object({
+  ...blockBaseShape,
+  type: z.literal('resource'),
+  min: z.number().default(0),
+  max: z.number(),
+  // Starting value: a number, or a form field (clamped to min/max).
+  initial: z.union([z.number(), z.object({ field: z.string() })]).default(0),
+  // Shown in each hit's notes ("Bond of Life: 130.0%").
+  noteFormat: z.enum(['percent']).optional(),
+  // How its value reads in the activity timeline; defaults to noteFormat.
+  unit: z.enum(['percent']).optional(),
+});
+
+export const statusBlockSchema = z
+  .object({
+    ...blockBaseShape,
+    type: z.literal('status'),
+    target: z.enum(['self', 'enemy']).default('self'),
+    // Missing: lasts until removed (or until `endsWith` ends).
+    durationFrames: frames.optional(),
+    // Removed together with this other status.
+    endsWith: z.string().optional(),
+    // Periodic hits while the status lasts.
+    ticks: z
+      .object({
+        everyFrames: frames,
+        count: z.number().int().min(1),
+        row: z.string(),
+        element: elementSchema,
+        category: z.string(),
+      })
+      .optional(),
+    // A stack status: each stack lasts on its own; the value is the count.
+    stacks: z
+      .object({
+        max: z.number().int().min(1),
+        durationFrames: frames,
+        // "active": each stack belongs to the member on the field when it
+        // is added, and a bonus reading it counts only the stacks of the
+        // character it applies to (Chevreuse's C6 heals). "self": every
+        // stack counts for everyone.
+        holder: z.enum(['self', 'active']).default('self'),
+      })
+      .optional(),
+    // Spends a resource while it lasts, and ends (after that frame) when the
+    // resource is empty: Nightsoul's Blessing and its Nightsoul points.
+    drain: z
+      .object({
+        resource: z.string(),
+        amount: z.number().positive().default(1),
+        everyFrames: frames.min(1),
+        // Defaults to `everyFrames`.
+        firstAfterFrames: frames.optional(),
+      })
+      .optional(),
+  })
+  .refine(
+    (block) =>
+      !block.stacks ||
+      (block.durationFrames === undefined &&
+        !block.ticks &&
+        !block.drain &&
+        !block.endsWith),
+    {
+      message:
+        'A stack status times each stack on its own: it takes no "durationFrames", "ticks", "drain" or "endsWith"',
+    }
+  );
+
+const whenSchema = z.union([
+  // After a hit of an action ("normal"), its group ("skill" for a hold E),
+  // a talent row ("elementalSkill/skill-cleave"), a category
+  // ("category:Plunge"), an element ("element:Hydro"), any non-Physical
+  // hit ("elemental") or any hit ("*"). "crit:<key>" fires only on a CRIT
+  // (expected-damage runs: always, with counts and particles × CRIT Rate);
+  // "reaction:Overloaded" on a transformative reaction's hit.
+  z.object({ hit: z.string() }).strict(),
+  z.object({ use: z.string() }).strict(),
+  // A named moment of an action, "charged/absorb".
+  z.object({ event: z.string() }).strict(),
+  // When a resource changes; with `change`, only when it goes that way
+  // (Obsidian Codex: on consuming Nightsoul points).
+  z
+    .object({
+      resourceChanges: z.string(),
+      change: z.enum(['increase', 'decrease']).optional(),
+    })
+    .strict(),
+  // When a status ends: removed, drained or expired.
+  z.object({ statusEnds: z.string() }).strict(),
+  // When the character comes on the field ("in") or leaves it ("out"),
+  // in a team.
+  z.object({ swap: z.enum(['in', 'out']) }).strict(),
+  // After a heal op of this trigger (its id), or of any ("*").
+  z.object({ heal: z.string() }).strict(),
+]);
+
+export const triggerBlockSchema = z.object({
+  ...blockBaseShape,
+  type: z.literal('trigger'),
+  when: whenSchema,
+  if: conditionSchema.optional(),
+  icdFrames: frames.optional(),
+  do: z.array(opSchema).min(1),
+});
+
+export const blockSchema = z.union([
+  bonusBlockSchema,
+  resourceBlockSchema,
+  statusBlockSchema,
+  triggerBlockSchema,
+]);
+
+// ---------------------------------------------------------------- kit
+
+// The automatic rotation: the first entry whose conditions hold is used.
+export const automaticEntrySchema = z.object({
+  use: z.string(),
+  if: conditionSchema.optional(),
+  ifFlag: z.string().optional(),
+  unlessFlag: z.string().optional(),
+});
+
+// A row of the results details panel. `value` is a template over counters
+// ({uses:skill}, {hits:Normal:Pyro}, {count:x}, {resource:bondOfLife},
+// {cooldownCut:skill}, {bonusHits:<id>}, {bonusStacks:<id>}, {hits},
+// {buffValue:<team buff id>}, {uptime:<status id>}) with an optional format
+// (|number, |fixed1, |seconds, |percent of the run) and a/b ratios.
+export const detailSchema = z.object({ label: z.string(), value: z.string() });
+
+// A warning shown on an action when a condition does not hold as it starts.
+export const actionWarningSchema = z.object({
+  action: z.string(),
+  unless: conditionSchema,
+  message: z.string(),
+});
+
+export type BonusStat = (typeof BONUS_STATS)[number];
+export type SheetStat = z.infer<typeof sheetStatSchema>;
+export type BlockSource = z.infer<typeof blockSourceSchema>;
+export type BonusBlock = z.infer<typeof bonusBlockSchema>;
+export type ResourceBlock = z.infer<typeof resourceBlockSchema>;
+export type StatusBlock = z.infer<typeof statusBlockSchema>;
+export type TriggerBlock = z.infer<typeof triggerBlockSchema>;
+export type Block = z.infer<typeof blockSchema>;
+export type Op = z.infer<typeof opSchema>;
+export type Amount = z.infer<typeof amountSchema>;
+export type AutomaticEntry = z.infer<typeof automaticEntrySchema>;
+export type DetailData = z.infer<typeof detailSchema>;
+export type ActionWarning = z.infer<typeof actionWarningSchema>;

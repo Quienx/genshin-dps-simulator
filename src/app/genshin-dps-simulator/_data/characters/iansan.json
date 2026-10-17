@@ -1,0 +1,1590 @@
+{
+  "id": "iansan",
+  "name": "Iansan",
+  "element": "Electro",
+  "weaponType": "Polearm",
+  "rarity": 4,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 10657,
+    "atk": 257,
+    "def": 638
+  },
+  "ascensionStat": { "stat": "atkPercent", "value": 24 },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Iansan"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Weighted Spike",
+      "description": "Normal Attack\nPerforms up to 3 consecutive spear strikes.\n\nCharged Attack\nConsumes a certain amount of Stamina to lunge forward, dealing damage to opponents along the way.\n\nPlunging Attack\nPlunges from mid-air to strike the ground below, damaging opponents along the path and dealing AoE DMG upon impact.\n\nNightsoul State: Swift Stormflight\nWhile in the Nightsoul's Blessing state: Iansan's Charged Attack will be transformed into the formidable Swift Stormflight, consuming a certain amount of Stamina to stomp fiercely down, dealing Nightsoul-aligned AoE Electro DMG.",
+      "icon": "Skill_A_03",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "normal-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                46.98, 50.8, 54.62, 60.09, 63.91, 68.28, 74.29, 80.3, 86.3,
+                92.86, 99.41, 105.97, 112.52, 119.08, 125.63
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [14],
+            "end": 21
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                42.76, 46.25, 49.73, 54.7, 58.18, 62.16, 67.63, 73.1, 78.57,
+                84.53, 90.5, 96.47, 102.44, 108.4, 114.37
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [7],
+            "end": 25
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                64.39, 69.63, 74.87, 82.36, 87.6, 93.59, 101.82, 110.06, 118.29,
+                127.28, 136.26, 145.25, 154.23, 163.22, 172.2
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [22],
+            "end": 53
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charged",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                100.28, 108.44, 116.6, 128.26, 136.42, 145.75, 158.58, 171.4,
+                184.23, 198.22, 212.21, 226.2, 240.2, 254.19, 268.18
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [21],
+            "end": 52,
+            "cancels": {
+              "skill": 51,
+              "burst": 50,
+              "dodge": 21
+            }
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "swift",
+          "label": "Swift Stormflight DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                84.19, 91.05, 97.9, 107.69, 114.54, 122.37, 133.14, 143.91,
+                154.68, 166.43, 178.18, 189.93, 201.67, 213.42, 225.17
+              ]
+            }
+          ],
+          "note": "gcsim reads the E level for this row; the game lists it in the Normal Attack talent, so it uses the Normal Attack level here.",
+          "timing": {
+            "action": "swiftStormflight",
+            "hitmarks": [25],
+            "element": "Electro",
+            "category": "Charged"
+          }
+        }
+      ],
+      "forms": [
+        {
+          "id": "swiftStormflight",
+          "replaces": "charged",
+          "while": {
+            "any": [
+              {
+                "status": "nightsoulBlessing"
+              },
+              {
+                "status": "fastSkill"
+              }
+            ]
+          },
+          "label": "Swift Stormflight",
+          "shortLabel": "Swift",
+          "element": "Electro",
+          "end": 32,
+          "cancels": {
+            "burst": 24,
+            "dodge": 30
+          },
+          "note": "The Charged Attack in Nightsoul's Blessing or within 5 s of the E (gcsim: hit at 25, Q at 24)."
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Thunderbolt Rush",
+      "description": "Iansan charges forward a certain distance, dealing Nightsoul-aligned Electro DMG to all opponents in her path.\nAfter this Skill is used, Iansan will regain 54 Nightsoul points and enter the Nightsoul's Blessing state. Within 5s after this is done, using a Normal Attack will trigger 1 quick Swift Stormflight stomp from Iansan that will not consume Stamina.\n\nNightsoul's Blessing: Iansan\nContinuously consumes Nightsoul points. If she runs out, or uses this Skill again, her Nightsoul's Blessing state will end. It has the following properties:\n· Increases Iansan's Movement SPD.\n· Holding sprint will switch Iansan to Rushing Thunderbolt mode, greatly increasing her Movement SPD temporarily. In this mode, Iansan can make flying leaps using terrain, or consume additional Nightsoul points to move on water or liquid Phlogiston while being immune to DMG from the latter.\n\n\"Faster, stronger! That's what all that hard work is for!\"",
+      "icon": "Skill_S_Iansan_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                286.4, 307.88, 329.36, 358.0, 379.48, 400.96, 429.6, 458.24,
+                486.88, 515.52, 544.16, 572.8, 608.6, 644.4, 680.2
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [9]
+          }
+        },
+        {
+          "type": "text",
+          "id": "skill-cd",
+          "label": "Cooldown",
+          "value": "16 s"
+        },
+        {
+          "type": "text",
+          "id": "skill-points",
+          "label": "Nightsoul points",
+          "value": "54; 6 consumed per second"
+        }
+      ],
+      "end": 32,
+      "cancels": {
+        "burst": 31,
+        "dodge": 27
+      },
+      "cooldown": {
+        "frames": 960
+      },
+      "note": "54 Nightsoul points and Nightsoul's Blessing. For 5 s, the next Charged Attack is a quick Swift Stormflight."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "The Three Principles of Power",
+      "description": "Iansan's stomping foot shatters the very earth with \"Power,\" dealing Nightsoul-aligned AoE Electro DMG. She then whips out her \"Limited-Edition Kinetic Energy Scale (For Workouts).\"\nWhen this Skill is used, Iansan will gain 15 Nightsoul points and enter the Nightsoul's Blessing state.\nWhen the Kinetic Energy Scale leaves the field, Iansan's Nightsoul's Blessing state will end.\n\nKinetic Energy Scale\nThe Kinetic Energy Scale will follow the character around, boosting the ATK of your current active party member in different ways based on Iansan's Nightsoul points.\n· If Iansan has less than 42 Nightsoul points, the ATK bonus will be based on her Nightsoul points and ATK.\n· If Iansan has at least 42 Nightsoul points, the Kinetic Energy Scale will switch to the \"Ardent Support!\" state, in which the ATK bonus will be stronger and based on her ATK alone.\nAdditionally, the Scale will log the distance your current active character (excluding Iansan) has moved so long as it is active, restoring Nightsoul points to Iansan every second based on the distance moved in the previous second.\nThe Scale will disappear once her Nightsoul's Blessing state ends. It will also disappear after 1 second when you are not in a state of combat. While it is active, Iansan's Nightsoul's Blessing state will not end even if she is not on the field.\n\n\"Power is not about natural talent. Power stems from unceasing practice. Power must be exercised correctly.\"",
+      "icon": "Skill_E_Iansan_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                430.4, 462.68, 494.96, 538.0, 570.28, 602.56, 645.6, 688.64,
+                731.68, 774.72, 817.76, 860.8, 914.6, 968.4, 1022.2
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [38]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "max-atk",
+          "label": "Max ATK Bonus",
+          "components": [
+            {
+              "stat": "flat",
+              "values": [
+                330, 370, 410, 450, 490, 530, 570, 610, 650, 690, 730, 770, 810,
+                850, 890
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "burst-atk",
+          "label": "ATK Bonus",
+          "value": "27% of ATK at 42+ Nightsoul points; else 0.5% of ATK per point"
+        },
+        {
+          "type": "text",
+          "id": "burst-cd",
+          "label": "Duration / Cooldown",
+          "value": "12 s / 18 s"
+        }
+      ],
+      "end": 44,
+      "cancels": {
+        "normal": 43,
+        "charged": 43,
+        "skill": 42
+      },
+      "cooldown": {
+        "frames": 1080
+      },
+      "energyCost": 70,
+      "note": "+15 Nightsoul points (enters Nightsoul's Blessing). The Kinetic Energy Scale buffs the active character's ATK; it ends with the Blessing."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fastSkill",
+      "type": "status",
+      "source": "talent",
+      "label": "Swift Stormflight ready (5 s after the E)",
+      "icon": "Skill_S_Iansan_01",
+      "durationFrames": 300
+    },
+    {
+      "id": "iansanBurst",
+      "type": "status",
+      "source": "talent",
+      "label": "Kinetic Energy Scale",
+      "icon": "Skill_E_Iansan_01"
+    },
+    {
+      "id": "ardentSupport",
+      "type": "status",
+      "source": "talent",
+      "label": "Ardent Support! (42+ points)",
+      "icon": "Skill_E_Iansan_01",
+      "endsWith": "iansanBurst"
+    },
+    {
+      "id": "scaleTick",
+      "type": "status",
+      "source": "talent",
+      "label": "Scale: next restore",
+      "icon": "Skill_E_Iansan_01",
+      "durationFrames": 60
+    },
+    {
+      "id": "preciseMovement",
+      "type": "status",
+      "source": "passive",
+      "label": "Precise Movement",
+      "icon": "UI_Talent_S_Iansan_05",
+      "durationFrames": 900,
+      "endsWith": "nightsoulBlessing"
+    },
+    {
+      "id": "extremeForce",
+      "type": "status",
+      "source": "constellation",
+      "label": "C6: Extreme Force",
+      "ifFlag": "c6",
+      "durationFrames": 180
+    },
+    {
+      "id": "surgingForce",
+      "type": "resource",
+      "source": "constellation",
+      "label": "C4: Surging Force",
+      "ifFlag": "c4",
+      "min": 0,
+      "max": 2
+    },
+    {
+      "id": "surgingForceUsed",
+      "type": "resource",
+      "source": "constellation",
+      "label": "C4: Surging Force gained this Q",
+      "ifFlag": "c4",
+      "min": 0,
+      "max": 1
+    },
+    {
+      "id": "c4-gain",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: another member's Q during the Scale: 2 Surging Force stacks",
+      "ifFlag": "c4",
+      "when": {
+        "use": "party:burst"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "iansanBurst"
+          },
+          {
+            "not": {
+              "onField": true
+            }
+          },
+          {
+            "resource": "surgingForceUsed",
+            "lt": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "setResource": "surgingForce",
+          "value": 2
+        },
+        {
+          "setResource": "surgingForceUsed",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "skill-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Thunderbolt Rush: 54 Nightsoul points, Nightsoul's Blessing",
+      "icon": "Skill_S_Iansan_01",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "fastSkill"
+        },
+        {
+          "setResource": "nightsoul",
+          "value": 54,
+          "delayFrames": 3
+        },
+        {
+          "applyStatus": "nightsoulBlessing",
+          "delayFrames": 3,
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        },
+        {
+          "particles": 4,
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "swift-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Swift Stormflight uses the quick stomp",
+      "icon": "Skill_S_Iansan_01",
+      "when": {
+        "use": "swiftStormflight"
+      },
+      "do": [
+        {
+          "removeStatus": "fastSkill"
+        }
+      ]
+    },
+    {
+      "id": "a1-gain",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Swift Stormflight hit: Precise Movement",
+      "icon": "UI_Talent_S_Iansan_05",
+      "when": {
+        "hit": "swiftStormflight"
+      },
+      "do": [
+        {
+          "applyStatus": "preciseMovement"
+        }
+      ]
+    },
+    {
+      "id": "a1-atk",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Precise Movement (+20% ATK)",
+      "icon": "UI_Talent_S_Iansan_05",
+      "stat": "atkPercent",
+      "value": 20,
+      "while": {
+        "preciseMovement": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "burst-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "The Three Principles of Power: +15 points, Kinetic Energy Scale",
+      "icon": "Skill_E_Iansan_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 15,
+          "delayFrames": 40,
+          "if": {
+            "status": "nightsoulBlessing"
+          }
+        },
+        {
+          "setResource": "nightsoul",
+          "value": 15,
+          "delayFrames": 40,
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        },
+        {
+          "applyStatus": "nightsoulBlessing",
+          "delayFrames": 40,
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        },
+        {
+          "applyStatus": "iansanBurst"
+        },
+        {
+          "applyStatus": "scaleTick"
+        },
+        {
+          "applyStatus": "preciseMovement",
+          "ifFlag": "c2"
+        },
+        {
+          "setResource": "surgingForce",
+          "value": 0,
+          "ifFlag": "c4"
+        },
+        {
+          "setResource": "surgingForceUsed",
+          "value": 0,
+          "ifFlag": "c4"
+        }
+      ]
+    },
+    {
+      "id": "burst-end",
+      "type": "trigger",
+      "source": "talent",
+      "label": "The Scale leaves after 12 s (15 s at C6)",
+      "icon": "Skill_E_Iansan_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "removeStatus": "iansanBurst",
+          "delayFrames": 720,
+          "unlessFlag": "c6"
+        },
+        {
+          "removeStatus": "iansanBurst",
+          "delayFrames": 900,
+          "ifFlag": "c6"
+        }
+      ]
+    },
+    {
+      "id": "blessing-end",
+      "type": "trigger",
+      "source": "talent",
+      "label": "The Blessing ends: the Scale leaves (gcsim)",
+      "icon": "Skill_E_Iansan_01",
+      "when": {
+        "statusEnds": "nightsoulBlessing"
+      },
+      "do": [
+        {
+          "removeStatus": "iansanBurst"
+        }
+      ]
+    },
+    {
+      "id": "ardent-support",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Ardent Support! at 42 points or more",
+      "icon": "Skill_E_Iansan_01",
+      "when": {
+        "resourceChanges": "nightsoul"
+      },
+      "do": [
+        {
+          "applyStatus": "ardentSupport",
+          "if": {
+            "all": [
+              {
+                "resource": "nightsoul",
+                "gte": 42
+              },
+              {
+                "status": "iansanBurst"
+              },
+              {
+                "not": {
+                  "status": "ardentSupport"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "removeStatus": "ardentSupport",
+          "if": {
+            "resource": "nightsoul",
+            "lt": 42
+          }
+        }
+      ]
+    },
+    {
+      "id": "scale-restore",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Kinetic Energy Scale: restores Nightsoul points every 1 s",
+      "icon": "Skill_E_Iansan_01",
+      "when": {
+        "statusEnds": "scaleTick"
+      },
+      "if": {
+        "status": "iansanBurst"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": {
+            "field": "iansanMovementPoints"
+          }
+        },
+        {
+          "addResource": "nightsoul",
+          "amount": 1,
+          "if": {
+            "status": "preciseMovement"
+          }
+        },
+        {
+          "addResource": "nightsoul",
+          "amount": 4,
+          "ifFlag": "c4",
+          "if": {
+            "resource": "surgingForce",
+            "gte": 1
+          }
+        },
+        {
+          "addResource": "surgingForce",
+          "amount": -1,
+          "ifFlag": "c4"
+        },
+        {
+          "applyStatus": "extremeForce",
+          "ifFlag": "c6",
+          "if": {
+            "resource": "nightsoul",
+            "gte": 54
+          }
+        },
+        {
+          "applyStatus": "scaleTick"
+        }
+      ]
+    },
+    {
+      "id": "a1-extra-points",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Precise Movement: +3 more points (once every 2.8 s)",
+      "icon": "UI_Talent_S_Iansan_05",
+      "ifFlag": "a1Extra",
+      "when": {
+        "statusEnds": "scaleTick"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "iansanBurst"
+          },
+          {
+            "status": "preciseMovement"
+          }
+        ]
+      },
+      "icdFrames": 168,
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "scale-atk",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Kinetic Energy Scale: Ardent Support! (27% of her ATK)",
+      "icon": "Skill_E_Iansan_01",
+      "stat": "flatAtk",
+      "value": 27,
+      "ofStat": "atk",
+      "capRow": "elementalBurst/max-atk",
+      "while": {
+        "ardentSupport": {
+          "gte": 1
+        }
+      },
+      "extra": true
+    },
+    {
+      "id": "scale-atk-party",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Kinetic Energy Scale: Ardent Support! (27% of her ATK) (party)",
+      "icon": "Skill_E_Iansan_01",
+      "stat": "flatAtk",
+      "value": 27,
+      "ofStat": "atk",
+      "capRow": "elementalBurst/max-atk",
+      "while": {
+        "ardentSupport": {
+          "gte": 1
+        }
+      },
+      "extra": true,
+      "teamBuff": "active"
+    },
+    {
+      "id": "scale-atk-low",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Kinetic Energy Scale: under 42 points (0.5% of her ATK per point)",
+      "icon": "Skill_E_Iansan_01",
+      "stat": "flatAtk",
+      "value": 0.5,
+      "ofStat": "atk",
+      "perStack": {
+        "state": "nightsoul",
+        "max": 42
+      },
+      "capRow": "elementalBurst/max-atk",
+      "while": {
+        "iansanBurst": {
+          "gte": 1
+        },
+        "ardentSupport": {
+          "lt": 1
+        }
+      },
+      "extra": true
+    },
+    {
+      "id": "scale-atk-low-party",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Kinetic Energy Scale: under 42 points (0.5% of her ATK per point) (party)",
+      "icon": "Skill_E_Iansan_01",
+      "stat": "flatAtk",
+      "value": 0.5,
+      "ofStat": "atk",
+      "perStack": {
+        "state": "nightsoul",
+        "max": 42
+      },
+      "capRow": "elementalBurst/max-atk",
+      "while": {
+        "iansanBurst": {
+          "gte": 1
+        },
+        "ardentSupport": {
+          "lt": 1
+        }
+      },
+      "extra": true,
+      "teamBuff": "active"
+    },
+    {
+      "id": "c1-energy",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: 15 Energy per 6 Nightsoul points consumed (once every 18 s)",
+      "ifFlag": "c1",
+      "when": {
+        "resourceChanges": "nightsoul",
+        "change": "decrease"
+      },
+      "if": {
+        "status": "nightsoulBlessing"
+      },
+      "icdFrames": 1080,
+      "do": [
+        {
+          "addResource": "energy",
+          "amount": 15,
+          "delayFrames": 60
+        }
+      ]
+    },
+    {
+      "id": "c2-atk",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: +30% ATK for the active party member",
+      "ifFlag": "c2",
+      "stat": "atkPercent",
+      "value": 30,
+      "while": {
+        "preciseMovement": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "active"
+    },
+    {
+      "id": "c6-extreme-force",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: Extreme Force (+25% DMG)",
+      "ifFlag": "c6",
+      "stat": "dmgBonus",
+      "value": 25,
+      "while": {
+        "extremeForce": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-extreme-force-party",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: Extreme Force (+25% DMG) (party)",
+      "ifFlag": "c6",
+      "stat": "dmgBonus",
+      "value": 25,
+      "while": {
+        "extremeForce": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "active"
+    },
+    {
+      "id": "overloaded-1s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on the other element, once every 1 s)",
+      "icon": "Skill_S_Iansan_01",
+      "ifFlag": "overloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 1,
+        "lt": 2
+      },
+      "icdFrames": 60,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "overloaded-2s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on the other element, once every 2 s)",
+      "icon": "Skill_S_Iansan_01",
+      "ifFlag": "overloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 2,
+        "lt": 3
+      },
+      "icdFrames": 120,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "overloaded-3s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on the other element, once every 3 s)",
+      "icon": "Skill_S_Iansan_01",
+      "ifFlag": "overloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 3,
+        "lt": 4
+      },
+      "icdFrames": 180,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "overloaded-4s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on the other element, once every 4 s)",
+      "icon": "Skill_S_Iansan_01",
+      "ifFlag": "overloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 4,
+        "lt": 5
+      },
+      "icdFrames": 240,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    },
+    {
+      "id": "overloaded-5s",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Overloaded (Electro hit on the other element, once every 5 s)",
+      "icon": "Skill_S_Iansan_01",
+      "ifFlag": "overloaded",
+      "when": {
+        "hit": "element:Electro"
+      },
+      "if": {
+        "field": "overloadedEvery",
+        "gte": 5,
+        "lt": 6
+      },
+      "icdFrames": 300,
+      "do": [
+        {
+          "reactionHit": "Overloaded"
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "iansan-passive-1",
+      "name": "Enhanced Resistance Training",
+      "description": "After Swift Stormflight hits opponents, Iansan will gain the Precise Movement effect for 15s.\nDuring this time, her ATK is increased by 20%, and whenever she regains Nightsoul points through the Kinetic Energy Scale in her Elemental Burst, The Three Principles of Power, she will gain 1 extra Nightsoul point. Additionally, when your current active party member consumes or restores Nightsoul points, the extra Nightsoul points Iansan gains the next time she restores Nightsoul points via the Scale will be increased to 4. This effect can occur once every 2.8s.\n\"Precise Movement\" will expire when Iansan's Nightsoul's Blessing state ends.",
+      "icon": "UI_Talent_S_Iansan_05",
+      "value": "After Swift Stormflight hits, Precise Movement for 15 s: +20% ATK, and +1 extra point (4 once every 2.8 s if the active character used Nightsoul points) each time the Scale restores points. Ends with the Blessing.",
+      "note": "Simulated; the +4 assumes the active character keeps using Nightsoul points (option)."
+    },
+    {
+      "id": "iansan-passive-2",
+      "name": "Kinetic Energy Gradient Test",
+      "description": "When a nearby party member triggers a Nightsoul Burst, Iansan will obtain the Warming Up effect for 10s.\nDuring this time, when Iansan restores at least 1 Nightsoul point, she will heal your current active character for 60% of her ATK. This effect can be triggered once every 2.8s.",
+      "icon": "UI_Talent_S_Iansan_06",
+      "value": "After a Nightsoul Burst, restoring Nightsoul points heals the active character for 60% of her ATK.",
+      "note": "Healing is not simulated."
+    },
+    {
+      "id": "iansan-passive-3",
+      "name": "Night Realm's Gift: Hard Work and Drive",
+      "description": "After Nightsoul points have been fully depleted and Iansan is on the field, she will switch to using Phlogiston to maintain her Nightsoul's Blessing.\nWhile in an area with Phlogiston Mechanics within Natlan, Nightsoul Transmission: Iansan can be used. When the current active character is sprinting or in movement modes caused by certain Talents, or at a certain height in the air, switching to Iansan will trigger the following: Iansan enters the Nightsoul's Blessing state and obtains 25 Nightsoul points. Nightsoul Transmission can be triggered once every 10s by your own party.\nWhile in an area with Phlogiston Mechanics within Natlan, Iansan will not take fall DMG when using terrain differences to make leaps.",
+      "icon": "UI_Talent_S_Varesa_07",
+      "value": "Exploration passive."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Starting's Never Easy",
+      "description": "When Iansan is in combat and is in the Nightsoul's Blessing state, she will restore 15 Elemental Energy for every 6 Nightsoul points she consumes. This effect can trigger once every 18s.",
+      "icon": "UI_Talent_S_Iansan_01",
+      "effect": "In Nightsoul's Blessing, 15 Energy for every 6 Nightsoul points consumed, once every 18 s.",
+      "impact": "simulated",
+      "note": "15 Energy 1 s after points start dropping, once every 18 s."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Laziness is the Enemy!",
+      "description": "When using the Elemental Burst The Three Principles of Power, Iansan will also gain the Precise Movement effect from her Ascension Talent \"Enhanced Resistance Training\" for 15s. Additionally, if Iansan is off-field while Precise Movement is active, she will also increase your current active character's ATK by 30%. You must first unlock the Ascension Talent \"Enhanced Resistance Training\" to access the above effect.",
+      "icon": "UI_Talent_S_Iansan_02",
+      "effect": "The Q also grants Precise Movement; while it lasts, the active character gets +30% ATK.",
+      "impact": "simulated",
+      "note": "A party buff: reported in the details, not applied to her own hits."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Scientific Diet Planning",
+      "description": "Increases the Level of Thunderbolt Rush by 3.\nMaximum upgrade level is 15.",
+      "icon": "UI_Talent_U_Iansan_01",
+      "effect": "Thunderbolt Rush +3 levels.",
+      "impact": "simulated",
+      "note": "Raises the E multiplier."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Slow and Steady Wins the Race",
+      "description": "When the Kinetic Energy Scale is present, Iansan will gain 2 stacks of Surging Force after your current active character (excluding herself) uses their Elemental Burst. The stacks last until the Scale leaves the field, and Surging Force can be gained once per Scale summoning. Whenever Iansan restores Nightsoul points via the Scale, she will consume 1 Surging Force stack and restore 4 additional Nightsoul points.\nAdditionally, if her Nightsoul restoration from the Scale overflows, Iansan will gain 50% of the overflow the next time she restores Nightsoul points via the Scale.",
+      "icon": "UI_Talent_S_Iansan_03",
+      "effect": "After another character's Q, 2 Surging Force stacks: +4 points per Scale restore; 50% of overflow kept.",
+      "impact": "partial",
+      "note": "2 stacks after another member's Q (Varesa's Kablam counts): +4 points per restore. The 50% of overflow kept is not simulated."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "We Can Push It Further!",
+      "description": "Increases the Level of The Three Principles of Power by 3.\nMaximum upgrade level is 15.",
+      "icon": "UI_Talent_U_Iansan_02",
+      "effect": "The Three Principles of Power +3 levels.",
+      "impact": "simulated",
+      "note": "Raises the Q multiplier and the max ATK bonus."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Teachings of the Collective of Plenty",
+      "description": "The Kinetic Energy Scale's duration is increased by 3s.\nAdditionally, when Iansan triggers Nightsoul point restoration, if there is any overflow, she will gain the Extreme Force effect, which increases the DMG dealt by your current active character by 25% for 3s.",
+      "icon": "UI_Talent_S_Iansan_04",
+      "effect": "The Scale lasts 3 s longer. Overflowing points give the active character +25% DMG for 3 s.",
+      "impact": "partial",
+      "note": "Overflow is read as reaching 54 points on a restore."
+    }
+  ],
+  "artifactSet": {
+    "name": "Scroll of the Hero of Cinder City",
+    "pieces": [
+      {
+        "id": "flower",
+        "label": "Flower",
+        "icon": "UI_RelicIcon_15037_4"
+      },
+      {
+        "id": "plume",
+        "label": "Plume",
+        "icon": "UI_RelicIcon_15037_2"
+      },
+      {
+        "id": "sands",
+        "label": "Sands",
+        "icon": "UI_RelicIcon_15037_5"
+      },
+      {
+        "id": "goblet",
+        "label": "Goblet",
+        "icon": "UI_RelicIcon_15037_1"
+      },
+      {
+        "id": "circlet",
+        "label": "Circlet",
+        "icon": "UI_RelicIcon_15037_3"
+      }
+    ],
+    "rows": [
+      {
+        "id": "set-two-piece",
+        "label": "2-piece",
+        "value": "When a nearby party member triggers a Nightsoul Burst, the equipping character regenerates 6 Elemental Energy.",
+        "flag": "scroll2"
+      },
+      {
+        "id": "set-four-piece",
+        "label": "4-piece",
+        "value": "After the equipping character triggers a reaction related to their Elemental Type, all nearby party members gain a 12% Elemental DMG Bonus for the Elemental Types involved in the elemental reaction for 15s. If the equipping character is in the Nightsoul's Blessing state when triggering this effect, all nearby party members gain an additional 28% Elemental DMG Bonus for the Elemental Types involved in the elemental reaction for 20s. The equipping character can trigger this effect while off-field, and the DMG bonus from Artifact Sets with the same name do not stack.",
+        "flag": "scroll4",
+        "note": "Simulated on her own Overloaded (Pyro and Electro DMG)."
+      }
+    ],
+    "blocks": [
+      {
+        "id": "scrollReaction",
+        "type": "status",
+        "source": "artifact",
+        "label": "Scroll 4-piece: reaction buff",
+        "ifFlag": "scroll4",
+        "durationFrames": 900
+      },
+      {
+        "id": "scrollNightsoul",
+        "type": "status",
+        "source": "artifact",
+        "label": "Scroll 4-piece: Nightsoul buff",
+        "ifFlag": "scroll4",
+        "durationFrames": 1200
+      },
+      {
+        "id": "scroll-4pc-trigger",
+        "type": "trigger",
+        "source": "artifact",
+        "label": "Overloaded: Pyro / Electro DMG for the party",
+        "ifFlag": "scroll4",
+        "when": {
+          "hit": "reaction:Overloaded"
+        },
+        "do": [
+          {
+            "applyStatus": "scrollReaction"
+          },
+          {
+            "applyStatus": "scrollNightsoul",
+            "if": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        ]
+      },
+      {
+        "id": "scroll-4pc",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Scroll 4-piece: +12% Pyro / Electro DMG (Overloaded)",
+        "ifFlag": "scroll4",
+        "stat": "dmgBonus",
+        "value": 12,
+        "match": {
+          "elements": ["Pyro", "Electro"]
+        },
+        "while": {
+          "scrollReaction": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "scroll-4pc-party",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Scroll 4-piece: +12% Pyro / Electro DMG (Overloaded) (party)",
+        "ifFlag": "scroll4",
+        "stat": "dmgBonus",
+        "value": 12,
+        "match": {
+          "elements": ["Pyro", "Electro"]
+        },
+        "while": {
+          "scrollReaction": {
+            "gte": 1
+          }
+        },
+        "teamBuff": true
+      },
+      {
+        "id": "scroll-4pc-nightsoul",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Scroll 4-piece: +28% Pyro / Electro DMG (in Nightsoul's Blessing)",
+        "ifFlag": "scroll4",
+        "stat": "dmgBonus",
+        "value": 28,
+        "match": {
+          "elements": ["Pyro", "Electro"]
+        },
+        "while": {
+          "scrollNightsoul": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "scroll-4pc-nightsoul-party",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Scroll 4-piece: +28% Pyro / Electro DMG (in Nightsoul's Blessing) (party)",
+        "ifFlag": "scroll4",
+        "stat": "dmgBonus",
+        "value": 28,
+        "match": {
+          "elements": ["Pyro", "Electro"]
+        },
+        "while": {
+          "scrollNightsoul": {
+            "gte": 1
+          }
+        },
+        "teamBuff": true
+      }
+    ]
+  },
+  "defaults": {
+    "numbers": {
+      "atk": 2680,
+      "hp": 15934,
+      "cr": 41.9,
+      "cd": 88.9,
+      "bonus": 0,
+      "elementalBonus": 0,
+      "em": 19,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 1,
+      "burstLevel": 10,
+      "favoniusRefinement": 5,
+      "energyRecharge": 192.1,
+      "startingEnergy": 70,
+      "natlanPartyMembers": 2,
+      "iansanMovementPoints": 4,
+      "overloadedEvery": 2
+    },
+    "flags": {
+      "c1": true,
+      "c2": true,
+      "c3": true,
+      "c4": true,
+      "c5": true,
+      "c6": true,
+      "favonius": true,
+      "scroll2": true,
+      "scroll4": true,
+      "a1Extra": true,
+      "useBurst": true,
+      "overloaded": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Kinetic Energy Scale)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-70)",
+      "min": 0,
+      "max": 70,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "natlanPartyMembers",
+      "label": "Natlan party members (Nightsoul Burst every 18/12/9 s)",
+      "min": 1,
+      "max": 4,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "iansanMovementPoints",
+      "label": "Scale: points per second from the active character's movement (0.67 per meter)",
+      "min": 0,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "a1Extra",
+      "label": "Precise Movement: the active character uses Nightsoul points (+4 instead of +1 once every 2.8 s)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "overloaded",
+      "label": "Team: her hits trigger Overloaded (the other element is on the enemy)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "overloadedEvery",
+      "label": "Overloaded at most once every … s (1-5)",
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "scroll2",
+      "label": "Scroll 2-piece (6 Energy per Nightsoul Burst)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "scroll4",
+      "label": "Scroll 4-piece (Pyro / Electro DMG on Overloaded)"
+    }
+  ],
+  "weapon": {
+    "name": "Favonius Lance",
+    "icon": "UI_EquipIcon_Pole_Zephyrus",
+    "type": "Polearm",
+    "rarity": 4,
+    "level": 90,
+    "enabledFlag": "favonius",
+    "refinementField": "favoniusRefinement",
+    "baseAtk": 565,
+    "substat": {
+      "stat": "energyRecharge",
+      "value": 30.6
+    },
+    "rows": [
+      {
+        "id": "weapon-passive",
+        "label": "R{refinement} passive: Windfall",
+        "status": "toggle",
+        "template": "CRIT hits have a {param:chance}% chance to make 3 Elemental Particles (6 Energy), once every {param:cooldown} s",
+        "params": {
+          "chance": [60, 70, 80, 90, 100],
+          "cooldown": [12, 10.5, 9, 7.5, 6]
+        },
+        "note": "Only while she is on the field. Expected-damage runs add up the CRIT chance of the hits until the cooldown could have started."
+      }
+    ],
+    "blocks": [
+      {
+        "id": "favonius-r1",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "Windfall: CRIT hits make particles",
+        "ifFlag": "favonius",
+        "when": {
+          "hit": "crit:*"
+        },
+        "if": {
+          "all": [
+            {
+              "field": "favoniusRefinement",
+              "gte": 1,
+              "lt": 2
+            },
+            {
+              "onField": true
+            }
+          ]
+        },
+        "icdFrames": 720,
+        "do": [
+          {
+            "particles": {
+              "min": 0,
+              "max": 3,
+              "maxChance": 0.6
+            },
+            "clear": true,
+            "afterFrames": 100
+          }
+        ]
+      },
+      {
+        "id": "favonius-r2",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "Windfall: CRIT hits make particles",
+        "ifFlag": "favonius",
+        "when": {
+          "hit": "crit:*"
+        },
+        "if": {
+          "all": [
+            {
+              "field": "favoniusRefinement",
+              "gte": 2,
+              "lt": 3
+            },
+            {
+              "onField": true
+            }
+          ]
+        },
+        "icdFrames": 630,
+        "do": [
+          {
+            "particles": {
+              "min": 0,
+              "max": 3,
+              "maxChance": 0.7
+            },
+            "clear": true,
+            "afterFrames": 100
+          }
+        ]
+      },
+      {
+        "id": "favonius-r3",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "Windfall: CRIT hits make particles",
+        "ifFlag": "favonius",
+        "when": {
+          "hit": "crit:*"
+        },
+        "if": {
+          "all": [
+            {
+              "field": "favoniusRefinement",
+              "gte": 3,
+              "lt": 4
+            },
+            {
+              "onField": true
+            }
+          ]
+        },
+        "icdFrames": 540,
+        "do": [
+          {
+            "particles": {
+              "min": 0,
+              "max": 3,
+              "maxChance": 0.8
+            },
+            "clear": true,
+            "afterFrames": 100
+          }
+        ]
+      },
+      {
+        "id": "favonius-r4",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "Windfall: CRIT hits make particles",
+        "ifFlag": "favonius",
+        "when": {
+          "hit": "crit:*"
+        },
+        "if": {
+          "all": [
+            {
+              "field": "favoniusRefinement",
+              "gte": 4,
+              "lt": 5
+            },
+            {
+              "onField": true
+            }
+          ]
+        },
+        "icdFrames": 450,
+        "do": [
+          {
+            "particles": {
+              "min": 0,
+              "max": 3,
+              "maxChance": 0.9
+            },
+            "clear": true,
+            "afterFrames": 100
+          }
+        ]
+      },
+      {
+        "id": "favonius-r5",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "Windfall: CRIT hits make particles",
+        "ifFlag": "favonius",
+        "when": {
+          "hit": "crit:*"
+        },
+        "if": {
+          "all": [
+            {
+              "field": "favoniusRefinement",
+              "gte": 5,
+              "lt": 6
+            },
+            {
+              "onField": true
+            }
+          ]
+        },
+        "icdFrames": 360,
+        "do": [
+          {
+            "particles": {
+              "min": 0,
+              "max": 3,
+              "maxChance": 1.0
+            },
+            "clear": true,
+            "afterFrames": 100
+          }
+        ]
+      }
+    ]
+  },
+  "rotation": {
+    "automaticDescription": "E (Nightsoul's Blessing), the quick Swift Stormflight (Precise Movement), then the Q while in the Blessing; Swift Stormflight while the Blessing lasts, else Normal Attacks. Her points drain 6 per second; the Scale's ATK buff is strongest at 42+ points."
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "nightsoul": {
+      "maxPoints": 54,
+      "label": "Nightsoul points",
+      "icon": "Skill_S_Iansan_01",
+      "blessing": {
+        "label": "Nightsoul's Blessing",
+        "icon": "Skill_S_Iansan_01",
+        "drain": {
+          "everyFrames": 6,
+          "amount": 0.6
+        }
+      },
+      "nightsoulBurst": {
+        "label": "Nightsoul Burst",
+        "icon": "UI_Talent_S_Iansan_06",
+        "do": [
+          {
+            "addResource": "energy",
+            "amount": 6,
+            "ifFlag": "scroll2"
+          }
+        ]
+      }
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "all": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "ready": "burst"
+          }
+        ]
+      }
+    },
+    {
+      "use": "charged",
+      "if": {
+        "status": "fastSkill"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "charged",
+      "if": {
+        "status": "nightsoulBlessing"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "Q casts",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "Scale ATK buff at 42+ points (party)",
+      "value": "+{buffValue:scale-atk-party|number} ATK"
+    },
+    {
+      "label": "Scale up",
+      "value": "{uptime:iansanBurst|seconds} s ({uptime:iansanBurst|percent})"
+    },
+    {
+      "label": "Ardent Support! (42+ points) up",
+      "value": "{uptime:ardentSupport|seconds} s ({uptime:ardentSupport|percent})"
+    },
+    {
+      "label": "Precise Movement up (C2: +30% ATK for the party)",
+      "value": "{uptime:preciseMovement|percent}"
+    },
+    {
+      "label": "C6 Extreme Force (+25% DMG) up",
+      "value": "{uptime:extremeForce|percent}"
+    },
+    {
+      "label": "Overloaded hits",
+      "value": "{hits:Overloaded}"
+    },
+    {
+      "label": "Scroll 4-piece up (+12% / +28% Pyro and Electro DMG)",
+      "value": "{uptime:scrollReaction|percent} / {uptime:scrollNightsoul|percent}"
+    },
+    {
+      "label": "Particles (E and Favonius)",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 70"
+    }
+  ]
+}

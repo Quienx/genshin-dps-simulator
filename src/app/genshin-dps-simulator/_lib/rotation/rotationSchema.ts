@@ -1,0 +1,67 @@
+import { z } from 'zod';
+
+export const rotationActionKindSchema = z.enum([
+  'normal',
+  'charged',
+  'skill',
+  'burst',
+  'plunge',
+  // Movement that matters for the kit, e.g. surfing into an enemy.
+  'move',
+  'dodge',
+  'wait',
+]);
+
+// An action the user can drop into a rotation. The character file lists its
+// own actions; Dodge and Wait come from _data/actions/common.json.
+// One step of a sequence: an action id, or an action played "hits" times
+// (the block's count) and/or that must have been performed as another one
+// (a Normal Attack that was a bite) to be recognized in a trace.
+export const sequenceStepSchema = z.union([
+  z.string(),
+  z.object({
+    action: z.string(),
+    times: z.literal('hits').optional(),
+    performed: z.union([z.string(), z.array(z.string())]).optional(),
+  }),
+]);
+
+export const rotationActionSchema = z.object({
+  id: z.string(),
+  kind: rotationActionKindSchema,
+  label: z.string(),
+  shortLabel: z.string(),
+  description: z.string().optional(),
+  // Project Amber UI asset name; actions without one get a generic icon.
+  icon: z.string().optional(),
+  // Normal Attack: how many presses a block can hold (the combo length).
+  maxHits: z.number().int().min(1).optional(),
+  // Not a palette item: it is what another action turns into (Mualani's
+  // bite is her Normal Attack while surfing).
+  hidden: z.boolean().optional(),
+  // A sequence: one block that plays these actions in order (Mualani's
+  // Surging Bite is three surfs into the enemy and a bite). Each one is
+  // simulated as itself; the block only groups them.
+  steps: z.array(sequenceStepSchema).min(1).optional(),
+  // What a block's count means for a sequence (Wave Momentum before the
+  // bite), and its lowest value (Normal Attacks: at least 1 hit).
+  hitsLabel: z.string().optional(),
+  minHits: z.number().int().min(0).optional(),
+  defaultSeconds: z.number().positive().optional(),
+  recoveryFrames: z.number().int().min(0).optional(),
+});
+
+export const rotationDataSchema = z.object({
+  // How the built-in priority logic picks actions, shown in Automatic mode.
+  automaticDescription: z.string(),
+  actions: z.array(rotationActionSchema).min(1),
+});
+
+export const commonActionsSchema = z.object({
+  actions: z.array(rotationActionSchema),
+});
+
+export type RotationActionKind = z.infer<typeof rotationActionKindSchema>;
+export type RotationAction = z.infer<typeof rotationActionSchema>;
+export type SequenceStep = z.infer<typeof sequenceStepSchema>;
+export type RotationData = z.infer<typeof rotationDataSchema>;

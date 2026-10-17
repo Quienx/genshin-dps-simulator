@@ -1,0 +1,20 @@
+{
+  "actions": [
+    {
+      "id": "dodge",
+      "kind": "dodge",
+      "label": "Dodge",
+      "shortLabel": "Dash",
+      "description": "Dash after the current action ends. The Normal Attack combo restarts at N1.",
+      "recoveryFrames": 20
+    },
+    {
+      "id": "wait",
+      "kind": "wait",
+      "label": "Wait",
+      "shortLabel": "Wait",
+      "description": "Do nothing for a set time (e.g. a teammate is on the field). The combo restarts at N1.",
+      "defaultSeconds": 1
+    }
+  ]
+}

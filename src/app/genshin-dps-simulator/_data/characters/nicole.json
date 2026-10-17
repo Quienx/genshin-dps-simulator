@@ -1,0 +1,1000 @@
+{
+  "id": "nicole",
+  "name": "Nicole",
+  "element": "Pyro",
+  "weaponType": "Catalyst",
+  "rarity": 5,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 10409,
+    "atk": 342,
+    "def": 563
+  },
+  "ascensionStat": { "stat": "atkPercent", "value": 28.8 },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Nicole"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Allegoria",
+      "description": "Normal Attack\nProclaims a decree in the primordial tongue and performs up to 3 attacks that deal Pyro DMG.\n\nCharged Attack\nConsumes a certain amount of Stamina to deal AoE Pyro DMG to opponents in front of her after a short casting time.\n\nPlunging Attack\nNicole plunges towards the ground from mid-air, damaging all opponents in her path. Also deals AoE Pyro DMG upon impact with the ground.",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "normal-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                35.18, 37.82, 40.46, 43.97, 46.61, 49.25, 52.77, 56.29, 59.8,
+                63.32, 66.84, 70.36, 74.76, 79.15, 83.55
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [10],
+            "end": 19,
+            "cancels": {
+              "normal": 18
+            },
+            "element": "Pyro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                29.63, 31.86, 34.08, 37.04, 39.26, 41.49, 44.45, 47.41, 50.38,
+                53.34, 56.3, 59.27, 62.97, 66.68, 70.38
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [8],
+            "end": 22,
+            "cancels": {
+              "charged": 17
+            },
+            "element": "Pyro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "normal-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                46.19, 49.65, 53.12, 57.73, 61.2, 64.66, 69.28, 73.9, 78.52,
+                83.14, 87.76, 92.38, 98.15, 103.92, 109.7
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [38],
+            "end": 52,
+            "element": "Pyro"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charged",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                112.32, 120.74, 129.17, 140.4, 148.82, 157.25, 168.48, 179.71,
+                190.94, 202.18, 213.41, 224.64, 238.68, 252.72, 266.76
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [66],
+            "end": 99,
+            "cancels": {
+              "skill": 66,
+              "burst": 66,
+              "dodge": 66
+            },
+            "element": "Pyro"
+          }
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Revelation: Uncreated Light",
+      "description": "Recreates a fleeting glimpse of an age long past, when the angels acted on the authority of the heavens, bestowing the Grace of Kenosis effect on nearby party members. This increases their ATK and deals AoE Pyro DMG, as well as creates a Shield of Blazing Light.\nThe Shield of Blazing Light's DMG Absorption is based on Nicole's ATK, and it will absorb Pyro DMG at 250% effectiveness.",
+      "icon": "Skill_S_Nicole_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                138.4, 148.78, 159.16, 173.0, 183.38, 193.76, 207.6, 221.44,
+                235.28, 249.12, 262.96, 276.8, 294.1, 311.4, 328.7
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [9]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "buff-ratio",
+          "label": "Grace of Kenosis ATK Bonus Ratio",
+          "components": [
+            {
+              "stat": "flat",
+              "values": [
+                8.25, 9.0, 9.75, 10.5, 11.25, 12.0, 12.75, 13.5, 14.25, 15.0,
+                15.9, 16.8, 17.7, 18.6, 19.5
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "buff-max",
+          "label": "Grace of Kenosis Max ATK Bonus",
+          "components": [
+            {
+              "stat": "flat",
+              "values": [
+                330, 360, 390, 420, 450, 480, 510, 540, 570, 600, 636, 672, 708,
+                744, 780
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "skill-cd",
+          "label": "Duration / Cooldown",
+          "value": "20 s / 16 s"
+        }
+      ],
+      "end": 40,
+      "cancels": {
+        "skill": 33,
+        "burst": 32,
+        "dodge": 34
+      },
+      "cooldown": {
+        "frames": 960
+      },
+      "note": "Grace of Kenosis for the party (ATK from her ATK) and a Pyro shield."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Revelation: Ladder of Divine Ascent",
+      "description": "As Nicole weaves the path of anchored fate with golden threads of light, she deals AoE Pyro DMG and switches to Silent Contemplation mode.\nIn this mode, when nearby active party members hit an opponent, an Arcane Projection is summoned to perform a Coordinated Attack against the opponent, dealing AoE Elemental DMG of the character's corresponding Elemental Type. This DMG scales based on the corresponding character's ATK and will be considered as having been dealt by them.\nThis effect can occur once every 3s, and can be triggered up to 4 times each time Nicole switches to Silent Contemplation mode.\n\nIt is worth noting that Hexerei characters' Arcane Projections appear to differ somehow in appearance from the others...",
+      "icon": "Skill_E_Nicole_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                316.8, 340.56, 364.32, 396.0, 419.76, 443.52, 475.2, 506.88,
+                538.56, 570.24, 601.92, 633.6, 673.2, 712.8, 752.4
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [108]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "projection",
+          "label": "Arcane Projection DMG (of the character's ATK)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                99.0, 108.0, 117.0, 126.0, 135.0, 144.0, 153.0, 162.0, 171.0,
+                180.0, 190.8, 201.6, 212.4, 223.2, 234.0
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "burst-cd",
+          "label": "Duration / Cooldown",
+          "value": "20 s / 15 s"
+        }
+      ],
+      "end": 118,
+      "cancels": {
+        "normal": 117,
+        "skill": 116
+      },
+      "cooldown": {
+        "frames": 900
+      },
+      "energyCost": 60,
+      "note": "Silent Contemplation for 20 s: the active character's hits summon Arcane Projections (once every 3 s, 4 per Q) with that character's ATK and element."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "graceOfKenosis",
+      "type": "status",
+      "source": "talent",
+      "label": "Grace of Kenosis",
+      "icon": "Skill_S_Nicole_01",
+      "durationFrames": 1200
+    },
+    {
+      "id": "theosisSelf",
+      "type": "status",
+      "source": "passive",
+      "label": "Philokalia: her own Guidance of Theosis",
+      "icon": "UI_Talent_S_Nicole_06",
+      "durationFrames": 480,
+      "endsWith": "graceOfKenosis"
+    },
+    {
+      "id": "silentContemplation",
+      "type": "status",
+      "source": "talent",
+      "label": "Silent Contemplation",
+      "icon": "Skill_E_Nicole_01",
+      "durationFrames": 1200
+    },
+    {
+      "id": "projections",
+      "type": "resource",
+      "source": "talent",
+      "label": "Arcane Projections this Q",
+      "icon": "Skill_E_Nicole_01",
+      "min": 0,
+      "max": 4
+    },
+    {
+      "id": "skill-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Revelation: Uncreated Light: Grace of Kenosis and the shield",
+      "icon": "Skill_S_Nicole_01",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "graceOfKenosis",
+          "delayFrames": 8
+        },
+        {
+          "particles": 5,
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "grace",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Grace of Kenosis (ATK × ratio, capped)",
+      "icon": "Skill_S_Nicole_01",
+      "stat": "flatAtk",
+      "valueRow": "elementalSkill/buff-ratio",
+      "ofStat": "atk",
+      "capRow": "elementalSkill/buff-max",
+      "while": {
+        "graceOfKenosis": {
+          "gte": 1
+        }
+      },
+      "extra": true
+    },
+    {
+      "id": "grace-party",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Grace of Kenosis (ATK × ratio, capped) (party)",
+      "icon": "Skill_S_Nicole_01",
+      "stat": "flatAtk",
+      "valueRow": "elementalSkill/buff-ratio",
+      "ofStat": "atk",
+      "capRow": "elementalSkill/buff-max",
+      "while": {
+        "graceOfKenosis": {
+          "gte": 1
+        }
+      },
+      "extra": true,
+      "teamBuff": true
+    },
+    {
+      "id": "a4-self",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Philokalia: Elemental DMG by the active character",
+      "icon": "UI_Talent_S_Nicole_06",
+      "when": {
+        "hit": "active:elemental"
+      },
+      "if": {
+        "status": "graceOfKenosis"
+      },
+      "do": [
+        {
+          "applyStatus": "theosisSelf"
+        }
+      ]
+    },
+    {
+      "id": "theosis-self",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Philokalia: Guidance of Theosis (+300 ATK)",
+      "icon": "UI_Talent_S_Nicole_06",
+      "stat": "flatAtk",
+      "value": 300,
+      "while": {
+        "theosisSelf": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "theosis-party",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Methexis: Guidance of Theosis (+300 ATK after 3 s on field)",
+      "icon": "UI_Talent_S_Nicole_05",
+      "stat": "flatAtk",
+      "value": 300,
+      "while": {
+        "graceOfKenosis": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "active"
+    },
+    {
+      "id": "c2-atk",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Grace of Kenosis +300 ATK",
+      "ifFlag": "c2",
+      "stat": "flatAtk",
+      "value": 300,
+      "while": {
+        "graceOfKenosis": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-atk-party",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Grace of Kenosis +300 ATK (party)",
+      "ifFlag": "c2",
+      "stat": "flatAtk",
+      "value": 300,
+      "while": {
+        "graceOfKenosis": {
+          "gte": 1
+        }
+      },
+      "teamBuff": true
+    },
+    {
+      "id": "burst-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Revelation: Ladder of Divine Ascent: Silent Contemplation",
+      "icon": "Skill_E_Nicole_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "setResource": "projections",
+          "value": 0
+        },
+        {
+          "applyStatus": "silentContemplation",
+          "delayFrames": 109
+        }
+      ]
+    },
+    {
+      "id": "projection",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Arcane Projection (once every 3 s, 4 per Q)",
+      "icon": "Skill_E_Nicole_01",
+      "when": {
+        "hit": "active:*"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "silentContemplation"
+          },
+          {
+            "resource": "projections",
+            "lt": 4
+          }
+        ]
+      },
+      "icdFrames": 180,
+      "do": [
+        {
+          "addResource": "projections",
+          "amount": 1
+        },
+        {
+          "hit": {
+            "row": "elementalBurst/projection",
+            "element": "attacker",
+            "asAttacker": true,
+            "category": "Arcane Projection",
+            "afterFrames": 30,
+            "gauge": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "c1-unity",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: Arcane Projection: Unity (600% ATK, once every 6 s)",
+      "ifFlag": "c1",
+      "when": {
+        "hit": "active:*"
+      },
+      "icdFrames": 360,
+      "do": [
+        {
+          "hit": {
+            "multiplier": 600,
+            "element": "attacker",
+            "asAttacker": true,
+            "category": "Arcane Projection",
+            "afterFrames": 30,
+            "gauge": 0
+          }
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "nicole-passive-1",
+      "name": "Methexis",
+      "description": "For 20s after unleashing the Elemental Skill Revelation: Uncreated Light, Nicole will continuously \"observe\" the other current active party members. After the observed character has remained on the field for 3s, their Grace of Kenosis is upgraded to Guidance of Theosis, increasing their ATK by an additional 300. If the observed character is a Hexerei character, Grace of Kenosis is upgraded to Guidance of Theosis straight away.\nWhen characters other than Nicole who have Guidance of Theosis leave the field, their effect reverts to Grace of Kenosis.",
+      "icon": "UI_Talent_S_Nicole_05",
+      "value": "After 3 s on field (at once for Hexerei characters), Grace of Kenosis becomes Guidance of Theosis: +300 ATK more.",
+      "note": "A party buff, reported in the details."
+    },
+    {
+      "id": "nicole-passive-2",
+      "name": "Philokalia",
+      "description": "When Elemental DMG from nearby active party members hits an opponent, Nicole's own Grace of Kenosis effect is upgraded to Guidance of Theosis for 8s.",
+      "icon": "UI_Talent_S_Nicole_06",
+      "value": "Elemental DMG by the active character upgrades Nicole's own Grace of Kenosis for 8 s.",
+      "note": "Simulated on her own Elemental hits."
+    },
+    {
+      "id": "nicole-passive-3",
+      "name": "Witch's Eve Rite: Light in the Darkness",
+      "description": "After completing Witch's Homework: The Role of a Guide...?, Nicole becomes a Hexerei character. When the party includes at least 2 Hexerei characters, you gain the Hexerei: Secret Rite effect, which enhances Hexerei characters.\n\nHexerei: Secret Rite\nIncreases the DMG dealt by Hexerei characters' Arcane Projections by 300% of Nicole's ATK.",
+      "icon": "UI_Talent_S_Nicole_07",
+      "value": "Hexerei: Secret Rite needs 2 Hexerei characters.",
+      "note": "Not active with Varesa, Iansan and Chevreuse."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "\"Do Not Be Afraid, Child Who Is Loved\"",
+      "description": "When the current active character of your own in the party hits an opponent, an additional special \"Arcane Projection: Unity\" will be summoned to perform a Coordinated Attack against the opponent, dealing AoE Elemental DMG of the character's corresponding Elemental Type at 600% of their ATK. This DMG will be considered as having been dealt by the corresponding character.\nThis effect can trigger once every 6s.",
+      "icon": "UI_Talent_S_Nicole_01",
+      "effect": "The active character's hits summon an Arcane Projection: Unity of 600% of their ATK, once every 6 s.",
+      "impact": "simulated",
+      "note": "On her own hits here."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "\"I Will Guide You and Show You the Path You Should Tread\"",
+      "description": "Enhances the effects of the Elemental Skill Revelation: Uncreated Light: Grace of Kenosis increases ATK by an additional 300 (which does not count toward this effect's ATK Bonus limit), while Guidance of Theosis decreases nearby opponents' Elemental RES based on the corresponding character's Elemental Type by 25%. This effect does not stack for the same Element.\nAdditionally, when Nicole unleashes her Elemental Skill Revelation: Uncreated Light, nearby active party members will also gain a Shield of Blazing Light.",
+      "icon": "UI_Talent_S_Nicole_02",
+      "effect": "Grace of Kenosis +300 ATK; Guidance of Theosis: -25% RES of that element.",
+      "impact": "partial",
+      "note": "The +300 ATK is simulated; the RES shred is not."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "\"A Lamp by Your Side, A Light to Shine the Way\"",
+      "description": "Increases the Level of Revelation: Uncreated Light by 3.\nMaximum upgrade level is 15.",
+      "icon": "UI_Talent_U_Nicole_01",
+      "effect": "Revelation: Uncreated Light +3 levels.",
+      "impact": "simulated",
+      "note": "Raises the E and Grace of Kenosis."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "\"Whether Left or Right, No Matter Which Way You Turn\"",
+      "description": "When nearby party members have their Grace of Kenosis upgraded to Guidance of Theosis, Nicole also bestows upon them the Pathfinder's Blessing effect for 20s. Each character can gain this effect once every 16s.\nThe Normal Attack, Charged Attack, Plunging Attack, Elemental Skill, and Elemental Burst DMG of characters with Pathfinder's Blessing is increased by 70% of Nicole's ATK. This effect will be removed once it has taken effect 8 times or when its duration is over.\nWhen multiple opponents are hit at once, instances of Pathfinder's Blessing are consumed equal to the number of opponents hit. Each character's Pathfinder's Blessing is counted independently.",
+      "icon": "UI_Talent_S_Nicole_03",
+      "effect": "Pathfinder's Blessing: 8 hits deal +70% of her ATK.",
+      "impact": "not-simulated",
+      "note": "Not simulated."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "\"You Will Hear My Voice Beside You\"",
+      "description": "Increases the Level of Revelation: Ladder of Divine Ascent by 3.\nMaximum upgrade level is 15.",
+      "icon": "UI_Talent_U_Nicole_02",
+      "effect": "Revelation: Ladder of Divine Ascent +3 levels.",
+      "impact": "simulated",
+      "note": "Raises the Q and Arcane Projection."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "\"This Is the Path, Walk It Without Delay\"",
+      "description": "When Nicole's Grace of Kenosis is upgraded to Guidance of Theosis, all nearby party members' Grace of Kenosis will also be upgraded to Guidance of Theosis. Once upgraded, Guidance of Theosis will no longer revert to Grace of Kenosis.\nAdditionally, DMG dealt by characters with Guidance of Theosis will ignore 40% of opponents' DEF.",
+      "icon": "UI_Talent_S_Nicole_04",
+      "effect": "Guidance of Theosis for everyone, kept on swap; ignores 40% DEF.",
+      "impact": "not-simulated",
+      "note": "Not simulated."
+    }
+  ],
+  "artifactSet": {
+    "name": "Celestial Gift",
+    "screenStats": [{ "stat": "energyRecharge", "value": 20 }],
+    "pieces": [
+      {
+        "id": "flower",
+        "label": "Flower",
+        "icon": "UI_RelicIcon_15045_4"
+      },
+      {
+        "id": "plume",
+        "label": "Plume",
+        "icon": "UI_RelicIcon_15045_2"
+      },
+      {
+        "id": "sands",
+        "label": "Sands",
+        "icon": "UI_RelicIcon_15045_5"
+      },
+      {
+        "id": "goblet",
+        "label": "Goblet",
+        "icon": "UI_RelicIcon_15045_1"
+      },
+      {
+        "id": "circlet",
+        "label": "Circlet",
+        "icon": "UI_RelicIcon_15045_3"
+      }
+    ],
+    "rows": [
+      {
+        "id": "set-two-piece",
+        "label": "2-piece",
+        "value": "Energy Recharge +20%.",
+        "note": "Already on the character screen."
+      },
+      {
+        "id": "set-four-piece",
+        "label": "4-piece",
+        "value": "If the equipping character has completed Witch's Homework, after they use an Elemental Skill, they gain \"Light's Guidance\" for 20s: All nearby party members gain a 20% Elemental DMG Bonus corresponding to the equipping character's Elemental Type. The equipping character can trigger this effect while off-field. DMG Bonuses provided by Artifact Sets with the same name do not stack.\n· When your party has the Hexerei: Secret Rite effect, Light's Guidance is upgraded to \"Mortal Hymn\": All nearby party members gain a 40% Elemental DMG Bonus corresponding to both the equipping character and the current active party member's Elemental Type instead. If both characters have the same Elemental Type, these bonuses will not stack.",
+        "flag": "celestial4",
+        "note": "Nicole is Pyro: +20% Pyro DMG. Without Hexerei: Secret Rite (one Hexerei member here) it does not help Varesa (Electro)."
+      }
+    ],
+    "blocks": [
+      {
+        "id": "lightsGuidance",
+        "type": "status",
+        "source": "artifact",
+        "label": "Light's Guidance",
+        "ifFlag": "celestial4",
+        "durationFrames": 1200
+      },
+      {
+        "id": "celestial-trigger",
+        "type": "trigger",
+        "source": "artifact",
+        "label": "Her E: Light's Guidance for the party",
+        "ifFlag": "celestial4",
+        "when": {
+          "use": "skill"
+        },
+        "do": [
+          {
+            "applyStatus": "lightsGuidance"
+          }
+        ]
+      },
+      {
+        "id": "celestial-gift",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Celestial Gift 4-piece: Light's Guidance (+20% Pyro DMG)",
+        "ifFlag": "celestial4",
+        "stat": "dmgBonus",
+        "value": 20,
+        "match": {
+          "elements": ["Pyro"]
+        },
+        "while": {
+          "lightsGuidance": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "celestial-gift-party",
+        "type": "bonus",
+        "source": "artifact",
+        "label": "Celestial Gift 4-piece: Light's Guidance (+20% Pyro DMG) (party)",
+        "ifFlag": "celestial4",
+        "stat": "dmgBonus",
+        "value": 20,
+        "match": {
+          "elements": ["Pyro"]
+        },
+        "while": {
+          "lightsGuidance": {
+            "gte": 1
+          }
+        },
+        "teamBuff": true
+      }
+    ]
+  },
+  "defaults": {
+    "numbers": {
+      "atk": 3904,
+      "hp": 17110,
+      "cr": 33.0,
+      "cd": 101.3,
+      "bonus": 0,
+      "elementalBonus": 0,
+      "em": 0,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 10,
+      "burstLevel": 8,
+      "angelosRefinement": 1,
+      "energyRecharge": 156.3,
+      "startingEnergy": 60
+    },
+    "flags": {
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "angelos": true,
+      "celestial4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "celestial4",
+      "label": "Celestial Gift 4-piece"
+    }
+  ],
+  "weapon": {
+    "name": "Angelos' Heptades",
+    "passive": {
+      "name": "Crown of the Final Scion",
+      "descriptions": [
+        "ATK is increased by 12%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 10% for every 1,000 ATK the equipping character has, up to a maximum of 26%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 14 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+        "ATK is increased by 15%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 13% for every 1,000 ATK the equipping character has, up to a maximum of 34%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 15 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+        "ATK is increased by 18%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 16% for every 1,000 ATK the equipping character has, up to a maximum of 42%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 16 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+        "ATK is increased by 21%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 19% for every 1,000 ATK the equipping character has, up to a maximum of 50%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 17 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light.",
+        "ATK is increased by 24%. After the equipping character creates a Shield, they gain \"Pathfinder's Light\" for 20s: Increases your active party member's DMG by 22% for every 1,000 ATK the equipping character has, up to a maximum of 58%. Additionally, when the equipping character creates a Shield, they will also gain \"Guide's Contentment\": Restores 18 Elemental Energy to the equipping character. The aforementioned effect can trigger once every 14s, and can also be triggered when any type of chest is opened outside of combat. The equipping character may trigger this effect even when they are an off-field.\nHexerei: Secret Rite: When your own Hexerei character is off-field in the party, they will also gain 50% of the DMG increase from Pathfinder's Light."
+      ]
+    },
+    "icon": "UI_EquipIcon_Catalyst_FairyGarden",
+    "type": "Catalyst",
+    "rarity": 5,
+    "level": 90,
+    "enabledFlag": "angelos",
+    "refinementField": "angelosRefinement",
+    "baseAtk": 741,
+    "substat": {
+      "stat": "atkPercent",
+      "value": 16.5
+    },
+    "rows": [
+      {
+        "id": "weapon-atk",
+        "label": "R{refinement} passive: ATK",
+        "status": "included",
+        "template": "+{param:atk}% ATK (on the character screen)",
+        "params": {
+          "atk": [12, 15, 18, 21, 24]
+        },
+        "screenStat": { "stat": "atkPercent", "param": "atk" }
+      },
+      {
+        "id": "weapon-passive",
+        "label": "R{refinement} passive: shielded",
+        "status": "toggle",
+        "template": "While she is shielded: the active character gets Elemental DMG equal to {param:per}% per 1,000 of her ATK (max {param:max}%), and she restores {param:energy} Energy (once every 14 s)",
+        "params": {
+          "per": [10, 13, 16, 19, 22],
+          "max": [26, 34, 42, 50, 58],
+          "energy": [15, 16, 17, 18, 19]
+        },
+        "note": "Her E shield triggers it. The cap is R1's (26%)."
+      }
+    ],
+    "blocks": [
+      {
+        "id": "angelosShield",
+        "type": "status",
+        "source": "weapon",
+        "label": "Angelos' Heptades: shielded",
+        "ifFlag": "angelos",
+        "durationFrames": 1200
+      },
+      {
+        "id": "angelos-shield",
+        "type": "trigger",
+        "source": "weapon",
+        "label": "Her E shield: party Elemental DMG and Energy",
+        "ifFlag": "angelos",
+        "when": {
+          "use": "skill"
+        },
+        "do": [
+          {
+            "applyStatus": "angelosShield",
+            "delayFrames": 8
+          },
+          {
+            "addResource": "energy",
+            "amount": 15,
+            "icdFrames": 840,
+            "if": {
+              "field": "angelosRefinement",
+              "gte": 1,
+              "lt": 2
+            }
+          },
+          {
+            "addResource": "energy",
+            "amount": 16,
+            "icdFrames": 840,
+            "if": {
+              "field": "angelosRefinement",
+              "gte": 2,
+              "lt": 3
+            }
+          },
+          {
+            "addResource": "energy",
+            "amount": 17,
+            "icdFrames": 840,
+            "if": {
+              "field": "angelosRefinement",
+              "gte": 3,
+              "lt": 4
+            }
+          },
+          {
+            "addResource": "energy",
+            "amount": 18,
+            "icdFrames": 840,
+            "if": {
+              "field": "angelosRefinement",
+              "gte": 4,
+              "lt": 5
+            }
+          },
+          {
+            "addResource": "energy",
+            "amount": 19,
+            "icdFrames": 840,
+            "if": {
+              "field": "angelosRefinement",
+              "gte": 5,
+              "lt": 6
+            }
+          }
+        ]
+      },
+      {
+        "id": "angelos",
+        "type": "bonus",
+        "source": "weapon",
+        "label": "Angelos' Heptades: Elemental DMG from ATK",
+        "ifFlag": "angelos",
+        "stat": "dmgBonus",
+        "value": [1.0, 1.3, 1.6, 1.9, 2.2],
+        "scaleBy": {
+          "field": "angelosRefinement"
+        },
+        "ofStat": "atk",
+        "cap": 26,
+        "match": {
+          "elements": [
+            "Pyro",
+            "Hydro",
+            "Electro",
+            "Cryo",
+            "Anemo",
+            "Geo",
+            "Dendro"
+          ]
+        },
+        "while": {
+          "angelosShield": {
+            "gte": 1
+          }
+        }
+      },
+      {
+        "id": "angelos-party",
+        "type": "bonus",
+        "source": "weapon",
+        "label": "Angelos' Heptades: Elemental DMG from ATK (party)",
+        "ifFlag": "angelos",
+        "stat": "dmgBonus",
+        "value": [1.0, 1.3, 1.6, 1.9, 2.2],
+        "scaleBy": {
+          "field": "angelosRefinement"
+        },
+        "ofStat": "atk",
+        "cap": 26,
+        "match": {
+          "elements": [
+            "Pyro",
+            "Hydro",
+            "Electro",
+            "Cryo",
+            "Anemo",
+            "Geo",
+            "Dendro"
+          ]
+        },
+        "while": {
+          "angelosShield": {
+            "gte": 1
+          }
+        },
+        "teamBuff": "active"
+      }
+    ]
+  },
+  "rotation": {
+    "automaticDescription": "Q when it is ready (Arcane Projections on her hits), E when it is ready (Grace of Kenosis, shield, Angelos), Normal Attacks otherwise."
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "Grace of Kenosis ATK (party)",
+      "value": "+{buffValue:grace-party|number} ATK"
+    },
+    {
+      "label": "Guidance of Theosis (party, after 3 s on field)",
+      "value": "+{buffValue:theosis-party|number} ATK"
+    },
+    {
+      "label": "Grace of Kenosis up",
+      "value": "{uptime:graceOfKenosis|percent}"
+    },
+    {
+      "label": "Angelos' Heptades Elemental DMG (party)",
+      "value": "+{buffValue:angelos-party|fixed1}%, up {uptime:angelosShield|percent}"
+    },
+    {
+      "label": "Light's Guidance (+20% Pyro DMG) up",
+      "value": "{uptime:lightsGuidance|percent}"
+    },
+    {
+      "label": "Arcane Projections",
+      "value": "{hits:Arcane Projection}"
+    },
+    {
+      "label": "Particles generated by the E",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    }
+  ]
+}
