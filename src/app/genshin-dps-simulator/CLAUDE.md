@@ -18,6 +18,7 @@ A character is **one JSON file** in `_data/characters/` plus **one import line**
 5. **`hook` is the last resort**, only when no block can express the rule.
 6. **An engine change must meet three conditions:** it is a generic feature, it has its test in `__tests__/engineFeatures.test.ts` (using `fixtures.ts`), and it leaves the golden unchanged (`scripts/sim-golden.ts --compare`) unless the change is intended.
 7. **Reference data:** frames, hitmarks and kit rules come from gcsim (`internal/characters/<name>/*.go`, multipliers in `zz_<name>.dm.go`). If a rule is uncertain, mark it `partial` or `not-simulated` in `constellations` instead of guessing.
+8. **Order of work: build first, tests last.** Build everything a change needs (engine, data, UI) so the user can try it in `pnpm dev` first; then add its tests (engine features in `__tests__/engineFeatures.test.ts`, the rest next to what they cover), and commit only with them passing. A bug a review claims is the exception: confirm it with a failing test before fixing it.
 
 ## System modules (`systems`)
 

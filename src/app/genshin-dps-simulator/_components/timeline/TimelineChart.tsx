@@ -7,6 +7,7 @@ import {
   ShieldPlus,
   Sparkle,
   Swords,
+  Target,
   TriangleAlert,
   Zap,
 } from 'lucide-react';
@@ -61,7 +62,12 @@ import {
 import formatNumber from '../../_lib/formatNumber';
 import { FRAMES_PER_SECOND } from '../../_lib/frames';
 import { elementIconUrl } from '../../_lib/genshinIcons';
-import { ActionPiece, BlockType, InspectorView } from '../../_lib/inspector';
+import {
+  ActionPiece,
+  BlockType,
+  coordinatedUntil,
+  InspectorView,
+} from '../../_lib/inspector';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { TeamMemberRun } from '../../_lib/team';
 
@@ -973,6 +979,105 @@ const buildGroups = (
     .filter((row) => row.count > 0)
     .map(({ count: _count, ...row }) => row);
 
+  // Coordinated attacks: hits made by a block, not by an action's own row
+  // (Escoffier's Mek, Nicole's Arcane Projections), one row per source:
+  // its time up (a status's span) behind a dot per hit.
+  const coordinatedRows: Row[] = coordinatedUntil(
+    view,
+    Number.POSITIVE_INFINITY
+  ).map((source) => {
+    const key = `${source.characterId}|${source.sourceId}`;
+    const chip = view.chips.find(
+      (entry) =>
+        entry.characterId === source.characterId &&
+        entry.blockId === source.sourceId
+    );
+    const marks: Mark[] = view.hits
+      .filter(
+        (hit) =>
+          hit.coordinated &&
+          hit.characterId === source.characterId &&
+          hit.sourceId === source.sourceId
+      )
+      .map((hit) => ({
+        key: `${hit.characterId}-${hit.index}`,
+        time: hit.time,
+        title: (
+          <TipCard
+            icon={<ElementIcon element={hit.element} size={26} />}
+            title={source.label}
+            owner={ownerOf(hit.characterId)}
+            badge='Coordinated'
+            value={`${formatNumber(hit.damage)} DMG`}
+            accentClass={accentOf(hit.characterId)}
+          >
+            <TipTime start={hit.time} />
+            <TipStat
+              label='Element'
+              value={<ElementList elements={[hit.element]} />}
+            />
+            <TipStat
+              label='CRIT'
+              value={hit.isCrit ? 'Yes' : 'No'}
+              className={hit.isCrit ? 'text-rose-300' : undefined}
+            />
+            {!hit.counted && (
+              <TipStat label='Counted' value='No (past the counted time)' />
+            )}
+          </TipCard>
+        ),
+      }));
+    marks.forEach((mark) => tips.set(`k:${mark.key}`, mark.title));
+    const spans =
+      chip && chip.kind === 'status'
+        ? mergeSpans(
+            view.chips
+              .filter(
+                (entry) =>
+                  entry.characterId === source.characterId &&
+                  entry.blockId === source.sourceId
+              )
+              .flatMap((entry) =>
+                entry.renewals && entry.renewals.length > 0
+                  ? entry.renewals.map((renewal) => ({
+                      start: renewal.start,
+                      end: renewal.end ?? renewal.until ?? view.duration,
+                    }))
+                  : [{ start: entry.start, end: entry.end ?? view.duration }]
+              )
+          ).map((span, index) => ({
+            key: `${key}-${index}`,
+            start: span.start,
+            end: span.end,
+            title: null,
+          }))
+        : [];
+    return {
+      id: `coordinated-${source.characterId}-${source.sourceId}`,
+      label: source.label,
+      icon: chip?.iconUrl ? (
+        <RowIcon src={chip.iconUrl} />
+      ) : (
+        <Target className='size-[18px] text-sky-300' aria-hidden />
+      ),
+      content: (
+        <>
+          <Bars
+            bars={spans}
+            ruler={ruler}
+            colorClass='border border-sky-400/40 bg-sky-500/10'
+          />
+          <Marks marks={marks} prefix='k:' ruler={ruler}>
+            <MarkDot
+              className='bg-sky-500/30 text-sky-100 ring-sky-400/60'
+              Icon={Target}
+            />
+          </Marks>
+        </>
+      ),
+    };
+  });
+
   const groups = [
     {
       id: 'actions',
@@ -985,6 +1090,12 @@ const buildGroups = (
       title: 'Buffs & Debuffs',
       Icon: ShieldPlus,
       rows: [...buffRows, ...systemRows],
+    },
+    {
+      id: 'coordinated',
+      title: 'Coordinated Attacks',
+      Icon: Target,
+      rows: coordinatedRows,
     },
     {
       id: 'energy',

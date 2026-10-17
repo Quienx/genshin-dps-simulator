@@ -34,6 +34,9 @@ export type BlockType =
   | 'energy'
   | 'cooldown'
   | 'state'
+  // A block that hits on its own (a status's ticks: Escoffier's Mek,
+  // Arlecchino's Directive): a coordinated attack.
+  | 'coordinated'
   // The Nightsoul system (any Natlan character): Blessing and points.
   | 'nightsoul'
   // The Bond of Life system: its value (% of Max HP) while above 0.
@@ -232,6 +235,11 @@ export type EnemyHit = {
   isCrit: boolean;
   // False past the counted duration: shown, not added up.
   counted: boolean;
+  // The block that made it (a status's tick, a trigger's hit), if one did.
+  sourceId: string | null;
+  // Made by a block, not by an action's own row, and not a reaction's own
+  // hit: a coordinated attack (Escoffier's Mek, Nicole's projections).
+  coordinated: boolean;
 };
 
 // Each reaction's own hits up to `time`: how many, their total DMG and
@@ -327,6 +335,49 @@ export const auraAt = (
 };
 
 // DMG the enemy took up to `time`.
+// The coordinated attacks up to `time`, per source (member and block):
+// how many hits landed and their DMG, and when the next one lands (null:
+// none left).
+export type CoordinatedSource = {
+  characterId: string;
+  sourceId: string;
+  label: string;
+  element: string;
+  hits: number;
+  damage: number;
+  nextAt: number | null;
+};
+
+export const coordinatedUntil = (
+  view: Pick<InspectorView, 'hits'>,
+  time: number
+): CoordinatedSource[] => {
+  const sources = new Map<string, CoordinatedSource>();
+  view.hits.forEach((hit) => {
+    if (!hit.coordinated || !hit.sourceId) {
+      return;
+    }
+    const key = `${hit.characterId}|${hit.sourceId}`;
+    const source = sources.get(key) ?? {
+      characterId: hit.characterId,
+      sourceId: hit.sourceId,
+      label: hit.label,
+      element: hit.element,
+      hits: 0,
+      damage: 0,
+      nextAt: null,
+    };
+    if (hit.time <= time + 1e-6) {
+      source.hits += 1;
+      source.damage += hit.counted ? hit.damage : 0;
+    } else if (source.nextAt === null || hit.time < source.nextAt) {
+      source.nextAt = hit.time;
+    }
+    sources.set(key, source);
+  });
+  return Array.from(sources.values());
+};
+
 export const damageUntil = (hits: EnemyHit[], time: number): number =>
   hits.reduce(
     (total, hit) =>
@@ -760,6 +811,21 @@ export const buildInspectorView = (
     if (chip.kind === 'particles') {
       return { type: 'energy' as const, sourceTag };
     }
+    // A talent row's name ("elementalSkill/frosty-parfait" → its label).
+    const rowLabelOf = (ref: string) => {
+      const [talentId, rowId] = ref.split('/');
+      const talent = character.talents.find((entry) => entry.id === talentId);
+      return talent?.rows.find((row) => row.id === rowId)?.label ?? ref;
+    };
+    // A status that hits on its own: a coordinated attack.
+    if (definition?.type === 'status' && definition.ticks) {
+      const { ticks } = definition;
+      return {
+        type: 'coordinated' as const,
+        sourceTag,
+        hitText: `${ticks.count} × ${rowLabelOf(ticks.row)} ${ticks.element}`,
+      };
+    }
     if (chip.kind === 'trigger') {
       const hits =
         definition?.type === 'trigger'
@@ -773,15 +839,7 @@ export const buildInspectorView = (
         first.multiplier !== undefined
           ? `${first.multiplier}% ATK`
           : first.row
-          ? (() => {
-              const [talentId, rowId] = first.row.split('/');
-              const talent = character.talents.find(
-                (entry) => entry.id === talentId
-              );
-              return (
-                talent?.rows.find((row) => row.id === rowId)?.label ?? first.row
-              );
-            })()
+          ? rowLabelOf(first.row)
           : 'hit';
       return {
         type: 'extraHit' as const,
@@ -1151,8 +1209,13 @@ export const buildInspectorView = (
               getLoadedCharacter(member.characterId).actions[hit.actionId]
                 ?.label) ||
             (hit.sourceId &&
-              members.get(member.characterId)?.blocks.get(hit.sourceId)
-                ?.label) ||
+              // Its own block, else the member's that made it (a hit dealt
+              // as the attacker: Nicole's Arcane Projections).
+              (members.get(member.characterId)?.blocks.get(hit.sourceId)
+                ?.label ??
+                Array.from(members.values())
+                  .find((other) => other.blocks.has(hit.sourceId ?? ''))
+                  ?.blocks.get(hit.sourceId)?.label)) ||
             hit.category,
           element: hit.element,
           reaction: hit.reaction,
@@ -1160,6 +1223,10 @@ export const buildInspectorView = (
           damage: hit.damage,
           isCrit: hit.isCrit,
           counted: hit.counted,
+          sourceId: hit.sourceId ?? null,
+          coordinated:
+            Boolean(hit.sourceId) &&
+            !(hit.reaction !== 'None' && hit.category === hit.reaction),
         }))
       )
       .sort((a, b) => a.time - b.time),

@@ -57,6 +57,7 @@ import {
   auraAt,
   BlockChip,
   BlockType,
+  coordinatedUntil,
   EnemyHit,
   getHitFormula,
   INSPECTOR_ENEMY,
@@ -89,10 +90,16 @@ const LANES: { id: string; title: string; types: BlockType[] }[] = [
     types: ['nightsoul', 'bondOfLife'],
   },
   { id: 'buffs', title: 'Buffs & debuffs', types: ['bonus', 'debuff'] },
+  // Blocks that hit on their own (Escoffier's Mek, Nicole's projections).
+  {
+    id: 'coordinated',
+    title: 'Coordinated attacks',
+    types: ['coordinated', 'extraHit'],
+  },
   {
     id: 'mechanics',
     title: 'Mechanics',
-    types: ['extraHit', 'cooldown', 'state'],
+    types: ['cooldown', 'state'],
   },
   { id: 'resources', title: 'Resources', types: ['energy', 'heal'] },
 ];
@@ -594,6 +601,17 @@ const EventPanel = ({
     }
   }, [view, pinned]);
   const { queued, exiting, upNow } = useBlockQueue(view.chips, time);
+  // Each coordinated attack's hits and DMG so far, by member and block.
+  const coordinated = useMemo(
+    () =>
+      new Map(
+        coordinatedUntil(view, time).map((source) => [
+          `${source.characterId}|${source.sourceId}`,
+          source,
+        ])
+      ),
+    [view, time]
+  );
   const [openLanes, setOpenLanes] = useState(true);
   const [openFormula, setOpenFormula] = useState(false);
   const [openBonuses, setOpenBonuses] = useState(false);
@@ -1410,6 +1428,40 @@ const EventPanel = ({
                                             {chip.value ?? chip.short}
                                           </span>
                                         )}
+                                        {(() => {
+                                          // A coordinated attack: what it
+                                          // dealt so far, and its next hit.
+                                          const source = coordinated.get(
+                                            `${chip.characterId}|${chip.blockId}`
+                                          );
+                                          if (
+                                            !source ||
+                                            source.hits +
+                                              (source.nextAt === null
+                                                ? 0
+                                                : 1) ===
+                                              0
+                                          ) {
+                                            return null;
+                                          }
+                                          return (
+                                            <span
+                                              data-testid='timeline-coordinated-total'
+                                              className='block truncate text-[10px] text-sky-200'
+                                            >
+                                              {source.hits} hits ·{' '}
+                                              {formatNumber(
+                                                Math.round(source.damage)
+                                              )}
+                                              {source.nextAt !== null &&
+                                                ` · next ${formatNumber(
+                                                  Math.round(
+                                                    (source.nextAt - time) * 10
+                                                  ) / 10
+                                                )} s`}
+                                            </span>
+                                          );
+                                        })()}
                                         <span className='mt-1 flex justify-end'>
                                           <BlockMeter
                                             chip={chip}
