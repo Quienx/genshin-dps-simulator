@@ -1864,7 +1864,7 @@
   "weapon": "lost-prayer-to-the-sacred-winds",
   "rotation": {
     "automaticDescription": "E, then a Follow-Up Strike (Charged Attack) and a Plunge. The Plunge fills Nightsoul points to 40 and enters Fiery Passion with a free E: free E, Fiery Follow-Up Strike, Fiery Plunge (Apex Drive) and Volcano Kablam if the Q cooldown and 30 Energy allow it. The full Q (Flying Kick or Fiery Kick) is never used: its 70 Energy and 18 s cooldown would block Kablam. While the E recharges: Charged Attack → Plunge (two of them fill Nightsoul points and enter Fiery Passion), or Normal Attacks if that option is off.",
-    "palette": ["skill", "burst", "charged", "plunge"]
+    "palette": ["normal", "skill", "burst", "charged", "plunge"]
   },
   "systems": {
     "energy": {

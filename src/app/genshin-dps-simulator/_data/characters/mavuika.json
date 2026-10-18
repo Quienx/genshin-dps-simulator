@@ -1794,7 +1794,7 @@
   ],
   "rotation": {
     "automaticDescription": "Hold E (Flamestrider), then the Q when she has 100 Fighting Spirit, and Flamestrider Normal Attacks; the E again on the Flamestrider when it is ready. Physical Normal Attacks when Nightsoul's Blessing is down.",
-    "palette": ["skill", "burst", "charged"]
+    "palette": ["normal", "skill", "burst", "charged"]
   },
   "systems": {
     "nightsoul": {
