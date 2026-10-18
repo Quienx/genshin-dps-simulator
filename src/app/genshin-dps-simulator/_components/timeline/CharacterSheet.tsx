@@ -18,6 +18,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 
+import SectionHelp from './SectionHelp';
+import { SectionHelpKey } from './sectionHelp';
 import StatIcon from './StatIcon';
 import TalentLevelSelect from '../TalentLevelSelect';
 import { CatalogOption } from '../../_lib/catalog';
@@ -103,14 +105,18 @@ const statValue = (stat: string, value: number) =>
 
 const Section = ({
   title,
+  help,
   children,
 }: {
   title: string;
+  // Its "?" tooltip.
+  help?: SectionHelpKey;
   children: ReactNode;
 }) => (
   <section className='rounded-lg border border-slate-700/60 bg-slate-950/50 p-3'>
-    <h3 className='mb-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase'>
+    <h3 className='mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-slate-400 uppercase'>
       {title}
+      {help && <SectionHelp section={help} />}
     </h3>
     {children}
   </section>
@@ -325,7 +331,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
             </SheetHeader>
 
             <div className='flex flex-col gap-3 p-4'>
-              <Section title='Character screen stats'>
+              <Section title='Character screen stats' help='screenStats'>
                 {statFields.map((field) => (
                   <Row
                     key={field.name}
@@ -370,7 +376,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                 </p>
               </Section>
 
-              <Section title='Talents'>
+              <Section title='Talents' help='talents'>
                 {character.talents.map((talent) => {
                   const boosted =
                     typeof talent.boostedBy === 'string' &&
@@ -422,7 +428,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                 })}
               </Section>
 
-              <Section title='Constellations'>
+              <Section title='Constellations' help='constellations'>
                 <div className='grid grid-cols-6 gap-1.5'>
                   {character.constellations.map((entry) => {
                     const flag = `c${entry.level}`;
@@ -458,7 +464,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                 </div>
               </Section>
 
-              <Section title='Weapon'>
+              <Section title='Weapon' help='weapon'>
                 {gearOptions && gearOptions.weapons.length > 1 && (
                   <GearSelect
                     label='Weapon'
@@ -554,7 +560,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                 )}
               </Section>
 
-              <Section title='Artifacts'>
+              <Section title='Artifacts' help='artifacts'>
                 {gearOptions && gearOptions.sets.length > 1 && (
                   <GearSelect
                     label='Artifact set'

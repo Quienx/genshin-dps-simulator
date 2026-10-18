@@ -29,6 +29,7 @@ import {
   SavedRotation,
   storeSavedRotations,
 } from './savedRotations';
+import SectionHelp from './SectionHelp';
 import { SourceLegend } from './sourceStyles';
 import TimelineChart, { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
@@ -675,8 +676,9 @@ const CombatTimeline = ({
                   !panels.chart && 'border-b border-slate-700/60'
                 )}
               >
-                <h2 className='text-sm font-semibold text-slate-50'>
+                <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
                   Timeline
+                  <SectionHelp section='timeline' />
                 </h2>
                 {!panels.chart && (
                   <SourceLegend className='mr-auto ml-4 hidden md:flex' />

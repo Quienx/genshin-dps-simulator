@@ -33,6 +33,8 @@ import {
   TRACKS_DROP_ID,
 } from './rotationDnd';
 import { Ruler } from './ruler';
+import SectionHelp from './SectionHelp';
+import { SectionHelpKey } from './sectionHelp';
 import { SOURCE_STYLES, SourceKind, sourceKindOfChip } from './sourceStyles';
 import {
   ActionGroup,
@@ -187,7 +189,14 @@ type Row = {
   content: ReactNode;
 };
 
-type Group = { id: string; title: string; Icon: LucideIcon; rows: Row[] };
+type Group = {
+  id: string;
+  title: string;
+  // Its "?" tooltip.
+  help: SectionHelpKey;
+  Icon: LucideIcon;
+  rows: Row[];
+};
 
 const RowIcon = ({ src, size = 18 }: { src: string | null; size?: number }) =>
   src ? (
@@ -1130,33 +1139,38 @@ const buildGroups = (
     };
   });
 
-  const groups = [
+  const groups: Group[] = [
     {
       id: 'actions',
+      help: 'characterActions' as const,
       title: 'Character Actions',
       Icon: Swords,
       rows: actionRows,
     },
     {
       id: 'buffs',
+      help: 'buffs' as const,
       title: 'Buffs & Debuffs',
       Icon: ShieldPlus,
       rows: [...buffRows, ...systemRows],
     },
     {
       id: 'coordinated',
+      help: 'coordinated' as const,
       title: 'Coordinated Attacks',
       Icon: Target,
       rows: coordinatedRows,
     },
     {
       id: 'energy',
+      help: 'energy' as const,
       title: 'Energy & Particles',
       Icon: Zap,
       rows: energyRows,
     },
     {
       id: 'other',
+      help: 'other' as const,
       title: 'Healing & Other Events',
       Icon: HeartPulse,
       rows: otherRows,
@@ -1285,6 +1299,7 @@ const TimelineRows = memo(function TimelineRows({
                   />
                   <group.Icon className='size-4 text-sky-400' aria-hidden />
                   {group.title}
+                  <SectionHelp section={group.help} />
                 </button>
               )}
               <div className='relative' style={{ width: trackWidth }}>

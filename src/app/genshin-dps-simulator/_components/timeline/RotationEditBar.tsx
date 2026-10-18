@@ -4,6 +4,7 @@ import { GripVertical, Minus, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { payloadOf, TRASH_DROP_ID } from './rotationDnd';
+import SectionHelp from './SectionHelp';
 import { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload } from './timelineData';
 import RotationActionIcon from '../rotation/RotationActionIcon';
@@ -315,6 +316,7 @@ const RotationEditBar = ({
       </div>
 
       <div className='ml-auto flex items-center gap-2'>
+        <SectionHelp section='editBar' />
         <span
           data-testid='timeline-block-count'
           title='Blocks in the rotation'

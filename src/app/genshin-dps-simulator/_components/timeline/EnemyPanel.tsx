@@ -4,6 +4,7 @@ import { memo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 import PanelToggle from './PanelToggle';
+import SectionHelp from './SectionHelp';
 import { samePanelProps } from './timelineData';
 import formatNumber from '../../_lib/formatNumber';
 import { elementIconUrl, monsterIconUrl } from '../../_lib/genshinIcons';
@@ -108,7 +109,10 @@ const EnemyPanel = ({
         data-testid='timeline-enemy'
         className='flex shrink-0 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/70 px-2.5 py-2'
       >
-        <h2 className='text-sm font-semibold text-slate-50'>Enemy</h2>
+        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
+          Enemy
+          <SectionHelp section='enemy' />
+        </h2>
         <PanelToggle label='enemy' collapsed onToggle={onToggle} />
       </aside>
     );
@@ -120,7 +124,10 @@ const EnemyPanel = ({
       className='flex max-h-full min-h-0 shrink-0 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-700/60 bg-slate-900/70 p-2.5'
     >
       <div className='flex items-center justify-between'>
-        <h2 className='text-sm font-semibold text-slate-50'>Enemy</h2>
+        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
+          Enemy
+          <SectionHelp section='enemy' />
+        </h2>
         <PanelToggle label='enemy' collapsed={false} onToggle={onToggle} />
       </div>
 

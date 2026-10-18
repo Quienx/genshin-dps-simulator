@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 
+import SectionHelp from './SectionHelp';
 import { countUpTo, samePanelProps } from './timelineData';
 import formatNumber from '../../_lib/formatNumber';
 import { InspectorView } from '../../_lib/inspector';
@@ -38,7 +39,10 @@ const DamageSummary = ({ view, time }: DamageSummaryProps) => {
       className='shrink-0 rounded-xl border border-slate-700/60 bg-slate-900/70 px-2.5 py-2'
     >
       <div className='flex items-baseline justify-between gap-2'>
-        <h2 className='text-sm font-semibold text-slate-50'>Damage</h2>
+        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
+          Damage
+          <SectionHelp section='damage' />
+        </h2>
         <span className='text-[10px] text-slate-400 tabular-nums'>
           {formatNumber(
             Math.round(

@@ -15,6 +15,7 @@ import { ReactNode, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 import PanelToggle from './PanelToggle';
+import SectionHelp from './SectionHelp';
 import { TimelineMember } from './TimelineChart';
 import {
   actionTitle,
@@ -539,7 +540,10 @@ const CombatLog = ({
           !collapsed && 'border-b border-slate-700/60'
         )}
       >
-        <h2 className='mr-2 text-sm font-semibold text-slate-50'>Combat Log</h2>
+        <h2 className='mr-2 flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
+          Combat Log
+          <SectionHelp section='combatLog' />
+        </h2>
         <div role='tablist' className='flex flex-wrap gap-1'>
           {TABS.map(({ id, label, Icon, color }) => (
             <button

@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/tooltip';
 
 import PanelToggle from './PanelToggle';
+import SectionHelp from './SectionHelp';
+import { SectionHelpKey } from './sectionHelp';
 import StatIcon from './StatIcon';
 import { TimelineMember } from './TimelineChart';
 import {
@@ -83,25 +85,43 @@ import { SimulationValues } from '../../_lib/types';
 // Special mechanics (Nightsoul, Bond of Life) first: they frame the rest.
 // A block's lane is its type's, except a mechanic that changes a special
 // system, which goes with it (see laneOf).
-const LANES: { id: string; title: string; types: BlockType[] }[] = [
+const LANES: {
+  id: string;
+  title: string;
+  types: BlockType[];
+  help: SectionHelpKey;
+}[] = [
   {
     id: 'special',
     title: 'Special mechanics',
     types: ['nightsoul', 'bondOfLife'],
+    help: 'laneSpecial',
   },
-  { id: 'buffs', title: 'Buffs & debuffs', types: ['bonus', 'debuff'] },
+  {
+    id: 'buffs',
+    title: 'Buffs & debuffs',
+    types: ['bonus', 'debuff'],
+    help: 'laneBuffs',
+  },
   // Blocks that hit on their own (Escoffier's Mek, Nicole's projections).
   {
     id: 'coordinated',
     title: 'Coordinated attacks',
     types: ['coordinated', 'extraHit'],
+    help: 'laneCoordinated',
   },
   {
     id: 'mechanics',
     title: 'Mechanics',
     types: ['cooldown', 'state'],
+    help: 'laneMechanics',
   },
-  { id: 'resources', title: 'Resources', types: ['energy', 'heal'] },
+  {
+    id: 'resources',
+    title: 'Resources',
+    types: ['energy', 'heal'],
+    help: 'laneResources',
+  },
 ];
 
 // Mechanics that only drive a special system (Varesa's Fiery Plunge:
@@ -761,8 +781,9 @@ const EventPanel = ({
         )}
       >
         <div className='flex shrink-0 items-center gap-2 px-2.5 py-2'>
-          <h2 className='text-sm font-semibold text-slate-50'>
+          <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
             Selected Event
+            <SectionHelp section='event' />
           </h2>
           <span className='text-[10px] text-slate-500'>
             {resolvedPin
@@ -961,7 +982,12 @@ const EventPanel = ({
 
                 {ownerState && (
                   <Card
-                    title='Character state'
+                    title={
+                      <>
+                        Character state
+                        <SectionHelp section='characterState' />
+                      </>
+                    }
                     focus={focusOf('state', 'Character state')}
                     hidden={hiddenBy('state')}
                   >
@@ -977,7 +1003,12 @@ const EventPanel = ({
                     Life. */}
                 {ownerState?.mechanic && (
                   <Card
-                    title='Special mechanic'
+                    title={
+                      <>
+                        Special mechanic
+                        <SectionHelp section='specialMechanic' />
+                      </>
+                    }
                     focus={focusOf('mechanic', 'Special mechanic')}
                     hidden={hiddenBy('mechanic')}
                   >
@@ -999,7 +1030,12 @@ const EventPanel = ({
                 )}
 
                 <Card
-                  title='Target'
+                  title={
+                    <>
+                      Target
+                      <SectionHelp section='target' />
+                    </>
+                  }
                   focus={focusOf('target', 'Target')}
                   hidden={hiddenBy('target')}
                 >
@@ -1047,6 +1083,7 @@ const EventPanel = ({
                         )}
                       />
                       Hit Details
+                      <SectionHelp section='hits' />
                       {!openHits && (
                         <span className='ml-auto text-[10px] font-normal text-slate-400 tabular-nums'>
                           {landed.length}/{hits.length} landed
@@ -1185,6 +1222,7 @@ const EventPanel = ({
                       )}
                     />
                     Damage Breakdown
+                    <SectionHelp section='formula' />
                     <span
                       className={cn(
                         'ml-auto text-[10px] font-normal',
@@ -1259,6 +1297,7 @@ const EventPanel = ({
                       )}
                     />
                     Bonuses on this hit
+                    <SectionHelp section='bonuses' />
                     <span className='ml-auto text-[10px] font-normal text-slate-400 tabular-nums'>
                       {bonuses.length === 0 ? 'none' : bonuses.length}
                     </span>
@@ -1323,6 +1362,7 @@ const EventPanel = ({
                     )}
                   />
                   Active Effects ({upNow})
+                  <SectionHelp section='activeEffects' />
                 </button>
               }
             >
@@ -1340,13 +1380,14 @@ const EventPanel = ({
                     }
                     return (
                       <div key={lane.id}>
-                        <p className='mb-0.5 text-[10px] font-semibold tracking-wide text-slate-500 uppercase'>
+                        <p className='mb-0.5 flex items-center gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase'>
                           {lane.title} (
                           {
                             chips.filter((chip) => !exiting.has(chip.key))
                               .length
                           }
                           )
+                          <SectionHelp section={lane.help} />
                         </p>
                         <ul className='flex flex-col gap-0.5'>
                           {chips.map((chip) => {
