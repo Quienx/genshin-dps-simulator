@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+import ShareMenu from './ShareMenu';
+import { SharedRotation } from './shareRotation';
 import { getLoadedCharacter } from '../../_lib/characterData';
 import { CHARACTER_LIST } from '../../_lib/characters';
 import formatNumber from '../../_lib/formatNumber';
@@ -90,6 +92,13 @@ type TimelineHeaderProps = {
   onMemberClick: (characterId: string) => void;
   // A party picked with the team button (its members' ids, in order).
   onTeamChange: (ids: string[]) => void;
+  // Import / Export: the team on screen (its builds and rotation), and
+  // loading a friend's, which switches to their team.
+  share: {
+    current: SharedRotation;
+    label: string;
+    onImport: (shared: SharedRotation) => string | null;
+  };
 };
 
 // Picks the party: up to four characters, in the order clicked; Apply
@@ -255,6 +264,7 @@ const TimelineHeader = ({
   onScenarioChange,
   onMemberClick,
   onTeamChange,
+  share,
 }: TimelineHeaderProps) => (
   <header className='flex shrink-0 flex-col gap-2'>
     <div className='flex items-center gap-2'>
@@ -267,12 +277,20 @@ const TimelineHeader = ({
           Genshin Impact · {formatNumber(duration)}s Combat Simulation
         </p>
       </div>
+      {/* What is shared is the whole team: next to where it is picked. */}
+      <div className='ml-auto'>
+        <ShareMenu
+          current={share.current}
+          label={share.label}
+          onImport={share.onImport}
+        />
+      </div>
       <Select value={scenario} onValueChange={onScenarioChange}>
         <SelectTrigger
           aria-label='Simulation'
           data-testid='timeline-scenario'
           size='sm'
-          className='ml-auto w-64 border-slate-700/60 bg-slate-900/70 text-[11px] text-slate-100 dark:bg-slate-900/70'
+          className='w-64 border-slate-700/60 bg-slate-900/70 text-[11px] text-slate-100 dark:bg-slate-900/70'
         >
           <SelectValue />
         </SelectTrigger>

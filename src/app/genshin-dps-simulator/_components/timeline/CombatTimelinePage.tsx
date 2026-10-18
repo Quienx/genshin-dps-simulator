@@ -32,6 +32,11 @@ import {
   storeSavedRotations,
 } from './savedRotations';
 import SectionHelp from './SectionHelp';
+import {
+  decodeSharedRotation,
+  SHARE_PARAM,
+  SharedRotation,
+} from './shareRotation';
 import { SourceLegend } from './sourceStyles';
 import TimelineChart, { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
@@ -56,9 +61,11 @@ import {
   buildPresetRotation,
   buildPresetTeam,
   buildRotationFromRun,
+  createTeamBlock,
   DEFAULT_SWAP_DELAY_FRAMES,
   getTeamActions,
   INSPECTOR_TEST_IDS,
+  isSwapAction,
   MAVUIKA_PRESETS,
   runInspectorTest,
   runOwnRotation,
@@ -254,6 +261,71 @@ const scenarioActions = (id: string) =>
     ).map((action) => action.id)
   );
 
+// A friend's rotation as this app can play it: its team must be one the
+// app knows, with the same members in the same order. Each build fills in
+// what it lacks from the character's defaults; rotation blocks whose
+// action is gone (a character changed) are dropped, and Swap blocks (the
+// engine swaps by itself). A string: why not.
+const resolveShared = (
+  shared: SharedRotation
+):
+  | { id: string; builds: SimulationValues[]; setup: OwnSetup | null }
+  | string => {
+  const id = shared.scenario;
+  if (!SCENARIOS.some((entry) => entry.id === id) && !parseCustomTeam(id)) {
+    return 'That team is not in this version of the simulator.';
+  }
+  const defaults = scenarioOf(id).defaults();
+  if (
+    defaults.length !== shared.builds.length ||
+    defaults.some(
+      (values, index) => values.character !== shared.builds[index].character
+    )
+  ) {
+    return 'Its builds do not match the team’s members.';
+  }
+  const builds = defaults.map((values, index) => {
+    const build = shared.builds[index];
+    return {
+      ...values,
+      ...build,
+      numbers: { ...values.numbers, ...build.numbers },
+      flags: { ...values.flags, ...build.flags },
+      rotation: build.rotation ?? values.rotation,
+    };
+  });
+  if (!shared.setup) {
+    return { id, builds, setup: null };
+  }
+  const known = scenarioActions(id);
+  const blocks = shared.setup.rotation.blocks
+    .filter((entry) => known.has(entry.action) && !isSwapAction(entry.action))
+    .map((entry) => ({ ...entry, uid: createTeamBlock(entry.action).uid }));
+  return {
+    id,
+    builds,
+    setup:
+      blocks.length === 0
+        ? null
+        : {
+            ...shared.setup,
+            rotation: { ...shared.setup.rotation, blocks },
+          },
+  };
+};
+
+// A link with a shared rotation (?share=…): read once on load, then
+// dropped from the address so a reload does not load it again.
+const takeUrlShare = (): string | null => {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get(SHARE_PARAM);
+  if (code) {
+    url.searchParams.delete(SHARE_PARAM);
+    window.history.replaceState(window.history.state, '', url);
+  }
+  return code;
+};
+
 // The new inspector: the party and the player on top, the run's timeline
 // below. CRITs are rolled, so the run is made in the browser only (the
 // server's would not match it).
@@ -294,6 +366,28 @@ const CombatTimelinePage = () => {
     saved.current = next ? { ...rest, [id]: next } : rest;
     storeSavedRotations(saved.current);
   };
+  // Loads a friend's rotation: its team, its builds and its rotation
+  // (kept as this team's saved one). Returns why it cannot, or null.
+  const applyShared = useCallback(
+    (shared: SharedRotation): string | null => {
+      const resolved = resolveShared(shared);
+      if (typeof resolved === 'string') {
+        return resolved;
+      }
+      const { id, builds, setup } = resolved;
+      writeUrlScenario(id);
+      setScenario(id);
+      setEditing(false);
+      setOwn(setup);
+      const rest = { ...saved.current };
+      delete rest[id];
+      saved.current = setup ? { ...rest, [id]: setup } : rest;
+      storeSavedRotations(saved.current);
+      simulate(id, builds, setup);
+      return null;
+    },
+    [simulate]
+  );
   useEffect(() => {
     saved.current = loadSavedRotations(scenarioActions);
     const initial = readUrlScenario();
@@ -301,7 +395,23 @@ const CombatTimelinePage = () => {
     setScenario(initial);
     setOwn(restored);
     simulate(initial, undefined, restored);
-  }, [simulate]);
+    // Opened from a shared link: load it over the usual start.
+    const code = takeUrlShare();
+    if (code) {
+      decodeSharedRotation(code)
+        .then((shared) => {
+          const problem = applyShared(shared);
+          if (problem) {
+            window.alert(`The shared rotation could not be loaded: ${problem}`);
+          }
+        })
+        .catch((failure: Error) =>
+          window.alert(
+            `The shared rotation could not be loaded: ${failure.message}`
+          )
+        );
+    }
+  }, [simulate, applyShared]);
   const handleScenarioChange = useCallback(
     (id: string) => {
       const restored = saved.current[id] ?? null;
@@ -337,6 +447,15 @@ const CombatTimelinePage = () => {
       onScenarioChange={handleScenarioChange}
       onTeamChange={(ids) => handleScenarioChange(scenarioIdFor(ids))}
       version={state.version}
+      share={{
+        current: {
+          scenario,
+          builds: state.members,
+          setup: own,
+        },
+        label: scenarioOf(scenario).label,
+        onImport: applyShared,
+      }}
       edit={
         editing && own
           ? {
@@ -394,6 +513,7 @@ const CombatTimeline = ({
   onSimulate,
   version,
   onSaveBuild,
+  share,
   edit,
   editing,
   onEditToggle,
@@ -408,6 +528,12 @@ const CombatTimeline = ({
   onSimulate: () => void;
   version: number;
   onSaveBuild: (build: SimulationValues) => void;
+  // Import / Export: what is on screen, and loading a friend's.
+  share: {
+    current: SharedRotation;
+    label: string;
+    onImport: (shared: SharedRotation) => string | null;
+  };
   // Edit mode: the rotation on the chart, and changing it.
   edit: {
     rotation: RotationSetting;
@@ -860,6 +986,7 @@ const CombatTimeline = ({
           onScenarioChange={onScenarioChange}
           onTeamChange={onTeamChange}
           onMemberClick={setOpenMember}
+          share={share}
         />
         {desktop ? (
           // Left: the timeline over the log; right: the damage so far, the
