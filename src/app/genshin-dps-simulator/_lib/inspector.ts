@@ -1381,8 +1381,38 @@ export const buildInspectorView = (
       const status = statusId
         ? members.get(action.characterId)?.blocks.get(statusId)
         : undefined;
-      if (status) {
+      if (status && statusId) {
         formEnded.set(key, status.label);
+        // It ends during this one (a long spin): its hits after that.
+        const member = members.get(action.characterId);
+        const startFrame = Math.round(action.start * FRAMES_PER_SECOND);
+        const span = member?.activity?.statuses[statusId]?.find(
+          (interval) =>
+            interval.start <= startFrame && startFrame < interval.end
+        );
+        const endsAt = span ? toSeconds(span.end) : null;
+        const after =
+          endsAt !== null && endsAt < action.end
+            ? run.members
+                .find((entry) => entry.characterId === action.characterId)
+                ?.hitLog.filter(
+                  (hit) =>
+                    hit.blockUid === action.blockUid &&
+                    hit.actionId === formId &&
+                    hit.time >= endsAt &&
+                    hit.time <= action.end
+                ).length ?? 0
+            : 0;
+        if (endsAt !== null && after > 0) {
+          const warning = `${status.label} ends ${(
+            endsAt - action.start
+          ).toFixed(1)} s into it: ${after} ${
+            after === 1 ? 'hit' : 'hits'
+          } after that`;
+          action.warning = action.warning
+            ? `${action.warning} · ${warning}`
+            : warning;
+        }
       } else {
         formEnded.delete(key);
       }

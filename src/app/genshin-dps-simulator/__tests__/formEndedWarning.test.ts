@@ -34,7 +34,9 @@ const check = (pieces: ReturnType<typeof chargedPieces>) => {
   );
   expect(onBike.length).toBeGreaterThan(0);
   expect(onBike.length).toBeLessThan(9);
-  onBike.forEach((piece) => expect(piece.warning).toBeNull());
+  // The last one on the bike may see it end mid-spin (its own warning).
+  onBike.slice(0, -1).forEach((piece) => expect(piece.warning).toBeNull());
+  expect(onBike.at(-1)?.warning ?? '').not.toMatch(/a normal/);
   pieces
     .slice(onBike.length)
     .forEach((piece) =>
@@ -54,6 +56,21 @@ describe('a form whose status ended', () => {
       chargedPieces(
         Array.from({ length: 9 }, () => createTeamBlock('mavuika:charged'))
       )
+    );
+  });
+
+  it('warns on a long spin the Flamestrider ends during (5 then 8 spins)', () => {
+    const pieces = chargedPieces([
+      { ...createTeamBlock('mavuika:charged'), hits: 5 },
+      { ...createTeamBlock('mavuika:charged'), hits: 8 },
+    ]);
+    expect(pieces.map((piece) => piece.performedActionId)).toEqual([
+      'mavuika:flamestriderCharged',
+      'mavuika:flamestriderCharged',
+    ]);
+    expect(pieces[0].warning).toBeNull();
+    expect(pieces[1].warning).toMatch(
+      /^Flamestrider ends \d+\.\d s into it: \d+ hits after that$/
     );
   });
 });
