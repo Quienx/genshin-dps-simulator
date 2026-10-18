@@ -13,6 +13,10 @@ export type SectionHelpText = {
   note?: string;
 };
 
+// Edit mode's keys, the same line in the timeline's help and the edit bar's.
+const EDIT_KEYS =
+  'In edit mode: `Ctrl` / `Cmd` + `C` copies the picked blocks, `Ctrl` + `X` cuts them, `Ctrl` + `V` pastes them where the pointer is; `Ctrl` + `A` picks every block, `Delete` removes the picked ones, `Esc` unpicks them.';
+
 export const SECTION_HELP = {
   // ------------------------------------------------------------ page cards
   timeline: {
@@ -32,6 +36,7 @@ export const SECTION_HELP = {
       'Click or drag the ruler to move the playhead; `←` `→` step a frame (`Shift`: a second), `Space` plays.',
       'Hover a block or a bar for its details; click a group’s name to fold it.',
       '`Edit rotation` turns the blocks into a rotation you can change (see the edit bar’s `?`).',
+      EDIT_KEYS,
       'The `Team` button picks the members: the team becomes the one `In edition` in the menu (kept as you edit), which `Save as team` keeps in `My teams`.',
       '`Share` copies a short link or code with the team, its builds and its rotation.',
     ],
@@ -95,8 +100,8 @@ export const SECTION_HELP = {
       'A held Charged Attack (Mavuika’s spin): its time is when the Final lands (from 0.75 s); `Prev` / `Next charge` move it a spin; it never holds past the Flamestrider’s end.',
       '`Final hit` off: the block right after (a Dash, an E, a Q, another member) cancels the spin at the release, from 0.1 s. `CDC`: the spin after a Dash cancels that Dash, 6 frames in.',
       '`Ctrl` / `Cmd` + click adds a block to the selection, `Shift` + click picks a range, `Shift` + drag on empty space draws a selection rectangle.',
-      'Drag a picked block to move every picked block together; `Delete` removes them, `Esc` clears the selection, `Ctrl` + `A` picks them all.',
-      '`Ctrl` + `C` copies the picked blocks, `Ctrl` + `X` cuts them, `Ctrl` + `V` pastes them where the pointer is on the chart.',
+      'Drag a picked block to move every picked block together.',
+      EDIT_KEYS,
       'Drop blocks on the trash (or click it) to remove them; `Reset rotation` goes back to the scenario’s.',
     ],
     note: 'A block that cannot be done when it comes (no Energy, a rule) is skipped and shows a warning.',

@@ -109,7 +109,11 @@ const SectionHelp = ({
           collisionPadding={12}
           className='w-[22rem] max-w-[calc(100vw-24px)] border-slate-700 bg-slate-900 p-3 text-left text-[11px] leading-relaxed font-normal tracking-normal text-balance text-slate-300 normal-case shadow-xl'
         >
-          <HelpBody help={help} />
+          {/* At most half the window (or the room there is): a long help
+              scrolls inside, the pointer can move into it to scroll. */}
+          <div className='max-h-[min(50vh,calc(var(--radix-tooltip-content-available-height)-24px))] overflow-y-auto overscroll-contain pr-1'>
+            <HelpBody help={help} />
+          </div>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
