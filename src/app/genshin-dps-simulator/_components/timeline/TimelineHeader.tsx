@@ -11,7 +11,7 @@ import {
   Trash2,
   UserPlus,
 } from 'lucide-react';
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { memo, ReactNode, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -373,29 +373,35 @@ const IconButton = ({
 );
 
 // The inspector's top bar: the party, the player and the zoom.
-const TimelineHeader = ({
-  members,
+// The header's parts that do not follow the playhead: drawn again only
+// when what they show changes, not on every frame of a playback. Function
+// props are callbacks that do the same thing on every render.
+const sameShownProps = <P extends object>(before: P, after: P): boolean =>
+  (Object.keys(after) as (keyof P)[]).every(
+    (key) =>
+      typeof after[key] === 'function' || Object.is(before[key], after[key])
+  );
+
+// The title, Share, the team in edition's or saved team's button, and the
+// scenario menu.
+const HeaderTitle = memo(function HeaderTitle({
   duration,
-  time,
-  playing,
-  speed,
-  onTogglePlay,
-  onStep,
-  onSpeedChange,
-  onSeek,
-  onZoom,
-  onFit,
-  onSimulate,
+  share,
+  teamActions,
   scenarios,
   scenario,
   onScenarioChange,
-  onMemberClick,
-  onTeamChange,
-  teamActions,
-  share,
-}: TimelineHeaderProps) => (
-  <header className='flex shrink-0 flex-col gap-2'>
-    <div className='flex items-center gap-2'>
+}: Pick<
+  TimelineHeaderProps,
+  | 'duration'
+  | 'share'
+  | 'teamActions'
+  | 'scenarios'
+  | 'scenario'
+  | 'onScenarioChange'
+>) {
+  return (
+    <>
       <Sparkles className='size-5 text-sky-400' aria-hidden />
       <div>
         <h1 className='text-sm leading-tight font-semibold text-slate-50'>
@@ -477,48 +483,100 @@ const TimelineHeader = ({
           })}
         </SelectContent>
       </Select>
+    </>
+  );
+},
+sameShownProps);
+
+// The team button and the members' chips.
+const HeaderMembers = memo(function HeaderMembers({
+  members,
+  onTeamChange,
+  onMemberClick,
+}: Pick<TimelineHeaderProps, 'members' | 'onTeamChange' | 'onMemberClick'>) {
+  return (
+    <div className='flex flex-wrap gap-1.5'>
+      <TeamPicker
+        current={members.map((member) => member.characterId)}
+        onApply={onTeamChange}
+      />
+      {members.map((member) => (
+        <button
+          type='button'
+          key={member.characterId}
+          data-testid={`timeline-member-${member.characterId}`}
+          title={`${member.name}: see the build`}
+          onClick={() => onMemberClick(member.characterId)}
+          className='relative flex items-center gap-1.5 overflow-hidden rounded-md border border-slate-700/60 bg-slate-800/60 py-0.5 pr-3 pl-2 text-left transition hover:border-sky-500/50 hover:bg-slate-700/60'
+        >
+          <span
+            aria-hidden
+            className={cn(
+              'absolute inset-y-0 left-0 w-1',
+              member.color?.bar ?? 'bg-slate-500'
+            )}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={member.avatar}
+            alt=''
+            width={28}
+            height={28}
+            className='size-7 rounded-md bg-slate-700'
+          />
+          <div className='leading-tight'>
+            <p className='text-[11px] text-slate-100'>{member.name}</p>
+            <p className='text-[10px] text-slate-400'>Lv. 90</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+},
+sameShownProps);
+
+const TimelineHeader = ({
+  members,
+  duration,
+  time,
+  playing,
+  speed,
+  onTogglePlay,
+  onStep,
+  onSpeedChange,
+  onSeek,
+  onZoom,
+  onFit,
+  onSimulate,
+  scenarios,
+  scenario,
+  onScenarioChange,
+  onMemberClick,
+  onTeamChange,
+  teamActions,
+  share,
+}: TimelineHeaderProps) => (
+  <header className='flex shrink-0 flex-col gap-2'>
+    <div className='flex items-center gap-2'>
+      <HeaderTitle
+        duration={duration}
+        share={share}
+        teamActions={teamActions}
+        scenarios={scenarios}
+        scenario={scenario}
+        onScenarioChange={onScenarioChange}
+      />
     </div>
 
     <div
       data-testid='timeline-header'
       className='flex flex-wrap items-center gap-2.5 rounded-xl border border-slate-700/60 bg-slate-900/70 px-2 py-1.5'
     >
-      <div className='flex flex-wrap gap-1.5'>
-        <TeamPicker
-          current={members.map((member) => member.characterId)}
-          onApply={onTeamChange}
-        />
-        {members.map((member) => (
-          <button
-            type='button'
-            key={member.characterId}
-            data-testid={`timeline-member-${member.characterId}`}
-            title={`${member.name}: see the build`}
-            onClick={() => onMemberClick(member.characterId)}
-            className='relative flex items-center gap-1.5 overflow-hidden rounded-md border border-slate-700/60 bg-slate-800/60 py-0.5 pr-3 pl-2 text-left transition hover:border-sky-500/50 hover:bg-slate-700/60'
-          >
-            <span
-              aria-hidden
-              className={cn(
-                'absolute inset-y-0 left-0 w-1',
-                member.color?.bar ?? 'bg-slate-500'
-              )}
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={member.avatar}
-              alt=''
-              width={28}
-              height={28}
-              className='size-7 rounded-md bg-slate-700'
-            />
-            <div className='leading-tight'>
-              <p className='text-[11px] text-slate-100'>{member.name}</p>
-              <p className='text-[10px] text-slate-400'>Lv. 90</p>
-            </div>
-          </button>
-        ))}
-      </div>
+      <HeaderMembers
+        members={members}
+        onTeamChange={onTeamChange}
+        onMemberClick={onMemberClick}
+      />
 
       <div className='flex items-center gap-1 border-l border-slate-700/60 pl-2.5'>
         <IconButton label={playing ? 'Pause' : 'Play'} onClick={onTogglePlay}>

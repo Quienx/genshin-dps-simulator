@@ -1,5 +1,5 @@
 import { CircleHelp, Info } from 'lucide-react';
-import { ReactNode } from 'react';
+import { memo, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -120,4 +120,5 @@ const SectionHelp = ({
   );
 };
 
-export default SectionHelp;
+// Its text never changes: drawn again only for another section.
+export default memo(SectionHelp);

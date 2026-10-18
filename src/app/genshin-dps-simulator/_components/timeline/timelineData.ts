@@ -569,20 +569,25 @@ export const countUpTo = (times: number[], time: number): number => {
 
 // The panels redraw at most this often while the playhead moves (s).
 export const PANEL_QUANTUM = 0.05;
+// While the run plays: a coarser one, so the panels leave the frames to
+// the timeline (they still follow it, a few times a second).
+export const PLAYING_QUANTUM = 0.25;
 
 // React.memo's check for a panel that follows the playhead: it redraws
-// when another prop changes or the time moves past a quantum. Function
-// props are callbacks that do the same thing on every render.
-export const samePanelProps = <P extends { time: number }>(
+// when another prop changes or the time moves past a quantum (coarser
+// while `playing`). Function props are callbacks that do the same thing
+// on every render.
+export const samePanelProps = <P extends { time: number; playing?: boolean }>(
   before: P,
   after: P
-): boolean =>
-  (Object.keys(after) as (keyof P)[]).every((key) =>
+): boolean => {
+  const quantum = after.playing ? PLAYING_QUANTUM : PANEL_QUANTUM;
+  return (Object.keys(after) as (keyof P)[]).every((key) =>
     key === 'time'
-      ? Math.round(before.time / PANEL_QUANTUM) ===
-        Math.round(after.time / PANEL_QUANTUM)
+      ? Math.round(before.time / quantum) === Math.round(after.time / quantum)
       : typeof after[key] === 'function' || Object.is(before[key], after[key])
   );
+};
 
 // The special systems' own resources and statuses (Nightsoul, Bond of
 // Life): a mechanic that changes one of them belongs with the system.

@@ -1264,6 +1264,7 @@ const CombatTimeline = ({
       members={members}
       actionsById={actionsById}
       time={playback.time}
+      playing={playback.playing}
       onSeek={playback.seek}
       collapsed={panels.log}
       onToggle={() => togglePanel('log')}
@@ -1276,6 +1277,7 @@ const CombatTimeline = ({
       members={members}
       actionsById={actionsById}
       time={playback.time}
+      playing={playback.playing}
       enemyLevel={enemy.level}
       builds={builds}
       collapsed={panels.event}
@@ -1289,6 +1291,7 @@ const CombatTimeline = ({
     <EnemyPanel
       view={view}
       time={playback.time}
+      playing={playback.playing}
       hp={enemy.hp}
       level={enemy.level}
       collapsed={panels.enemy}

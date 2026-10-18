@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { cn } from '@/lib/utils';
 
 import { BlockChip } from '../../_lib/inspector';
@@ -147,23 +149,29 @@ export const sourceKindOfAction = (
   kind && kind in SOURCE_STYLES ? (kind as SourceKind) : 'other';
 
 // The colors' key, for the timeline's header.
-export const SourceLegend = ({ className }: { className?: string }) => (
-  <ul
-    aria-label='Colors by source'
-    className={cn(
-      'flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-slate-400',
-      className
-    )}
-  >
-    {(Object.keys(SOURCE_STYLES) as SourceKind[])
-      .filter((kind) => kind !== 'other')
-      .map((kind) => (
-        <li key={kind} className='flex items-center gap-1'>
-          <span
-            className={cn('size-2 rounded-full', SOURCE_STYLES[kind].bar)}
-          />
-          {SOURCE_STYLES[kind].label}
-        </li>
-      ))}
-  </ul>
-);
+export const SourceLegend = memo(function SourceLegend({
+  className,
+}: {
+  className?: string;
+}) {
+  return (
+    <ul
+      aria-label='Colors by source'
+      className={cn(
+        'flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-slate-400',
+        className
+      )}
+    >
+      {(Object.keys(SOURCE_STYLES) as SourceKind[])
+        .filter((kind) => kind !== 'other')
+        .map((kind) => (
+          <li key={kind} className='flex items-center gap-1'>
+            <span
+              className={cn('size-2 rounded-full', SOURCE_STYLES[kind].bar)}
+            />
+            {SOURCE_STYLES[kind].label}
+          </li>
+        ))}
+    </ul>
+  );
+});

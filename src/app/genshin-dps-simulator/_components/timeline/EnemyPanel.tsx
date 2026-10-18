@@ -49,6 +49,9 @@ const short = (value: number) => formatNumber(Math.round(value * 10) / 10);
 type EnemyPanelProps = {
   view: InspectorView;
   time: number;
+  // The run is playing: it follows the playhead less often (see
+  // samePanelProps).
+  playing?: boolean;
   hp: number;
   level: number;
   collapsed: boolean;

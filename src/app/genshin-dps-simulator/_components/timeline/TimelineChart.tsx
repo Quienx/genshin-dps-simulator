@@ -350,18 +350,7 @@ const MarkDot = ({
   </span>
 );
 
-// An action on the chart. In edit mode it drags (dnd-kit): to move its
-// block, or onto the trash; the chart stays in place under it.
-const DraggableAction = ({
-  dragId,
-  blockUid,
-  editing,
-  tipKey,
-  selected,
-  className,
-  style,
-  children,
-}: {
+type ActionBlockProps = {
   dragId: string;
   blockUid: string;
   editing: boolean;
@@ -370,26 +359,63 @@ const DraggableAction = ({
   className: string;
   style: CSSProperties;
   children: ReactNode;
-}) => {
+};
+
+// An action on the chart. In edit mode it drags (dnd-kit): to move its
+// block, or onto the trash; the chart stays in place under it. Out of it,
+// a plain block: it does not follow the drag context, which changes on
+// every frame of a playback.
+const DraggableAction = (props: ActionBlockProps) =>
+  props.editing ? <EditableAction {...props} /> : <ShownAction {...props} />;
+
+const ShownAction = ({
+  blockUid,
+  tipKey,
+  selected,
+  className,
+  style,
+  children,
+}: ActionBlockProps) => (
+  <span
+    data-tip={tipKey}
+    data-testid='timeline-action'
+    data-block-uid={blockUid}
+    data-selected={selected || undefined}
+    className={className}
+    style={style}
+  >
+    {children}
+  </span>
+);
+
+const EditableAction = ({
+  dragId,
+  blockUid,
+  tipKey,
+  selected,
+  className,
+  style,
+  children,
+}: ActionBlockProps) => {
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: `block:${dragId}`,
     data: { kind: 'move', blockUid } satisfies DragPayload,
-    disabled: !editing,
   });
   return (
     <span
       ref={setNodeRef}
-      {...(editing ? { ...listeners, ...attributes } : {})}
+      {...listeners}
+      {...attributes}
       data-tip={tipKey}
       data-testid='timeline-action'
       data-block-uid={blockUid}
       data-selected={selected || undefined}
       // A click picks the block without focusing it: the browser would
       // scroll the tracks to show the focused block.
-      onMouseDown={editing ? (event) => event.preventDefault() : undefined}
+      onMouseDown={(event) => event.preventDefault()}
       className={cn(
         className,
-        editing && 'cursor-grab touch-none active:cursor-grabbing',
+        'cursor-grab touch-none active:cursor-grabbing',
         isDragging && 'opacity-40'
       )}
       style={style}

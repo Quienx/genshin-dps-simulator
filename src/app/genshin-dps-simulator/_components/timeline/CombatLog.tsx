@@ -10,7 +10,7 @@ import {
   Sparkle,
   Swords,
 } from 'lucide-react';
-import { ReactNode, useMemo, useState } from 'react';
+import { memo, ReactNode, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,7 @@ import {
   eventTimes,
   hitsOfAction,
   isReactionHit,
+  samePanelProps,
 } from './timelineData';
 import RotationActionIcon from '../rotation/RotationActionIcon';
 import formatNumber from '../../_lib/formatNumber';
@@ -109,6 +110,9 @@ type CombatLogProps = {
   members: TimelineMember[];
   actionsById: Map<string, RotationAction>;
   time: number;
+  // The run is playing: it follows the playhead less often (see
+  // samePanelProps).
+  playing?: boolean;
   onSeek: (time: number) => void;
   collapsed: boolean;
   onToggle: () => void;
@@ -634,4 +638,5 @@ const CombatLog = ({
   );
 };
 
-export default CombatLog;
+// It follows the playhead at most every quantum (see samePanelProps).
+export default memo(CombatLog, samePanelProps);

@@ -603,6 +603,9 @@ type EventPanelProps = {
   members: TimelineMember[];
   actionsById: Map<string, RotationAction>;
   time: number;
+  // The run is playing: it follows the playhead less often (see
+  // samePanelProps).
+  playing?: boolean;
   enemyLevel: number;
   // The members' builds (their character screens, to compare a hit's
   // stats with).
