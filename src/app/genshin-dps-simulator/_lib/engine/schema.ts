@@ -529,7 +529,8 @@ const whenSchema = z.union([
   // A named moment of an action, "charged/absorb".
   z.object({ event: z.string() }).strict(),
   // When a resource changes; with `change`, only when it goes that way
-  // (Obsidian Codex: on consuming Nightsoul points).
+  // (Obsidian Codex: on consuming Nightsoul points). `party:<id>`: any
+  // member's resource with that id; `active:<id>`: the member on the field's.
   z
     .object({
       resourceChanges: z.string(),

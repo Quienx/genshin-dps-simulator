@@ -1,5 +1,6 @@
 import { createEventLog, SimEvent, sortEvents } from './eventLog';
 import { createKitAdapter, KitAction, KitAdapter } from './kitAdapter';
+import { nightsoulPartyField } from './modules/nightsoul';
 import { createEventQueue } from './queue';
 import { createRuntime, KitRuntime, PartyLink } from './runtime';
 import { BonusStat } from './schema';
@@ -415,7 +416,12 @@ export const simulateTeam = (
       members.forEach((member) => member.runtime.firePartyUse(keys, frame)),
     broadcastResource: (id, change, frame) =>
       members.forEach((member) =>
-        member.runtime.firePartyResource(id, change, frame)
+        member.runtime.firePartyResource(
+          id,
+          change,
+          frame,
+          activeAt(frame) === index
+        )
       ),
     shareParticles,
     applyElement: auras ? applyElement : undefined,
@@ -433,8 +439,20 @@ export const simulateTeam = (
     },
   });
 
-  team.forEach(({ characterId, values }, index) => {
+  // Natlan members (those with Nightsoul points): how often the party's
+  // Nightsoul Burst can happen, for every kit that has one.
+  const natlanMembers = team.filter(
+    ({ characterId }) => 'nightsoul' in loadedOf(characterId).character.systems
+  ).length;
+  team.forEach(({ characterId, values: given }, index) => {
     const loaded = loadedOf(characterId);
+    const partyField = nightsoulPartyField(loaded.character.systems);
+    const values = partyField
+      ? {
+          ...given,
+          numbers: { ...given.numbers, [partyField]: natlanMembers },
+        }
+      : given;
     const context = createDamageContext(values, critMode, countUntilFrame);
     const runtime = createRuntime({
       character: loaded.character,

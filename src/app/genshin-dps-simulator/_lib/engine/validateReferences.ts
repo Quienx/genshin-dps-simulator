@@ -112,7 +112,7 @@ export const validateReferences = (character: CharacterData) => {
       }
       if ('resourceChanges' in block.when) {
         // "party:nightsoul": any member's; a resource of another kit.
-        if (!block.when.resourceChanges.startsWith('party:')) {
+        if (!/^(party|active):/.test(block.when.resourceChanges)) {
           resource(where, block.when.resourceChanges);
         }
       }

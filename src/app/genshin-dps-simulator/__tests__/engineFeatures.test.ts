@@ -8,7 +8,7 @@ import {
   simulateFile,
 } from './fixtures';
 import { loadCharacterFile } from '../_lib/characterData';
-import { simulateTeam } from '../_lib/engine/simulateTeam';
+import { simulateTeam, toTeamActionId } from '../_lib/engine/simulateTeam';
 import formatNumber from '../_lib/formatNumber';
 import { buildDefaultValues, parseValues } from '../_lib/simulationValues';
 import { getRowMultiplier } from '../_lib/talents';
@@ -2003,5 +2003,83 @@ describe('default values of a file not registered', () => {
     expect(
       buildDefaultValuesFor(getLoadedCharacter('escoffier').character)
     ).toEqual(buildDefaultValues('escoffier'));
+  });
+});
+
+describe('active: resource triggers', () => {
+  // Two test members: the giver changes `meter` on its E and again 10 s
+  // later (by then off the field); the watcher counts both kinds of key.
+  const member = (id: string, blocks: Record<string, unknown>[]) => ({
+    characterId: id,
+    values: parseValues(buildDefaultValues('arlecchino')),
+    loaded: loadCharacterFile(
+      editCharacter('arlecchino', (file) => {
+        Object.assign(file, { id, name: id });
+        file.blocks.push(...blocks);
+      })
+    ),
+  });
+  const giver = member('giver', [
+    resource('meter'),
+    trigger('meter-now', { use: 'skill' }, [
+      { addResource: 'meter', amount: 10 },
+    ]),
+    trigger('meter-later', { use: 'skill' }, [
+      { addResource: 'meter', amount: 10, delayFrames: 600 },
+    ]),
+  ]);
+  const watcher = member('watcher', [
+    trigger('saw-party', { resourceChanges: 'party:meter' }, [
+      { count: 'party' },
+    ]),
+    trigger('saw-active', { resourceChanges: 'active:meter' }, [
+      { count: 'active' },
+    ]),
+  ]);
+
+  it('fires only when the member on the field changed it', () => {
+    const team = simulateTeam(
+      [giver, watcher],
+      {
+        loop: false,
+        blocks: [
+          block('e', toTeamActionId('giver', 'skill')),
+          block('n', toTeamActionId('watcher', 'normal'), { hits: 30 }),
+        ],
+      },
+      {}
+    );
+    const triggers =
+      team.members.find((entry) => entry.characterId === 'watcher')!.activity
+        ?.triggers ?? {};
+    expect(triggers['saw-party']).toHaveLength(2);
+    // Only the first: the second came with the giver off the field.
+    expect(triggers['saw-active']).toHaveLength(1);
+  });
+});
+
+describe('Natlan party members in a team', () => {
+  const natlanOf = (team: string[]) =>
+    simulateTeam(
+      team.map((id) => ({
+        characterId: id,
+        values: parseValues({
+          ...buildDefaultValues(id),
+          // Typed in by hand: the team's count replaces it.
+          numbers: {
+            ...buildDefaultValues(id).numbers,
+            natlanPartyMembers: '4',
+          },
+        }),
+      })),
+      { loop: false, blocks: [block('e', toTeamActionId(team[0], 'skill'))] },
+      {}
+    ).members.map((entry) => entry.context.values.numbers.natlanPartyMembers);
+
+  it('are counted from the team for every kit with a Nightsoul Burst', () => {
+    expect(natlanOf(['mualani', 'nicole'])[0]).toBe(1);
+    expect(natlanOf(['mualani', 'varesa', 'nicole']).slice(0, 2)).toEqual([
+      2, 2,
+    ]);
   });
 });

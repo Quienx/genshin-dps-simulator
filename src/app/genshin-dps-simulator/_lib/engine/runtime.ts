@@ -1939,14 +1939,27 @@ export const createRuntime = ({
   // `party:<id>` resource triggers: any member's resource with that id
   // changed (Mavuika's Fighting Spirit from the party's Nightsoul points).
   // Alone, the character's own.
-  const firePartyResource = (id: string, change: number, frame: number) =>
-    fireTriggers('resourceChanges', [`party:${id}`], frame, null, change);
+  // `active:<id>`: only when the member on the field changed it (Iansan's
+  // Precise Movement).
+  const firePartyResource = (
+    id: string,
+    change: number,
+    frame: number,
+    fromActive: boolean
+  ) =>
+    fireTriggers(
+      'resourceChanges',
+      fromActive ? [`party:${id}`, `active:${id}`] : [`party:${id}`],
+      frame,
+      null,
+      change
+    );
 
   const shareResource = (id: string, change: number, frame: number) => {
     if (party) {
       party.broadcastResource(id, change, frame);
     } else {
-      firePartyResource(id, change, frame);
+      firePartyResource(id, change, frame, true);
     }
   };
 

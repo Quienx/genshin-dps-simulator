@@ -641,12 +641,38 @@
       ]
     },
     {
+      "id": "preciseMovementCharged",
+      "type": "status",
+      "source": "passive",
+      "label": "Precise Movement: 4 extra points next",
+      "icon": "UI_Talent_S_Iansan_05",
+      "endsWith": "preciseMovement"
+    },
+    {
+      "id": "a1-charge",
+      "type": "trigger",
+      "source": "passive",
+      "label": "The active character uses or restores Nightsoul points: the next Scale restore gives 4 extra (once every 2.8 s)",
+      "icon": "UI_Talent_S_Iansan_05",
+      "when": {
+        "resourceChanges": "active:nightsoul"
+      },
+      "if": {
+        "status": "preciseMovement"
+      },
+      "icdFrames": 168,
+      "do": [
+        {
+          "applyStatus": "preciseMovementCharged"
+        }
+      ]
+    },
+    {
       "id": "a1-extra-points",
       "type": "trigger",
       "source": "passive",
-      "label": "Precise Movement: +3 more points (once every 2.8 s)",
+      "label": "Precise Movement: +3 more points on the next Scale restore after the active character used Nightsoul points",
       "icon": "UI_Talent_S_Iansan_05",
-      "ifFlag": "a1Extra",
       "when": {
         "statusEnds": "scaleTick"
       },
@@ -657,14 +683,19 @@
           },
           {
             "status": "preciseMovement"
+          },
+          {
+            "status": "preciseMovementCharged"
           }
         ]
       },
-      "icdFrames": 168,
       "do": [
         {
           "addResource": "nightsoul",
           "amount": 3
+        },
+        {
+          "removeStatus": "preciseMovementCharged"
         }
       ]
     },
@@ -936,7 +967,7 @@
       "description": "After Swift Stormflight hits opponents, Iansan will gain the Precise Movement effect for 15s.\nDuring this time, her ATK is increased by 20%, and whenever she regains Nightsoul points through the Kinetic Energy Scale in her Elemental Burst, The Three Principles of Power, she will gain 1 extra Nightsoul point. Additionally, when your current active party member consumes or restores Nightsoul points, the extra Nightsoul points Iansan gains the next time she restores Nightsoul points via the Scale will be increased to 4. This effect can occur once every 2.8s.\n\"Precise Movement\" will expire when Iansan's Nightsoul's Blessing state ends.",
       "icon": "UI_Talent_S_Iansan_05",
       "value": "After Swift Stormflight hits, Precise Movement for 15 s: +20% ATK, and +1 extra point (4 once every 2.8 s if the active character used Nightsoul points) each time the Scale restores points. Ends with the Blessing.",
-      "note": "Simulated; the +4 assumes the active character keeps using Nightsoul points (option)."
+      "note": "Simulated. The +4 comes when the member on the field uses or restores Nightsoul points (once every 2.8 s), read from the run."
     },
     {
       "id": "iansan-passive-2",
@@ -1033,7 +1064,7 @@
       "favoniusRefinement": 5,
       "energyRecharge": 192.1,
       "startingEnergy": 70,
-      "natlanPartyMembers": 2,
+      "natlanPartyMembers": 1,
       "iansanMovementPoints": 4,
       "overloadedEvery": 2
     },
@@ -1047,7 +1078,6 @@
       "favonius": true,
       "scroll2": true,
       "scroll4": true,
-      "a1Extra": true,
       "useBurst": true,
       "overloaded": true
     }
@@ -1092,12 +1122,6 @@
       "label": "Scale: points per second from the active character's movement (0.67 per meter)",
       "min": 0,
       "step": 0.1
-    },
-    {
-      "kind": "checkbox",
-      "section": "rotation",
-      "name": "a1Extra",
-      "label": "Precise Movement: the active character uses Nightsoul points (+4 instead of +1 once every 2.8 s)"
     },
     {
       "kind": "checkbox",

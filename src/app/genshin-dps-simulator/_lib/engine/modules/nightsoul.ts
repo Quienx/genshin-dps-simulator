@@ -62,6 +62,21 @@ const paramsSchema = z
     { message: '"enterAtMax" needs a number "maxPoints"' }
   );
 
+// The number field a kit's Nightsoul Burst reads for its party size
+// (null: the kit has no Nightsoul Burst). A team run sets it from the
+// party, so it is never typed in.
+export const nightsoulPartyField = (
+  systems: Record<string, unknown>
+): string | null => {
+  const params = systems.nightsoul as
+    | { nightsoulBurst?: { partyField?: string } }
+    | undefined;
+  if (!params?.nightsoulBurst) {
+    return null;
+  }
+  return params.nightsoulBurst.partyField ?? 'natlanPartyMembers';
+};
+
 export const NIGHTSOUL_ID = 'nightsoul';
 export const NIGHTSOUL_BLESSING_ID = 'nightsoulBlessing';
 
