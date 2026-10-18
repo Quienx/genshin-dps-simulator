@@ -24,9 +24,11 @@ import {
   splitTeamActionId,
 } from '../../_lib/engine/simulateTeam';
 import {
+  cancelsHold,
   chargesIn,
   heldFramesOf,
   minHeldFramesOf,
+  playedHold,
   removeBlock,
   removeBlocks,
   updateBlock,
@@ -107,10 +109,14 @@ const Stepper = ({
 // gets; Prev / Next charge move it to the charge before or after.
 const HoldControls = ({
   block,
+  canCancel,
   hold,
   onChange,
 }: {
   block: RotationBlock;
+  // The block after it cancels it at the release (a Dash): only then can
+  // its Final hit be turned off.
+  canCancel: boolean;
   hold: NonNullable<NonNullable<RotationAction['count']>['hold']>;
   onChange: (patch: Partial<RotationBlock>) => void;
 }) => {
@@ -221,10 +227,15 @@ const HoldControls = ({
         type='button'
         data-testid='timeline-block-keep-final'
         aria-pressed={block.noFinal !== true}
-        title='The Final hit after the spin (off: the spin is cancelled at the release, as a Dash right after does)'
+        disabled={!canCancel}
+        title={
+          canCancel
+            ? 'The Final hit after the spin (off: the spin is cancelled at the release, as a Dash right after does)'
+            : 'The Final hit always lands: nothing right after cancels the spin (put a Dash after it)'
+        }
         onClick={() => onChange({ noFinal: !block.noFinal })}
         className={cn(
-          'ml-2 rounded border px-2 py-0.5',
+          'ml-2 rounded border px-2 py-0.5 disabled:cursor-not-allowed disabled:opacity-60',
           block.noFinal !== true
             ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
             : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
@@ -334,6 +345,9 @@ const RotationEditBar = ({
     onSelect(null);
   };
   const block = rotation.blocks.find((entry) => entry.uid === selected);
+  const nextBlock = block
+    ? rotation.blocks[rotation.blocks.indexOf(block) + 1]
+    : undefined;
   const action = block
     ? actions.find((entry) => entry.id === block.action)
     : undefined;
@@ -481,7 +495,8 @@ const RotationEditBar = ({
             {/* A held action with a hold time: how long, how it ends. */}
             {action.count?.hold && (
               <HoldControls
-                block={block}
+                block={playedHold(block, nextBlock, actions)}
+                canCancel={cancelsHold(block, nextBlock, actions)}
                 hold={action.count.hold}
                 onChange={(patch) =>
                   onChange(updateBlock(rotation, block.uid, patch))

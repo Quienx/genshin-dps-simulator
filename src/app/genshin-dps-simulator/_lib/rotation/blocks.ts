@@ -336,6 +336,38 @@ export const chargesIn = (
     ? 0
     : Math.floor((frames - hold.firstHitFrame) / hold.hitEveryFrames) + 1;
 
+// Whether `next` cancels a held block at its release (it is one of its
+// `cancelledBy`: a Dash after Mavuika's spin). Nothing that does: the
+// game plays its Final hit.
+export const cancelsHold = (
+  block: Pick<RotationBlock, 'action'>,
+  next: Pick<RotationBlock, 'action'> | undefined,
+  actions: RotationAction[]
+): boolean => {
+  const cancelledBy = findAction(actions, block.action)?.count?.hold
+    ?.cancelledBy;
+  if (!next || !cancelledBy) {
+    return false;
+  }
+  const nextAction = findAction(actions, next.action);
+  const nextId = next.action.split(':').pop() ?? next.action;
+  return (
+    cancelledBy.includes(nextId) ||
+    Boolean(nextAction && cancelledBy.includes(nextAction.kind))
+  );
+};
+
+// A held block as it plays: its Final hit off only while the block after
+// it cancels it (the toggle is kept for when one comes back).
+export const playedHold = (
+  block: RotationBlock,
+  next: RotationBlock | undefined,
+  actions: RotationAction[]
+): RotationBlock =>
+  block.noFinal && !cancelsHold(block, next, actions)
+    ? { ...block, noFinal: false }
+    : block;
+
 // Held blocks with a block they are `cancelledBy` (a Dash) right after
 // lose their Final hit: when such a block is dropped (only the one before
 // the `uid`s given), or for a whole preset rotation (no `uids`).
@@ -349,13 +381,7 @@ export const cancelHoldsBefore = (
     if (!next || (uids && !uids.includes(next.uid))) {
       return block;
     }
-    const cancelledBy = findAction(actions, block.action)?.count?.hold
-      ?.cancelledBy;
-    const nextAction = findAction(actions, next.action);
-    const nextId = next.action.split(':').pop() ?? next.action;
-    return cancelledBy &&
-      (cancelledBy.includes(nextId) ||
-        (nextAction && cancelledBy.includes(nextAction.kind)))
+    return cancelsHold(block, next, actions)
       ? { ...block, noFinal: true }
       : block;
   });
@@ -475,11 +501,12 @@ export const expandBlocks = (
   actions: RotationAction[]
 ): RotationStep[] => {
   const dodge = actions.find((action) => action.kind === 'dodge');
-  return setting.blocks.flatMap((block) => {
-    const action = findAction(actions, block.action);
+  return setting.blocks.flatMap((stored, index) => {
+    const action = findAction(actions, stored.action);
     if (!action) {
       return [];
     }
+    const block = playedHold(stored, setting.blocks[index + 1], actions);
     const repetition = expandRepetition(block, action, dodge, actions).map(
       (step) => ({ ...step, blockAction: block.action })
     );

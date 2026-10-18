@@ -58,6 +58,27 @@ describe('a held block', () => {
     expect(step.held).toEqual({ frames: 6, cancel: true });
   });
 
+  it('plays its Final when nothing after it cancels the spin', () => {
+    const actions = getTeamActions(['mavuika']);
+    const spin = {
+      ...createTeamBlock('mavuika:charged'),
+      heldSeconds: 0.1,
+      noFinal: true,
+    };
+    // Alone, or before a Normal Attack: the Final lands, after the
+    // minimum spin.
+    [[spin], [spin, createTeamBlock('mavuika:normal')]].forEach((blocks) => {
+      const [step] = expandBlocks({ loop: false, blocks }, actions);
+      expect(step.held).toEqual({ frames: 50 });
+    });
+    // A Dash after: cancelled.
+    const [dashed] = expandBlocks(
+      { loop: false, blocks: [spin, createTeamBlock('mavuika:dodge')] },
+      actions
+    );
+    expect(dashed.held).toEqual({ frames: 6, cancel: true });
+  });
+
   it('without one, is held for its spins as before', () => {
     // 4 spins: 56 + 3 × 45, so the Final lands where it did.
     expect(heldFramesOf({ hits: 4 }, hold)).toBe(191);
