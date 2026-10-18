@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { RotationSetting } from '../../_lib/rotation/types';
+import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
+import { buildMemberValues, DEFAULT_SWAP_DELAY_FRAMES } from '../../_lib/team';
 import { SimulationValues } from '../../_lib/types';
 
 // A team to share with a friend: which team (the scenario), each member's
@@ -18,8 +19,11 @@ export type SharedRotation = {
   } | null;
 };
 
-// The code starts with this, so a pasted one is told apart from JSON.
-const CODE_PREFIX = 'gsim1.';
+// The code starts with this, so a pasted one is told apart from JSON. It
+// holds the compact form (version 2); codes of the first one (`gsim1.`, the
+// readable form compressed) still open.
+const CODE_PREFIX = 'gsim2.';
+const OLD_CODE_PREFIX = 'gsim1.';
 // The link's query parameter.
 export const SHARE_PARAM = 'share';
 
@@ -103,13 +107,168 @@ const pipeThrough = async (
 export const toSharedJson = (shared: SharedRotation): string =>
   JSON.stringify({ version: 1, ...shared }, null, 2);
 
-// The short form: the JSON, compressed, as URL-safe text.
+// The compact form (version 2), for codes and links: only what differs
+// from what the app would fill in. A build is its character and what it
+// changed from that character's defaults; a block, its action and what it
+// changed from a new block's (no id: one is made when it is loaded).
+type PackedBlock = string | [string, Record<string, number>];
+type PackedBuild = string | [string, Record<string, unknown>];
+type Packed = {
+  v: 2;
+  s: string;
+  b: PackedBuild[];
+  // The rotation of one's own: its blocks, and how it plays when not as
+  // usual (l: loop, f: fill while waiting, d: swap delay, a: auras).
+  p?: [PackedBlock[], Record<string, number>];
+};
+
+const changedFrom = <T>(
+  value: Record<string, T>,
+  base: Record<string, T>
+): Record<string, T> =>
+  Object.fromEntries(
+    Object.entries(value).filter(([key, entry]) => base[key] !== entry)
+  );
+
+const sameJson = (first: unknown, second: unknown) =>
+  JSON.stringify(first ?? null) === JSON.stringify(second ?? null);
+
+const packBuild = (build: SimulationValues): PackedBuild => {
+  const base = buildMemberValues(build.character);
+  const packed: Record<string, unknown> = {};
+  const numbers = changedFrom(build.numbers, base.numbers);
+  const flags = changedFrom(build.flags, base.flags);
+  if (Object.keys(numbers).length > 0) {
+    packed.n = numbers;
+  }
+  if (Object.keys(flags).length > 0) {
+    packed.f = flags;
+  }
+  if (!sameJson(build.rotation, base.rotation)) {
+    packed.r = build.rotation ?? null;
+  }
+  if (!sameJson(build.artifacts, base.artifacts)) {
+    packed.a = build.artifacts ?? null;
+  }
+  if (build.weapon !== base.weapon) {
+    packed.w = build.weapon ?? null;
+  }
+  if (build.artifactSet !== base.artifactSet) {
+    packed.x = build.artifactSet ?? null;
+  }
+  return Object.keys(packed).length > 0
+    ? [build.character, packed]
+    : build.character;
+};
+
+const unpackBuild = (packed: PackedBuild): SimulationValues => {
+  const [character, changes] =
+    typeof packed === 'string' ? [packed, {}] : packed;
+  const base = buildMemberValues(character);
+  const { n, f, r, a, w, x } = changes as Record<string, unknown>;
+  return {
+    ...base,
+    numbers: { ...base.numbers, ...((n as Record<string, string>) ?? {}) },
+    flags: { ...base.flags, ...((f as Record<string, boolean>) ?? {}) },
+    ...(r === undefined ? {} : { rotation: r as RotationSetting | null }),
+    ...(a === undefined
+      ? {}
+      : { artifacts: (a ?? undefined) as SimulationValues['artifacts'] }),
+    ...(w === undefined ? {} : { weapon: (w ?? undefined) as string }),
+    ...(x === undefined ? {} : { artifactSet: (x ?? undefined) as string }),
+  };
+};
+
+// A new block's values (createTeamBlock): only the others are kept.
+const packBlock = (block: RotationBlock): PackedBlock => {
+  const changes: Record<string, number> = {};
+  if (block.hits !== 1) changes.h = block.hits;
+  if (block.repeat !== 1) changes.r = block.repeat;
+  if (block.seconds !== 1) changes.s = block.seconds;
+  if (block.dashCancel) changes.d = 1;
+  if (block.hold) changes.o = 1;
+  if (block.heldSeconds !== undefined) changes.t = block.heldSeconds;
+  if (block.noFinal) changes.n = 1;
+  if (block.quickCancel) changes.q = 1;
+  return Object.keys(changes).length > 0
+    ? [block.action, changes]
+    : block.action;
+};
+
+const unpackBlock = (packed: PackedBlock, index: number): RotationBlock => {
+  const [action, changes] = typeof packed === 'string' ? [packed, {}] : packed;
+  const { h, r, s, d, o, t, n, q } = changes as Record<string, number>;
+  return {
+    uid: `shared-${index + 1}`,
+    action,
+    hits: h ?? 1,
+    repeat: r ?? 1,
+    seconds: s ?? 1,
+    dashCancel: d === 1,
+    ...(o === 1 ? { hold: true } : {}),
+    ...(t === undefined ? {} : { heldSeconds: t }),
+    ...(n === 1 ? { noFinal: true } : {}),
+    ...(q === 1 ? { quickCancel: true } : {}),
+  };
+};
+
+const pack = (shared: SharedRotation): Packed => {
+  const { setup } = shared;
+  const options: Record<string, number> = {};
+  if (setup?.rotation.loop) options.l = 1;
+  if (setup?.fillWhileWaiting) options.f = 1;
+  if (setup && setup.swapDelayFrames !== DEFAULT_SWAP_DELAY_FRAMES) {
+    options.d = setup.swapDelayFrames;
+  }
+  if (setup?.auras !== undefined) options.a = setup.auras ? 1 : 0;
+  return {
+    v: 2,
+    s: shared.scenario,
+    b: shared.builds.map(packBuild),
+    ...(setup ? { p: [setup.rotation.blocks.map(packBlock), options] } : {}),
+  };
+};
+
+const packedSchema = z.object({
+  v: z.literal(2),
+  s: z.string(),
+  b: z
+    .array(z.union([z.string(), z.tuple([z.string(), z.record(z.unknown())])]))
+    .min(1)
+    .max(4),
+  p: z
+    .tuple([
+      z.array(
+        z.union([z.string(), z.tuple([z.string(), z.record(z.number())])])
+      ),
+      z.record(z.number()),
+    ])
+    .optional(),
+});
+
+// Back to the readable form, which is then checked like a file.
+const unpack = (packed: z.infer<typeof packedSchema>) => {
+  const [blocks, options] = packed.p ?? [null, {}];
+  return {
+    version: 1,
+    scenario: packed.s,
+    builds: packed.b.map(unpackBuild),
+    setup: blocks
+      ? {
+          rotation: { loop: options.l === 1, blocks: blocks.map(unpackBlock) },
+          fillWhileWaiting: options.f === 1,
+          swapDelayFrames: options.d ?? DEFAULT_SWAP_DELAY_FRAMES,
+          ...(options.a === undefined ? {} : { auras: options.a === 1 }),
+        }
+      : null,
+  };
+};
+
+// The short form: the compact JSON, compressed, as URL-safe text.
 export const encodeSharedRotation = async (
   shared: SharedRotation
 ): Promise<string> => {
-  const json = new TextEncoder().encode(
-    JSON.stringify({ version: 1, ...shared })
-  );
+  const json = new TextEncoder().encode(JSON.stringify(pack(shared)));
   return (
     CODE_PREFIX +
     toBase64Url(await pipeThrough(json, new CompressionStream('deflate-raw')))
@@ -144,7 +303,7 @@ export const decodeSharedRotation = async (
   let json: string;
   if (text.startsWith('{')) {
     json = text;
-  } else if (text.startsWith(CODE_PREFIX)) {
+  } else if (text.startsWith(CODE_PREFIX) || text.startsWith(OLD_CODE_PREFIX)) {
     try {
       json = new TextDecoder().decode(
         await pipeThrough(
@@ -160,7 +319,10 @@ export const decodeSharedRotation = async (
   }
   let parsed: z.infer<typeof sharedSchema>;
   try {
-    parsed = sharedSchema.parse(JSON.parse(json));
+    const raw = JSON.parse(json);
+    parsed = sharedSchema.parse(
+      raw?.v === 2 ? unpack(packedSchema.parse(raw)) : raw
+    );
   } catch {
     throw new Error(
       'That rotation could not be read (made by another version?).'

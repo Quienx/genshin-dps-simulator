@@ -53,20 +53,69 @@ const shared: SharedRotation = {
   },
 };
 
+// Block ids are not shared: a loaded rotation gets new ones.
+const withoutIds = (rotation: SharedRotation) => ({
+  ...rotation,
+  setup: rotation.setup && {
+    ...rotation.setup,
+    rotation: {
+      ...rotation.setup.rotation,
+      blocks: rotation.setup.rotation.blocks.map(({ uid: _uid, ...block }) => ({
+        ...block,
+      })),
+    },
+  },
+});
+
+// A first-version code: the readable form, compressed.
+const oldCode = async (rotation: SharedRotation) => {
+  const json = new TextEncoder().encode(
+    JSON.stringify({ version: 1, ...rotation })
+  );
+  const bytes = new Uint8Array(
+    await new Response(
+      new Blob([json])
+        .stream()
+        .pipeThrough(new CompressionStream('deflate-raw'))
+    ).arrayBuffer()
+  );
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return `gsim1.${btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')}`;
+};
+
 describe('a shared rotation', () => {
   it('comes back from its code as it was', async () => {
     const code = await encodeSharedRotation(shared);
-    expect(code.startsWith('gsim1.')).toBe(true);
-    // Compressed: shorter than its JSON.
-    expect(code.length).toBeLessThan(JSON.stringify(shared).length);
-    expect(await decodeSharedRotation(code)).toEqual(shared);
+    expect(code.startsWith('gsim2.')).toBe(true);
+    expect(withoutIds(await decodeSharedRotation(code))).toEqual(
+      withoutIds(shared)
+    );
+  });
+
+  it('keeps only what differs from the defaults: a short code', async () => {
+    // Builds as the defaults but one number, blocks as new ones but a few
+    // fields: far shorter than the first version's code.
+    const code = await encodeSharedRotation(shared);
+    expect(code.length).toBeLessThan((await oldCode(shared)).length / 3);
+  });
+
+  it('still opens a first-version code', async () => {
+    expect(await decodeSharedRotation(await oldCode(shared))).toEqual(shared);
   });
 
   it('comes back from a link and from the downloaded file', async () => {
     const code = await encodeSharedRotation(shared);
     const link = shareLink(code, 'https://example.com/?team=solo:nicole#x');
     expect(new URL(link).searchParams.get('team')).toBeNull();
-    expect(await decodeSharedRotation(link)).toEqual(shared);
+    expect(withoutIds(await decodeSharedRotation(link))).toEqual(
+      withoutIds(shared)
+    );
     expect(await decodeSharedRotation(toSharedJson(shared))).toEqual(shared);
   });
 
@@ -75,6 +124,34 @@ describe('a shared rotation', () => {
     expect(
       await decodeSharedRotation(await encodeSharedRotation(plain))
     ).toEqual(plain);
+  });
+
+  it('keeps every block field it changed', async () => {
+    const block = {
+      uid: 'b9',
+      action: toTeamActionId('mavuika', 'charged'),
+      hits: 3,
+      repeat: 2,
+      seconds: 0.5,
+      dashCancel: true,
+      hold: true,
+      heldSeconds: 1.62,
+      noFinal: true,
+      quickCancel: true,
+    };
+    const full: SharedRotation = {
+      ...shared,
+      setup: shared.setup && {
+        ...shared.setup,
+        rotation: { loop: true, blocks: [block] },
+        fillWhileWaiting: true,
+        swapDelayFrames: 0,
+        auras: false,
+      },
+    };
+    expect(
+      withoutIds(await decodeSharedRotation(await encodeSharedRotation(full)))
+    ).toEqual(withoutIds(full));
   });
 
   it('says what is wrong with what was pasted', async () => {

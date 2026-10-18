@@ -284,7 +284,7 @@ const ShareMenu = ({ current, label, onImport }: ShareMenuProps) => {
                 setPasted(event.target.value);
                 setError(null);
               }}
-              placeholder='gsim1.… or https://…?share=…'
+              placeholder='gsim2.… or https://…?share=…'
               className='h-24 resize-none rounded-md border border-slate-700/60 bg-slate-950/60 p-2 font-mono text-[10px] break-all text-slate-200 placeholder:text-slate-500 focus:border-sky-500 focus:ring-0'
             />
             {error && (
