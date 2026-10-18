@@ -8,10 +8,16 @@ const nextConfig = {
 
   async redirects() {
     return [
-      // The timeline used to live on its own route.
+      // The simulator used to live on its own route (and its timeline on
+      // another); it is the home page now. Query strings (?team=) carry on.
+      {
+        source: '/genshin-dps-simulator',
+        destination: '/',
+        permanent: true,
+      },
       {
         source: '/genshin-dps-simulator/timeline',
-        destination: '/genshin-dps-simulator',
+        destination: '/',
         permanent: true,
       },
     ];
