@@ -44,6 +44,7 @@ import {
   DragPayload,
   dropBefore,
   dropSlot,
+  formSegments,
   hitsOfGroup,
   isReactionHit,
   mergeSpans,
@@ -76,6 +77,8 @@ import { TeamMemberRun } from '../../_lib/team';
 export const LABEL_PX = 200;
 const AXIS_PX = 20;
 const ICON_PX = 20;
+// Room an icon needs around it in a block (or a stretch of one) to show.
+const ICON_ROOM_PX = 4;
 // A skipped block's marker (it takes no time).
 const SKIPPED_PX = 26;
 // Edit mode: the ghost of a dragged block where it will land.
@@ -562,6 +565,9 @@ const buildGroups = (
         const width = skipped ? SKIPPED_PX : ruler.toX(action.end) - from;
         const waitWidth = skipped ? 0 : ruler.toStartX(action.start) - from;
         const warned = warningsOf(action).length > 0;
+        // Its runs of one form (a combo that left the roller skates
+        // mid-way): each drawn as its own stretch inside the block.
+        const segments = formSegments(action.parts);
         return (
           <DraggableAction
             key={action.key}
@@ -593,21 +599,69 @@ const buildGroups = (
                 style={{ width: waitWidth }}
               />
             )}
-            {/* The action's own part (after its wait). */}
-            <span
-              className='relative flex h-full flex-1 items-center justify-center'
-              style={waitWidth > 0 ? { marginLeft: waitWidth } : undefined}
-            >
-              {rotationAction ? (
-                <RotationActionIcon
-                  action={rotationAction}
-                  size={ICON_PX}
-                  className='bg-transparent p-0 ring-0 drop-shadow-[0_1px_1px_rgb(0_0_0/0.6)]'
-                />
-              ) : (
-                <span className='size-2 rounded-full bg-current opacity-60' />
-              )}
-            </span>
+            {/* The action's own part (after its wait): one stretch per
+                form it played in a row (Blade Roller kicks, then plain
+                Normal Attacks once the Blessing ends), within the block. */}
+            {segments.length > 1 ? (
+              segments.map((segment, index) => {
+                const segmentLeft =
+                  index === 0 ? waitWidth : ruler.toX(segment.start) - from;
+                const next = segments[index + 1];
+                const segmentRight = next
+                  ? ruler.toX(next.start) - from
+                  : width;
+                const segmentAction = displayAction(
+                  {
+                    shownActionId: action.shownActionId,
+                    performedActionId: segment.performed,
+                  },
+                  actionsById
+                );
+                return (
+                  <span
+                    key={`${segment.performed}@${segment.start}`}
+                    data-testid='timeline-action-segment'
+                    title={`${segment.hits} × ${
+                      segmentAction?.label.replace(/^[^:]+:\s*/, '') ?? ''
+                    }`}
+                    className={cn(
+                      'absolute inset-y-0 flex items-center justify-center',
+                      index > 0 && 'border-l-2 border-slate-950/70'
+                    )}
+                    style={{
+                      left: segmentLeft,
+                      width: Math.max(0, segmentRight - segmentLeft),
+                    }}
+                  >
+                    {/* Only where it fits: a stretch too short shows none. */}
+                    {segmentAction &&
+                      segmentRight - segmentLeft >= ICON_PX + ICON_ROOM_PX && (
+                        <RotationActionIcon
+                          action={segmentAction}
+                          size={ICON_PX}
+                          className='bg-transparent p-0 ring-0 drop-shadow-[0_1px_1px_rgb(0_0_0/0.6)]'
+                        />
+                      )}
+                  </span>
+                );
+              })
+            ) : (
+              <span
+                className='relative flex h-full flex-1 items-center justify-center'
+                style={waitWidth > 0 ? { marginLeft: waitWidth } : undefined}
+              >
+                {width - waitWidth <
+                ICON_PX + ICON_ROOM_PX ? null : rotationAction ? (
+                  <RotationActionIcon
+                    action={rotationAction}
+                    size={ICON_PX}
+                    className='bg-transparent p-0 ring-0 drop-shadow-[0_1px_1px_rgb(0_0_0/0.6)]'
+                  />
+                ) : (
+                  <span className='size-2 rounded-full bg-current opacity-60' />
+                )}
+              </span>
+            )}
             {warned && (
               <TriangleAlert
                 data-testid='timeline-action-warned'

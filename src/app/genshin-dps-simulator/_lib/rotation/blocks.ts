@@ -349,6 +349,11 @@ export const cancelsHold = (
   if (!next || !cancelledBy) {
     return false;
   }
+  // Another member's block: the swap to them is what comes next.
+  const ownerOf = (id: string) => (id.includes(':') ? id.split(':')[0] : '');
+  if (ownerOf(next.action) !== ownerOf(block.action)) {
+    return cancelledBy.includes('swap');
+  }
   const nextAction = findAction(actions, next.action);
   const nextId = next.action.split(':').pop() ?? next.action;
   return (

@@ -36,11 +36,11 @@ const check = (pieces: ReturnType<typeof chargedPieces>) => {
   expect(onBike.length).toBeLessThan(9);
   // The last one on the bike may see it end mid-spin (its own warning).
   onBike.slice(0, -1).forEach((piece) => expect(piece.warning).toBeNull());
-  expect(onBike.at(-1)?.warning ?? '').not.toMatch(/a normal/);
+  expect(onBike.at(-1)?.warning ?? '').not.toMatch(/a plain/);
   pieces
     .slice(onBike.length)
     .forEach((piece) =>
-      expect(piece.warning).toBe('Flamestrider ended: a normal Charged Attack')
+      expect(piece.warning).toBe('Flamestrider ended: a plain Charged Attack')
     );
 };
 
@@ -69,8 +69,11 @@ describe('a form whose status ended', () => {
       'mavuika:flamestriderCharged',
     ]);
     expect(pieces[0].warning).toBeNull();
-    expect(pieces[1].warning).toMatch(
-      /^Flamestrider ends at \d+\.\d\d s: hits 1–\d+ of \d+ on it, hits? \d+(–\d+)? after it$/
+    // Its spins past the Flamestrider are shown apart; the Final (hit 10)
+    // is still the Flamestrider's.
+    expect(pieces[1].warning).toBe(
+      'Flamestrider ends at 12.17 s: hits 1–2 and 10 of 10 on it, hits 3–9 after it'
     );
+    expect(pieces[1].formEnd).toMatchObject({ within: 3, after: 7 });
   });
 });

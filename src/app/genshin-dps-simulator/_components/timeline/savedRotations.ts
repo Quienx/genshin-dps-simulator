@@ -102,3 +102,30 @@ export const storeSavedRotations = (
     // Not kept: the rotation still works until the page is left.
   }
 };
+
+// The teams saved under a name (the scenario menu's "My teams"): their
+// scenario id ("mine:1:mavuika,citlali") and name. Their rotations are
+// kept with the others, under that id.
+const TEAMS_KEY = 'genshin-dps-simulator:teams';
+const teamsSchema = z.record(z.string());
+
+export const loadTeamNames = (): Record<string, string> => {
+  try {
+    const raw = window.localStorage.getItem(TEAMS_KEY);
+    return raw ? teamsSchema.parse(JSON.parse(raw)) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const storeTeamNames = (names: Record<string, string>) => {
+  try {
+    if (Object.keys(names).length === 0) {
+      window.localStorage.removeItem(TEAMS_KEY);
+    } else {
+      window.localStorage.setItem(TEAMS_KEY, JSON.stringify(names));
+    }
+  } catch {
+    // Not kept: the team stays until the page is left.
+  }
+};

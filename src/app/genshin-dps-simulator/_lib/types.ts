@@ -109,6 +109,8 @@ export type HitOrigin = {
   // The rotation block whose action made it (custom rotations, and the
   // replayed automatic one).
   blockUid?: string;
+  // The talent row it was dealt from ("elementalSkill/skillCharge").
+  row?: string;
 };
 
 export type HitLogEntry = {

@@ -1903,6 +1903,7 @@ export const createRuntime = ({
       actionId: hit.actionId,
       sourceId: hit.sourceId,
       blockUid: hit.blockUid ?? (hit.entry?.blockUid || undefined),
+      row: hit.row,
       effectIds,
     };
     if (isLunarCategory(hit.category)) {

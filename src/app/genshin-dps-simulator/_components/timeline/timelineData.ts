@@ -50,8 +50,9 @@ export type ActionGroup = ActionPiece & { parts: ActionPiece[] };
 
 // The Normal Attack presses of one combo (N1, N2… one right after the
 // other, same member and action) as one block, from its first press to
-// its last; every other action on its own. `byBlock` (edit mode): only
-// presses of one rotation block, so each block is one of the rotation's.
+// its last; every other action on its own. `byBlock` (edit mode): each
+// rotation block is one, all it played in a row (so each block on the
+// chart is one of the rotation's).
 export const groupNormalCombos = (
   actions: ActionPiece[],
   { byBlock = false }: { byBlock?: boolean } = {}
@@ -62,6 +63,19 @@ export const groupNormalCombos = (
     .forEach((action) => {
       const group = groups.at(-1);
       const last = group?.parts.at(-1);
+      // Edit mode: a block is one piece, whatever it played (its repeats,
+      // a combo that changed form mid-way, its dash cancels).
+      if (
+        byBlock &&
+        group &&
+        last &&
+        action.blockUid === last.blockUid &&
+        action.characterId === last.characterId
+      ) {
+        group.parts.push(action);
+        group.end = Math.max(group.end, action.end);
+        return;
+      }
       if (
         group &&
         last &&
@@ -983,3 +997,45 @@ export const describeSystemStatus = (
   }
   return lines;
 };
+
+// A block's runs of one form, in order: the form each part was played as
+// (null: the action itself), from its first part's start, with how many
+// parts. One run: it played one form throughout. A part is split only
+// when its repeated hits went on after its state ended (`formEnd`: spins
+// past the Flamestrider); a closing hit (the Final) is still the form's.
+// `hits` counts parts, or a split part's hits.
+export const formSegments = (
+  parts: Pick<
+    ActionPiece,
+    'performedActionId' | 'start' | 'skipped' | 'formEnd'
+  >[]
+): { performed: string | null; start: number; hits: number }[] =>
+  parts
+    .filter((part) => !part.skipped)
+    .flatMap((part) =>
+      part.formEnd && part.performedActionId
+        ? [
+            {
+              performed: part.performedActionId,
+              start: part.start,
+              hits: part.formEnd.within,
+            },
+            {
+              performed: null,
+              start: part.formEnd.at,
+              hits: part.formEnd.after,
+            },
+          ]
+        : [{ performed: part.performedActionId, start: part.start, hits: 1 }]
+    )
+    .reduce<{ performed: string | null; start: number; hits: number }[]>(
+      (segments, segment) => {
+        const last = segments.at(-1);
+        if (last && last.performed === segment.performed) {
+          last.hits += segment.hits;
+          return segments;
+        }
+        return [...segments, { ...segment }];
+      },
+      []
+    );

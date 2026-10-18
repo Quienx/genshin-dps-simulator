@@ -220,6 +220,12 @@ export const talentFormSchema = talentActionSchema
     // Defaults to the replaced action's.
     label: z.string().optional(),
     shortLabel: z.string().optional(),
+    // A Normal Attack combo of its own that starts over at its first hit
+    // when it takes over, and the plain combo at N1 when it gives way
+    // (gcsim's NormalCounter = 0 on entering or leaving the state:
+    // Xilonen's roller skates, Mavuika's Flamestrider). Without it the
+    // combo position carries on (Varesa's Fiery Passion).
+    resetsCombo: z.boolean().optional(),
   })
   .strict();
 
@@ -295,6 +301,9 @@ export type ActionData = {
   // Trigger keys it fires besides its own id ("skill" for a hold E).
   group: string;
   combo?: ComboStepData[];
+  // A combo form that starts over (and restarts the plain one) when it
+  // takes over or gives way (see the form's `resetsCombo`).
+  resetsCombo?: boolean;
   hits?: ActionHitData[];
   // Frame at which the action ends (Normal Attacks: per combo step).
   end?: number;
@@ -620,6 +629,7 @@ const toFormAction = (
     // It still counts (and triggers) as the action it replaces.
     group: form.group ?? target.group,
     combo,
+    ...(form.resetsCombo ? { resetsCombo: true } : {}),
     hits: isCombo
       ? undefined
       : (form.hits ?? rows.flatMap(({ owner, row }) => toHits(owner.id, row)))

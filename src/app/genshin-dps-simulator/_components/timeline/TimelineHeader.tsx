@@ -4,9 +4,11 @@ import {
   Pause,
   Play,
   Plus,
+  Save,
   SkipBack,
   SkipForward,
   Sparkles,
+  Trash2,
   UserPlus,
 } from 'lucide-react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
@@ -27,7 +29,7 @@ import { SharedRotation } from './shareRotation';
 import { getLoadedCharacter } from '../../_lib/characterData';
 import { CHARACTER_LIST } from '../../_lib/characters';
 import formatNumber from '../../_lib/formatNumber';
-import { iconUrl } from '../../_lib/genshinIcons';
+import { elementIconUrl, iconUrl } from '../../_lib/genshinIcons';
 
 export const SPEEDS = [0.5, 1, 2, 4];
 const TEAM_MAX = 4;
@@ -37,11 +39,14 @@ const TEAM_MAX = 4;
 export type TimelineScenario = {
   id: string;
   label: string;
-  group: 'team' | 'solo';
+  // 'draft': the team being edited; 'mine': teams saved under a name.
+  group: 'draft' | 'mine' | 'team' | 'solo';
   avatars: string[];
 };
 
 const SCENARIO_GROUPS: { id: TimelineScenario['group']; label: string }[] = [
+  { id: 'draft', label: 'In edition' },
+  { id: 'mine', label: 'My teams' },
   { id: 'team', label: 'Teams' },
   { id: 'solo', label: 'Single character (its own rotation)' },
 ];
@@ -92,6 +97,8 @@ type TimelineHeaderProps = {
   onMemberClick: (characterId: string) => void;
   // A party picked with the team button (its members' ids, in order).
   onTeamChange: (ids: string[]) => void;
+  // Saving the team in edition under a name, or deleting a saved one.
+  teamActions: TeamActions | null;
   // Import / Export: the team on screen (its builds and rotation), and
   // loading a friend's, which switches to their team.
   share: {
@@ -112,6 +119,15 @@ const TeamPicker = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>(current);
+  // The team's members first, as the game's party setup: set when the
+  // menu opens, so the cards stay put while picking.
+  const firstOf = (team: string[]) => [
+    ...team,
+    ...CHARACTER_LIST.map((character) => character.id).filter(
+      (id) => !team.includes(id)
+    ),
+  ];
+  const [listed, setListed] = useState<string[]>(() => firstOf(current));
   const ref = useRef<HTMLDivElement>(null);
   // A click outside closes it.
   useEffect(() => {
@@ -143,6 +159,7 @@ const TeamPicker = ({
         aria-expanded={open}
         onClick={() => {
           setPicked(current);
+          setListed(firstOf(current));
           setOpen(!open);
         }}
         className='flex h-9 items-center gap-1 rounded-md border border-dashed border-slate-600 bg-slate-800/40 px-2 text-[11px] text-slate-300 transition hover:border-sky-500/60 hover:bg-slate-700/60 hover:text-slate-100'
@@ -153,16 +170,24 @@ const TeamPicker = ({
       {open && (
         <div
           data-testid='timeline-team-picker-panel'
-          className='absolute top-full left-0 z-50 mt-1 w-72 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl'
+          className='absolute top-full left-0 z-50 mt-1 w-80 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl'
         >
           <p className='mb-1.5 text-[10px] text-slate-400'>
             Up to {TEAM_MAX} characters, in the order you pick them. One alone
             plays its own rotation.
           </p>
-          <div className='grid grid-cols-2 gap-1'>
-            {CHARACTER_LIST.map((character) => {
+          {/* As the game's party setup: each portrait on its rarity's
+              background, its element in the corner and its name below. */}
+          <div className='grid grid-cols-4 gap-1.5'>
+            {listed.map((id) => {
+              const character = CHARACTER_LIST.find((entry) => entry.id === id);
+              if (!character) {
+                return null;
+              }
               const order = picked.indexOf(character.id);
               const full = order < 0 && picked.length >= TEAM_MAX;
+              const data = getLoadedCharacter(character.id).character;
+              const element = elementIconUrl(data.element);
               return (
                 <button
                   type='button'
@@ -170,30 +195,54 @@ const TeamPicker = ({
                   data-testid={`timeline-team-pick-${character.id}`}
                   aria-pressed={order >= 0}
                   disabled={full}
+                  title={character.name}
                   onClick={() => toggle(character.id)}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-md border px-1.5 py-1 text-left text-[11px] disabled:opacity-40',
+                    'group relative flex flex-col overflow-hidden rounded-sm bg-[#e9e5dc] text-left shadow transition disabled:opacity-30',
+                    // Picked: a gold frame and glow, raised.
                     order >= 0
-                      ? 'border-sky-500/70 bg-sky-500/15 text-slate-50'
-                      : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/60'
+                      ? '-translate-y-0.5 ring-[3px] ring-amber-300 shadow-[0_0_14px_rgba(252,211,77,0.55)]'
+                      : 'ring-1 ring-slate-700/60 hover:ring-slate-300'
                   )}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={iconUrl(
-                      getLoadedCharacter(character.id).character.icons.avatar
+                  <span
+                    className={cn(
+                      'relative block aspect-square w-full rounded-br-md',
+                      data.rarity >= 5
+                        ? 'bg-gradient-to-br from-[#6b4a2e] to-[#b8782c]'
+                        : 'bg-gradient-to-br from-[#4e4a75] to-[#9a6fc4]'
                     )}
-                    alt=''
-                    width={22}
-                    height={22}
-                    className='size-5.5 rounded bg-slate-800'
-                  />
-                  <span className='flex-1 truncate'>{character.name}</span>
-                  {order >= 0 && (
-                    <span className='text-[10px] text-sky-300'>
-                      {order + 1}
-                    </span>
-                  )}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={iconUrl(data.icons.avatar)}
+                      alt=''
+                      className='size-full object-cover'
+                    />
+                    {element && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={element}
+                        alt={data.element}
+                        className='absolute top-0.5 left-0.5 size-4 drop-shadow'
+                      />
+                    )}
+                    {order >= 0 && (
+                      <span className='absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-amber-300 text-[11px] font-bold text-slate-900 shadow ring-1 ring-amber-100'>
+                        {order + 1}
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      'truncate px-0.5 py-0.5 text-center text-[10px]',
+                      order >= 0
+                        ? 'bg-amber-300 font-semibold text-slate-900'
+                        : 'font-medium text-[#4a4a4a]'
+                    )}
+                  >
+                    {character.name}
+                  </span>
                 </button>
               );
             })}
@@ -217,6 +266,84 @@ const TeamPicker = ({
               className='h-7 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white hover:bg-sky-500 disabled:opacity-40'
             >
               Apply
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// What the header offers for the team on screen: saving the draft under
+// a name, or deleting a saved team.
+export type TeamActions =
+  | { kind: 'draft'; suggested: string; onSave: (name: string) => void }
+  | { kind: 'mine'; name: string; onDelete: () => void };
+
+// The draft into "My teams", under a name (the members' by default).
+const SaveTeamButton = ({
+  suggested,
+  onSave,
+}: {
+  suggested: string;
+  onSave: (name: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(suggested);
+  const save = () => {
+    setOpen(false);
+    onSave(name);
+  };
+  return (
+    <div className='relative'>
+      <button
+        type='button'
+        data-testid='timeline-team-save'
+        aria-expanded={open}
+        onClick={() => {
+          setName(suggested);
+          setOpen(!open);
+        }}
+        className='flex h-8 items-center gap-1 rounded-md bg-sky-600 px-2.5 text-[11px] font-medium text-white hover:bg-sky-500'
+      >
+        <Save className='size-3.5' aria-hidden />
+        Save as team
+      </button>
+      {open && (
+        <div className='absolute top-full right-0 z-50 mt-1 w-64 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl'>
+          <label className='text-[10px] text-slate-400'>
+            Name (it goes to My teams)
+            <input
+              autoFocus
+              data-testid='timeline-team-save-name'
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  save();
+                }
+                if (event.key === 'Escape') {
+                  setOpen(false);
+                }
+              }}
+              className='mt-1 h-7 w-full rounded border border-slate-700/60 bg-slate-950/60 px-2 text-[11px] text-slate-100 focus:border-sky-500 focus:ring-0'
+            />
+          </label>
+          <div className='mt-2 flex justify-end gap-1.5'>
+            <button
+              type='button'
+              onClick={() => setOpen(false)}
+              className='h-7 rounded-md border border-slate-700/60 px-3 text-[11px] text-slate-300 hover:bg-slate-800'
+            >
+              Cancel
+            </button>
+            <button
+              type='button'
+              data-testid='timeline-team-save-confirm'
+              onClick={save}
+              className='h-7 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white hover:bg-sky-500'
+            >
+              Save
             </button>
           </div>
         </div>
@@ -264,6 +391,7 @@ const TimelineHeader = ({
   onScenarioChange,
   onMemberClick,
   onTeamChange,
+  teamActions,
   share,
 }: TimelineHeaderProps) => (
   <header className='flex shrink-0 flex-col gap-2'>
@@ -285,6 +413,32 @@ const TimelineHeader = ({
           onImport={share.onImport}
         />
       </div>
+      {teamActions?.kind === 'draft' && (
+        <SaveTeamButton
+          suggested={teamActions.suggested}
+          onSave={teamActions.onSave}
+        />
+      )}
+      {teamActions?.kind === 'mine' && (
+        <button
+          type='button'
+          data-testid='timeline-team-delete'
+          title={`Delete ${teamActions.name}`}
+          onClick={() => {
+            if (
+              window.confirm(
+                `Delete ${teamActions.name} and its rotation from this browser?`
+              )
+            ) {
+              teamActions.onDelete();
+            }
+          }}
+          className='flex h-8 items-center gap-1 rounded-md border border-slate-700/60 bg-slate-900/70 px-2 text-[11px] text-rose-300 hover:bg-rose-500/10'
+        >
+          <Trash2 className='size-3.5' aria-hidden />
+          Delete team
+        </button>
+      )}
       <Select value={scenario} onValueChange={onScenarioChange}>
         <SelectTrigger
           aria-label='Simulation'

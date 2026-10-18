@@ -221,11 +221,14 @@ export const createKitAdapter = ({
   const getWindup = (previous: KitAction): number =>
     previous.kind === 'normal' ? charged?.windupSkippedAfterNormal ?? 0 : 0;
 
-  // The combo position carries on across forms (a Fiery N2 after an N1).
+  // The combo position carries on across forms (a Fiery N2 after an N1),
+  // unless one of the two starts over on the switch (`resetsCombo`).
   const getNextNormalIndex = (previous: KitAction, comboId: string): number =>
-    previous.kind === 'normal'
-      ? (previous.index + 1) % combos[comboId].length
-      : 0;
+    previous.kind !== 'normal' ||
+    (previous.comboId !== comboId &&
+      (actions[previous.comboId]?.resetsCombo || actions[comboId]?.resetsCombo))
+      ? 0
+      : (previous.index + 1) % combos[comboId].length;
 
   // The action a rotation step (or automatic entry) stands for, if the
   // character has it.
@@ -733,7 +736,7 @@ export const createKitAdapter = ({
       return planned.action.reason;
     }
     if (planned.action.kind === 'cast' && planned.action.held?.cancel) {
-      return 'Cancelled by the next Dash: no Final hit';
+      return 'Cancelled by the next action: no Final hit';
     }
     if (waitedFrames > 0) {
       const waitedFor =

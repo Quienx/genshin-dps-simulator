@@ -28,8 +28,10 @@ import RotationEditBar from './RotationEditBar';
 import { buildRuler, fitPxPerSecond } from './ruler';
 import {
   loadSavedRotations,
+  loadTeamNames,
   SavedRotation,
   storeSavedRotations,
+  storeTeamNames,
 } from './savedRotations';
 import SectionHelp from './SectionHelp';
 import {
@@ -40,7 +42,10 @@ import {
 import { SourceLegend } from './sourceStyles';
 import TimelineChart, { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
-import TimelineHeader, { TimelineScenario } from './TimelineHeader';
+import TimelineHeader, {
+  TeamActions,
+  TimelineScenario,
+} from './TimelineHeader';
 import usePlayback from './usePlayback';
 import RotationActionIcon from '../rotation/RotationActionIcon';
 import {
@@ -49,6 +54,7 @@ import {
   showBuilds,
 } from '../../_lib/characterData';
 import { CHARACTER_LIST } from '../../_lib/characters';
+import { splitTeamActionId } from '../../_lib/engine/simulateTeam';
 import { iconUrl } from '../../_lib/genshinIcons';
 import { buildInspectorView } from '../../_lib/inspector';
 import { readNumber } from '../../_lib/readValue';
@@ -168,16 +174,18 @@ const SCENARIOS: Scenario[] = [
   ),
 ];
 
-// A team of one's own, picked in the header (`custom:mavuika,iansan`): the
+// A team of one's own (`custom:mavuika,iansan`, a shared link's): the
 // preset rotation when every member has steps in it (part of Varesa's
 // team), else the first member's automatic list; edit mode writes the rest.
 const CUSTOM_PREFIX = 'custom:';
+// The team being edited, picked with the Team button (one at a time):
+// `draft:mavuika,citlali`, in the menu's "In edition" until it is saved.
+const DRAFT_PREFIX = 'draft:';
+// A team saved under a name: `mine:<n>:mavuika,citlali` ("My teams").
+const MINE_PREFIX = 'mine:';
 const CUSTOM_TEAM_MAX = 4;
-const parseCustomTeam = (id: string): string[] | null => {
-  if (!id.startsWith(CUSTOM_PREFIX)) {
-    return null;
-  }
-  const ids = id.slice(CUSTOM_PREFIX.length).split(',');
+const parseMembers = (list: string): string[] | null => {
+  const ids = list.split(',');
   const known = new Set(CHARACTER_LIST.map((character) => character.id));
   return ids.length >= 1 &&
     ids.length <= CUSTOM_TEAM_MAX &&
@@ -186,9 +194,28 @@ const parseCustomTeam = (id: string): string[] | null => {
     ? ids
     : null;
 };
+const parseCustomTeam = (id: string): string[] | null =>
+  id.startsWith(CUSTOM_PREFIX)
+    ? parseMembers(id.slice(CUSTOM_PREFIX.length))
+    : null;
+const parseDraft = (id: string): string[] | null =>
+  id.startsWith(DRAFT_PREFIX)
+    ? parseMembers(id.slice(DRAFT_PREFIX.length))
+    : null;
+const parseMine = (id: string): string[] | null => {
+  const match = id.match(/^mine:\d+:(.+)$/);
+  return match ? parseMembers(match[1]) : null;
+};
+const draftIdFor = (ids: string[]) => `${DRAFT_PREFIX}${ids.join(',')}`;
+const namesOf = (ids: string[]) =>
+  ids.map((id) => getLoadedCharacter(id).character.name).join(' + ');
+
+// The names of the saved teams (loaded from this browser on start).
+let teamNames: Record<string, string> = {};
+
 const customScenario = (ids: string[]): Scenario => ({
   id: `${CUSTOM_PREFIX}${ids.join(',')}`,
-  label: ids.map((id) => getLoadedCharacter(id).character.name).join(' + '),
+  label: namesOf(ids),
   group: 'team',
   avatars: ids,
   defaults: () => ids.map(buildMemberValues),
@@ -207,39 +234,53 @@ const customScenario = (ids: string[]): Scenario => ({
   },
   setup: TEAM_SETUP,
 });
-// The scenario for these members: one that has exactly them, else a team
-// of one's own (a single character is its solo screen).
-const scenarioIdFor = (ids: string[]): string =>
-  ids.length === 1
-    ? `solo:${ids[0]}`
-    : SCENARIOS.find(
-        (entry) =>
-          entry.group === 'team' &&
-          entry.avatars.length === ids.length &&
-          entry.avatars.every((id, index) => id === ids[index])
-      )?.id ?? `${CUSTOM_PREFIX}${ids.join(',')}`;
-
 const scenarioOf = (id: string): Scenario => {
   const custom = parseCustomTeam(id);
   if (custom) {
     return customScenario(custom);
   }
+  const draft = parseDraft(id);
+  if (draft) {
+    return {
+      ...customScenario(draft),
+      id,
+      label: namesOf(draft),
+      group: 'draft',
+    };
+  }
+  const mine = parseMine(id);
+  if (mine) {
+    return {
+      ...customScenario(mine),
+      id,
+      label: teamNames[id] ?? namesOf(mine),
+      group: 'mine',
+    };
+  }
   return SCENARIOS.find((entry) => entry.id === id) ?? SCENARIOS[0];
 };
 
-// The dropdown: every preset, and the team of one's own being shown.
-const scenariosFor = (id: string): Scenario[] =>
-  parseCustomTeam(id) ? [...SCENARIOS, scenarioOf(id)] : SCENARIOS;
+// The dropdown: every preset, the draft and the saved teams (`extra`),
+// and the team of one's own being shown.
+const scenariosFor = (id: string, extra: string[]): Scenario[] => [
+  ...extra.map(scenarioOf),
+  ...SCENARIOS,
+  ...(parseCustomTeam(id) ? [scenarioOf(id)] : []),
+];
+
+// A scenario id this page can open: a preset, a team of one's own, the
+// draft or a saved team (`known`: the ones this browser has).
+const isScenarioId = (id: string, known: string[] = []) =>
+  SCENARIOS.some((entry) => entry.id === id) ||
+  Boolean(parseCustomTeam(id)) ||
+  ((Boolean(parseDraft(id)) || Boolean(parseMine(id))) && known.includes(id));
 
 // The scenario picked is kept in the URL (?team=solo:mavuika), so a reload
 // or a shared link opens it again.
 const SCENARIO_PARAM = 'team';
-const readUrlScenario = (): string => {
+const readUrlScenario = (known: string[]): string => {
   const id = new URLSearchParams(window.location.search).get(SCENARIO_PARAM);
-  return id &&
-    (SCENARIOS.some((entry) => entry.id === id) || parseCustomTeam(id))
-    ? id
-    : SCENARIOS[0].id;
+  return id && isScenarioId(id, known) ? id : SCENARIOS[0].id;
 };
 const writeUrlScenario = (id: string) => {
   const url = new URL(window.location.href);
@@ -336,6 +377,10 @@ const CombatTimelinePage = () => {
   // Edit mode: a rotation of one's own (null: the scenario's).
   const [editing, setEditing] = useState(false);
   const [own, setOwn] = useState<OwnSetup | null>(null);
+  // The menu's draft and saved teams (ids), and a Team change waiting for
+  // the user to say the draft can be replaced (its members).
+  const [extras, setExtras] = useState<string[]>([]);
+  const [pendingTeam, setPendingTeam] = useState<PendingTeam | null>(null);
   // Each run rolls the CRITs again; without builds, with the defaults.
   // (Run outside the state update, so it runs once.)
   const version = useRef(0);
@@ -361,11 +406,20 @@ const CombatTimelinePage = () => {
   );
   // Edited rotations, per scenario, kept in this browser across reloads.
   const saved = useRef<Record<string, SavedRotation>>({});
+  const refreshExtras = useCallback(
+    () =>
+      setExtras([
+        ...Object.keys(saved.current).filter((id) => parseDraft(id)),
+        ...Object.keys(teamNames).filter((id) => saved.current[id]),
+      ]),
+    []
+  );
   const keep = (id: string, next: OwnSetup | null) => {
     const rest = { ...saved.current };
     delete rest[id];
     saved.current = next ? { ...rest, [id]: next } : rest;
     storeSavedRotations(saved.current);
+    refreshExtras();
   };
   // Loads a friend's rotation: its team, its builds and its rotation
   // (kept as this team's saved one). Returns why it cannot, or null.
@@ -384,14 +438,17 @@ const CombatTimelinePage = () => {
       delete rest[id];
       saved.current = setup ? { ...rest, [id]: setup } : rest;
       storeSavedRotations(saved.current);
+      refreshExtras();
       simulate(id, builds, setup);
       return null;
     },
-    [simulate]
+    [simulate, refreshExtras]
   );
   useEffect(() => {
+    teamNames = loadTeamNames();
     saved.current = loadSavedRotations(scenarioActions);
-    const initial = readUrlScenario();
+    refreshExtras();
+    const initial = readUrlScenario(Object.keys(saved.current));
     const restored = saved.current[initial] ?? null;
     setScenario(initial);
     setOwn(restored);
@@ -412,7 +469,7 @@ const CombatTimelinePage = () => {
           )
         );
     }
-  }, [simulate, applyShared]);
+  }, [simulate, applyShared, refreshExtras]);
   const handleScenarioChange = useCallback(
     (id: string) => {
       const restored = saved.current[id] ?? null;
@@ -424,6 +481,96 @@ const CombatTimelinePage = () => {
     },
     [simulate]
   );
+  // The team being edited (one at a time), if any.
+  const draftId = extras.find((id) => parseDraft(id)) ?? null;
+  // Members picked with the Team button: they become the draft, with the
+  // rotation being worked on (or the one on the chart) for the members
+  // still there and their builds, in edit mode; its changes are kept as
+  // they are made. A draft already there is replaced (asked first unless
+  // it is the one on screen).
+  const startDraft = (ids: string[]) => {
+    if (!state) {
+      return;
+    }
+    const id = draftIdFor(ids);
+    const known = scenarioActions(id);
+    const source = own?.rotation ?? buildRotationFromRun(state.run);
+    const builds = ids.map(
+      (characterId) =>
+        state.members.find((member) => member.character === characterId) ??
+        buildMemberValues(characterId)
+    );
+    const carried = source.blocks.filter(
+      (block) => known.has(block.action) && !isSwapAction(block.action)
+    );
+    // Nothing to carry (new members only): the team's own rotation.
+    const blocks =
+      carried.length > 0
+        ? carried
+        : buildRotationFromRun(scenarioOf(id).run(builds)).blocks;
+    const next: OwnSetup = {
+      ...scenarioOf(id).setup,
+      rotation: { ...source, blocks },
+    };
+    Object.keys(saved.current)
+      .filter((entry) => parseDraft(entry) && entry !== id)
+      .forEach((entry) => keep(entry, null));
+    keep(id, next);
+    writeUrlScenario(id);
+    setScenario(id);
+    setOwn(next);
+    setEditing(true);
+    simulate(id, builds, next);
+  };
+  // Asked first when it loses something: the blocks of the members taken
+  // out of the rotation being edited, or the draft another team replaces.
+  const handleTeamChange = (ids: string[]) => {
+    const lost = (state?.members ?? [])
+      .map((values) => values.character)
+      .filter((characterId) => !ids.includes(characterId))
+      .map((characterId) => ({
+        name: getLoadedCharacter(characterId).character.name,
+        blocks: (own?.rotation.blocks ?? []).filter(
+          (block) => splitTeamActionId(block.action).characterId === characterId
+        ).length,
+      }))
+      .filter((member) => member.blocks > 0);
+    const replaces = draftId && !parseDraft(scenario) ? draftId : null;
+    if (lost.length > 0 || replaces) {
+      setPendingTeam({ ids, lost, replaces });
+      return;
+    }
+    startDraft(ids);
+  };
+  // The draft, saved under a name: it moves to "My teams".
+  const saveTeam = (name: string) => {
+    const ids = parseDraft(scenario);
+    if (!ids || !own) {
+      return;
+    }
+    const taken = Object.keys(teamNames).map((id) =>
+      Number(id.split(':')[1] ?? 0)
+    );
+    const id = `${MINE_PREFIX}${Math.max(0, ...taken) + 1}:${ids.join(',')}`;
+    teamNames = { ...teamNames, [id]: name.trim() || namesOf(ids) };
+    storeTeamNames(teamNames);
+    keep(id, own);
+    keep(scenario, null);
+    writeUrlScenario(id);
+    setScenario(id);
+  };
+  const deleteTeam = () => {
+    const ids = parseMine(scenario);
+    if (!ids) {
+      return;
+    }
+    const rest = { ...teamNames };
+    delete rest[scenario];
+    teamNames = rest;
+    storeTeamNames(teamNames);
+    keep(scenario, null);
+    handleScenarioChange(`solo:${ids[0]}`);
+  };
   if (!state) {
     return (
       <main className='min-h-screen bg-[#070b14] p-4 text-sm text-slate-400'>
@@ -440,77 +587,217 @@ const CombatTimelinePage = () => {
     keep(scenario, next);
     simulate(scenario, state.members, next);
   };
+  const shownMembers = parseDraft(scenario) ?? parseMine(scenario);
   return (
-    <CombatTimeline
-      builds={state.members}
-      run={state.run}
-      scenario={scenario}
-      onScenarioChange={handleScenarioChange}
-      onTeamChange={(ids) => handleScenarioChange(scenarioIdFor(ids))}
-      version={state.version}
-      share={{
-        current: {
-          scenario,
-          builds: state.members,
-          setup: own,
-        },
-        label: scenarioOf(scenario).label,
-        onImport: applyShared,
-      }}
-      edit={
-        editing && own
-          ? {
-              rotation: own.rotation,
-              onChange: (rotation) => change({ rotation }),
-            }
-          : null
-      }
-      editing={editing}
-      // Back to the scenario's own rotation (the saved one is dropped).
-      onResetRotation={
-        own
-          ? () => {
-              keep(scenario, null);
-              setOwn(null);
-              setEditing(false);
-              simulate(scenario, state.members, null);
-            }
-          : undefined
-      }
-      onEditToggle={() => {
-        if (!editing && !own) {
-          // What the chart shows, as blocks: each combo one block. Run
-          // with them at once, so each block on the chart is one of them.
-          const next = {
-            ...scenarioOf(scenario).setup,
-            rotation: buildRotationFromRun(state.run),
-          };
-          setOwn(next);
-          simulate(scenario, state.members, next);
+    <>
+      <CombatTimeline
+        builds={state.members}
+        run={state.run}
+        scenario={scenario}
+        scenarios={scenariosFor(scenario, extras)}
+        onScenarioChange={handleScenarioChange}
+        onTeamChange={handleTeamChange}
+        teamActions={
+          parseDraft(scenario)
+            ? {
+                kind: 'draft',
+                suggested: scenarioOf(scenario).label,
+                onSave: saveTeam,
+              }
+            : parseMine(scenario)
+            ? {
+                kind: 'mine',
+                name: scenarioOf(scenario).label,
+                onDelete: deleteTeam,
+              }
+            : null
         }
-        setEditing(!editing);
-      }}
-      // Again with the same builds (edited ones stay).
-      onSimulate={() => simulate(scenario, state.members, own)}
-      onSaveBuild={(build) =>
-        simulate(
-          scenario,
-          state.members.map((values) =>
-            values.character === build.character ? build : values
-          ),
+        version={state.version}
+        share={{
+          current: {
+            // A draft or a saved team is only in this browser: shared as
+            // a team of one's own with the same members.
+            scenario: shownMembers
+              ? `${CUSTOM_PREFIX}${shownMembers.join(',')}`
+              : scenario,
+            builds: state.members,
+            setup: own,
+          },
+          label: scenarioOf(scenario).label,
+          onImport: applyShared,
+        }}
+        edit={
+          editing && own
+            ? {
+                rotation: own.rotation,
+                onChange: (rotation) => change({ rotation }),
+              }
+            : null
+        }
+        editing={editing}
+        // Back to the scenario's own rotation (the saved one is dropped).
+        onResetRotation={
           own
-        )
-      }
-    />
+            ? () => {
+                keep(scenario, null);
+                setOwn(null);
+                setEditing(false);
+                simulate(scenario, state.members, null);
+              }
+            : undefined
+        }
+        onEditToggle={() => {
+          if (!editing && !own) {
+            // What the chart shows, as blocks: each combo one block. Run
+            // with them at once, so each block on the chart is one of them.
+            const next = {
+              ...scenarioOf(scenario).setup,
+              rotation: buildRotationFromRun(state.run),
+            };
+            setOwn(next);
+            simulate(scenario, state.members, next);
+          }
+          setEditing(!editing);
+        }}
+        // Again with the same builds (edited ones stay).
+        onSimulate={() => simulate(scenario, state.members, own)}
+        onSaveBuild={(build) =>
+          simulate(
+            scenario,
+            state.members.map((values) =>
+              values.character === build.character ? build : values
+            ),
+            own
+          )
+        }
+      />
+      {pendingTeam && (
+        <TeamChangeDialog
+          draft={
+            pendingTeam.replaces ? scenarioOf(pendingTeam.replaces).label : null
+          }
+          lost={pendingTeam.lost}
+          onConfirm={() => {
+            setPendingTeam(null);
+            startDraft(pendingTeam.ids);
+          }}
+          onOpenDraft={
+            pendingTeam.replaces
+              ? () => {
+                  const id = pendingTeam.replaces ?? '';
+                  setPendingTeam(null);
+                  handleScenarioChange(id);
+                }
+              : undefined
+          }
+          onCancel={() => setPendingTeam(null)}
+        />
+      )}
+    </>
   );
 };
+
+// A Team change waiting for the user: its members, the blocks it takes
+// out of the rotation being edited (per member taken out), and the draft
+// it replaces (null: none).
+type PendingTeam = {
+  ids: string[];
+  lost: { name: string; blocks: number }[];
+  replaces: string | null;
+};
+
+// What a Team change would lose, before it is made: the blocks of the
+// members taken out, and the team in edition (there is one draft).
+const TeamChangeDialog = ({
+  draft,
+  lost,
+  onConfirm,
+  onOpenDraft,
+  onCancel,
+}: {
+  draft: string | null;
+  lost: PendingTeam['lost'];
+  onConfirm: () => void;
+  onOpenDraft?: () => void;
+  onCancel: () => void;
+}) => (
+  <div
+    role='dialog'
+    aria-modal='true'
+    aria-labelledby='team-change-title'
+    data-testid='timeline-team-change'
+    className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4'
+    onKeyDown={(event) => event.key === 'Escape' && onCancel()}
+  >
+    <div className='w-full max-w-sm rounded-lg border border-slate-700 bg-slate-900 p-4 text-[12px] text-slate-200 shadow-xl'>
+      <h2
+        id='team-change-title'
+        className='text-sm font-semibold text-slate-50'
+      >
+        {draft ? 'Replace the team in edition?' : 'Remove their blocks?'}
+      </h2>
+      {lost.length > 0 && (
+        <div data-testid='timeline-team-change-lost' className='mt-2'>
+          <p className='text-slate-300'>
+            These blocks are removed from the rotation with their members:
+          </p>
+          <ul className='mt-1 list-disc pl-5 text-amber-200'>
+            {lost.map((member) => (
+              <li key={member.name}>
+                {member.name}: {member.blocks}{' '}
+                {member.blocks === 1 ? 'block' : 'blocks'}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {draft && (
+        <p className='mt-2 text-slate-300'>
+          You are editing <span className='font-medium'>{draft}</span>. A new
+          team replaces it, with its rotation. Save it first (Save as team) to
+          keep it.
+        </p>
+      )}
+      <div className='mt-4 flex flex-wrap justify-end gap-1.5'>
+        <button
+          type='button'
+          autoFocus
+          onClick={onCancel}
+          className='h-7 rounded-md border border-slate-700/60 px-3 text-[11px] text-slate-300 hover:bg-slate-800'
+        >
+          Cancel
+        </button>
+        {onOpenDraft && (
+          <button
+            type='button'
+            data-testid='timeline-draft-open'
+            onClick={onOpenDraft}
+            className='h-7 rounded-md border border-sky-500/60 px-3 text-[11px] text-sky-100 hover:bg-sky-500/20'
+          >
+            Open the draft
+          </button>
+        )}
+        <button
+          type='button'
+          data-testid='timeline-team-change-confirm'
+          onClick={onConfirm}
+          className='h-7 rounded-md bg-rose-600 px-3 text-[11px] font-medium text-white hover:bg-rose-500'
+        >
+          {draft ? 'Replace it' : 'Remove them'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 const CombatTimeline = ({
   builds,
   run,
   scenario,
+  scenarios,
   onScenarioChange,
   onTeamChange,
+  teamActions,
   onSimulate,
   version,
   onSaveBuild,
@@ -523,9 +810,11 @@ const CombatTimeline = ({
   builds: SimulationValues[];
   run: TeamRun;
   scenario: string;
+  scenarios: TimelineScenario[];
   onScenarioChange: (id: string) => void;
   // A party picked in the header (its members' ids, in order).
   onTeamChange: (ids: string[]) => void;
+  teamActions: TeamActions | null;
   onSimulate: () => void;
   version: number;
   onSaveBuild: (build: SimulationValues) => void;
@@ -982,10 +1271,11 @@ const CombatTimeline = ({
           }
           onFit={() => setPxPerSecond(fitted)}
           onSimulate={onSimulate}
-          scenarios={scenariosFor(scenario)}
+          scenarios={scenarios}
           scenario={scenario}
           onScenarioChange={onScenarioChange}
           onTeamChange={onTeamChange}
+          teamActions={teamActions}
           onMemberClick={setOpenMember}
           share={share}
         />

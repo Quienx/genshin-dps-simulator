@@ -111,6 +111,26 @@ const Stepper = ({
   </span>
 );
 
+// What cancels a held action at its release, in words ("a Dash, an E, a
+// Q or another member's block").
+const CANCELLER_NAMES: Record<string, string> = {
+  dodge: 'a Dash',
+  skill: 'an E',
+  burst: 'a Q',
+  swap: "another member's block",
+};
+const cancellersText = (cancelledBy: string[] = []) => {
+  const names = cancelledBy.map((id) => CANCELLER_NAMES[id] ?? id);
+  return names.length <= 1
+    ? names[0] ?? 'a Dash'
+    : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`;
+};
+
+// A hold time in seconds, cut to 2 decimals (50 frames: 0.83 s). It still
+// plays the same frame: the cut is under half a frame.
+const toHeldSeconds = (frames: number) =>
+  Math.floor((frames * 100) / 60 + 1e-9) / 100;
+
 // A held action with a hold time (Mavuika's Flamestrider Charged
 // Attack): how long, in seconds, and how many charges (repeated hits) that
 // gets; Prev / Next charge move it to the charge before or after.
@@ -134,8 +154,9 @@ const HoldControls = ({
   const [text, setText] = useState<string | null>(null);
   const setFrames = (next: number) =>
     onChange({
-      heldSeconds:
-        Math.min(hold.maxFrames, Math.max(minFrames, Math.round(next))) / 60,
+      heldSeconds: toHeldSeconds(
+        Math.min(hold.maxFrames, Math.max(minFrames, Math.round(next)))
+      ),
     });
   // The frame of charge `n` (1 = the first).
   const chargeFrame = (n: number) =>
@@ -262,8 +283,10 @@ const HoldControls = ({
             className='max-w-64 border-slate-700 bg-slate-900 text-[11px] text-slate-200'
           >
             {canCancel
-              ? 'The Final hit after the spin. Off: the Dash right after cancels the spin at the release, with no Final, and it can be let go from 0.1 s.'
-              : 'Always on: nothing right after this Charged Attack cancels the spin, so the game plays its Final hit (after a 0.83 s spin at least). Put a Dash right after it to turn it off.'}
+              ? 'The Final hit after the spin. Off: the block right after cancels the spin at the release, with no Final, and it can be let go from 0.1 s.'
+              : `Always on: nothing right after this Charged Attack cancels the spin, so the game plays its Final hit (after a 0.83 s spin at least). Put ${cancellersText(
+                  hold.cancelledBy
+                )} right after it to turn it off.`}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

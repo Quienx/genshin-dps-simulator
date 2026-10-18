@@ -204,6 +204,7 @@ export const addHit = (
     sourceId,
     effectIds,
     blockUid,
+    row,
   }: HitInput
 ) => {
   const { values } = context;
@@ -271,6 +272,7 @@ export const addHit = (
     sourceId,
     effectIds,
     blockUid,
+    row,
   });
 };
 
@@ -343,6 +345,7 @@ export const addLunarHit = (
     sourceId,
     effectIds,
     blockUid,
+    row,
   }: {
     time?: number;
     category: string;
@@ -412,6 +415,7 @@ export const addLunarHit = (
     sourceId,
     effectIds,
     blockUid,
+    row,
   });
 };
 
@@ -429,6 +433,7 @@ export const addTransformativeHit = (
     sourceId,
     effectIds,
     blockUid,
+    row,
   }: {
     time?: number;
     reaction: string;
@@ -471,5 +476,6 @@ export const addTransformativeHit = (
     sourceId,
     effectIds,
     blockUid,
+    row,
   });
 };

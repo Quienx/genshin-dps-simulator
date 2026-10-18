@@ -2381,3 +2381,35 @@ describe('a shared resource alone', () => {
     expect(runtime.getResource('dew')).toBe(1);
   });
 });
+
+describe('a combo form that starts over (resetsCombo)', () => {
+  it('plays N1 of the plain combo when the form gives way', () => {
+    // Xilonen with two Pyro/Cryo members: her second kick fills her
+    // points and ends the Blessing; the next press is a plain N1.
+    const run = runTeam(
+      {
+        members: ['xilonen', 'mavuika', 'citlali'].map(buildMemberValues),
+        rotation: {
+          loop: false,
+          blocks: [
+            createTeamBlock('xilonen:skill'),
+            { ...createTeamBlock('xilonen:normal'), hits: 3 },
+          ],
+        },
+        fillWhileWaiting: false,
+        swapDelayFrames: 12,
+      },
+      'expected'
+    );
+    expect(
+      run.trace
+        .filter((entry) => entry.action === 'xilonen:normal')
+        .map((entry) => [entry.performedAction ?? 'plain', entry.comboIndex])
+    ).toEqual([
+      ['xilonen:skateNormal', 0],
+      ['xilonen:skateNormal', 1],
+      // Without resetsCombo the combo would carry on: a plain N3.
+      ['plain', 0],
+    ]);
+  });
+});

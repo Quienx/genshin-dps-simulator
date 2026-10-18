@@ -232,7 +232,8 @@
           "label": "Blade Roller",
           "shortLabel": "Roller",
           "icon": "Skill_S_Xilonen_01",
-          "note": "Her Normal Attacks on her roller skates in Nightsoul's Blessing: Geo, scaling with DEF."
+          "note": "Her Normal Attacks on her roller skates in Nightsoul's Blessing: Geo, scaling with DEF.",
+          "resetsCombo": true
         }
       ]
     },
@@ -298,10 +299,13 @@
           "label": "E (leave the roller skates)",
           "shortLabel": "Exit",
           "icon": "Skill_S_Xilonen_01",
-          "cooldown": "none",
+          "cooldown": {
+            "frames": 60
+          },
           "end": 1,
           "hits": [],
-          "note": "Pressing the E in Nightsoul's Blessing ends it."
+          "note": "Pressing the E in Nightsoul's Blessing ends it: not within 1 s of the E that started it (gcsim's recast lock), so one too soon waits.",
+          "cooldownId": "skillRecast"
         }
       ]
     },
@@ -432,6 +436,9 @@
         }
       },
       "do": [
+        {
+          "startCooldown": "skillRecast"
+        },
         {
           "applyStatus": "nightsoulBlessing"
         },
@@ -680,7 +687,7 @@
       "id": "a1-max",
       "type": "trigger",
       "source": "passive",
-      "label": "Full Nightsoul points: all spent, Samplers active for 15 s",
+      "label": "Full Nightsoul points: all spent, Samplers active for 15 s, a Nightsoul Burst of hers (A4, once every 14 s)",
       "icon": "UI_Talent_S_Xilonen_05",
       "when": {
         "resourceChanges": "nightsoul",
@@ -708,6 +715,16 @@
         },
         {
           "applyStatus": "samplersActive"
+        },
+        {
+          "applyStatus": "a4Def",
+          "icdFrames": 840
+        },
+        {
+          "addResource": "energy",
+          "amount": 6,
+          "ifFlag": "scroll2",
+          "icdFrames": 840
         }
       ]
     },
@@ -1349,6 +1366,17 @@
     {
       "label": "Energy left at the end",
       "value": "{resource:energy|fixed1} / 60"
+    }
+  ],
+  "actionRules": [
+    {
+      "action": "charged",
+      "requires": {
+        "not": {
+          "status": "nightsoulBlessing"
+        }
+      },
+      "message": "No Charged Attack on the roller skates (Nightsoul's Blessing)"
     }
   ]
 }

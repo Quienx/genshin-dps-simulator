@@ -164,7 +164,8 @@
           "label": "Flamestrider Normal Attack",
           "shortLabel": "Bike N",
           "icon": "Skill_S_Mavuika_02",
-          "note": "On the Flamestrider: a 5-hit Pyro combo; each hit spends 1 Nightsoul point (none during her Q)."
+          "note": "On the Flamestrider: a 5-hit Pyro combo; each hit spends 1 Nightsoul point (none during her Q).",
+          "resetsCombo": true
         },
         {
           "id": "flamestriderCharged",
@@ -193,7 +194,7 @@
               "releaseFrame": 56,
               "maxFrames": 375,
               "hitEveryFrames": 42,
-              "cancelledBy": ["dodge"]
+              "cancelledBy": ["dodge", "skill", "burst", "swap"]
             }
           },
           "hits": [
@@ -211,7 +212,7 @@
               "icd": "MavuikaFlamestrider"
             }
           ],
-          "note": "Held for the block's Hold time (50 to 375 frames: gcsim's shortest spin before the Final and its cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release, unless a Dash (the Sprint on the bike) comes next: it cancels the spin at the release (no Final), and then it can be let go from 0.1 s (no hit before the first Cyclic one at 35). A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
+          "note": "Held for the block's Hold time (50 to 375 frames: gcsim's shortest spin before the Final and its cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release, unless a Dash (the Sprint on the bike), an E, a Q or a swap comes next: it cancels the spin at the release (no Final; gcsim's bikeChargeFrames), and then it can be let go from 0.1 s (no hit before the first Cyclic one at 35). A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
         }
       ]
     },

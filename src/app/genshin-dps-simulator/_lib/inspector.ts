@@ -219,6 +219,10 @@ export type ActionPiece = {
   // Seconds it waited for its cooldown before `start` (dead time: the
   // chart's grey stretch, from where it was put).
   waited: number;
+  // Played as a form whose status ended during it with its repeated hits
+  // still going (spins past the Flamestrider): when (s), and its hits
+  // before and after.
+  formEnd?: { at: number; within: number; after: number };
 };
 
 // A hit on the enemy, and the enemy's aura after a hit.
@@ -1391,32 +1395,72 @@ export const buildInspectorView = (
             interval.start <= startFrame && startFrame < interval.end
         );
         const endsAt = span ? toSeconds(span.end) : null;
-        // Its hits, in order: which come before it ends and which after.
         const hits =
           endsAt !== null && endsAt < action.end
-            ? run.members
-                .find((entry) => entry.characterId === action.characterId)
-                ?.hitLog.filter(
+            ? (
+                run.members.find(
+                  (entry) => entry.characterId === action.characterId
+                )?.hitLog ?? []
+              )
+                .filter(
                   (hit) =>
                     hit.blockUid === action.blockUid &&
                     hit.actionId === formId &&
                     hit.time >= action.start &&
                     hit.time <= action.end
-                ) ?? []
+                )
+                .sort((first, second) => first.time - second.time)
             : [];
-        const within = hits.filter(
-          (hit) => endsAt !== null && hit.time < endsAt
-        ).length;
+        // A hit counts in it when it lands before it ends. One on the
+        // frame it ends was dealt in it (it may be what ended it:
+        // Xilonen's kick that fills her points).
+        const within =
+          endsAt === null
+            ? hits.length
+            : hits.filter((hit) => hit.time <= endsAt + 1e-9).length;
         if (endsAt !== null && within < hits.length) {
           const total = hits.length;
-          const range = (from: number, to: number) =>
-            from === to ? `hit ${from}` : `hits ${from}–${to}`;
-          const warning = `${status.label} ends at ${endsAt.toFixed(2)} s: ${
-            within > 0 ? `${range(1, within)} of ${total} on it, ` : ''
-          }${range(within + 1, total)} after it`;
-          action.warning = action.warning
-            ? `${action.warning} · ${warning}`
-            : warning;
+          // Repeated hits after it ended (spins past the Flamestrider) are
+          // not the form's: the block shows them apart, from when it
+          // ended. A closing hit alone (the Final) is.
+          const repeated = new Set(
+            (getLoadedCharacter(action.characterId).actions[formId]?.hits ?? [])
+              .filter((hit) => hit.repeats && hit.row)
+              .map((hit) => hit.row)
+          );
+          const outside = hits
+            .slice(within)
+            .filter((hit) => repeated.has(hit.row ?? '')).length;
+          // Only its closing hit after it (the Final): it is still the
+          // form's, nothing to say.
+          if (outside > 0) {
+            // Its spins past it, apart; its closing hits are the form's.
+            action.formEnd = {
+              at: endsAt,
+              within: total - outside,
+              after: outside,
+            };
+            const range = (from: number, to: number) =>
+              from === to ? `${from}` : `${from}–${to}`;
+            const closing = total - within - outside;
+            const onIt = [
+              ...(within > 0 ? [range(1, within)] : []),
+              ...(closing > 0 ? [range(within + outside + 1, total)] : []),
+            ];
+            const warning = `${status.label} ends at ${endsAt.toFixed(2)} s: ${
+              onIt.length > 0
+                ? `hit${total - outside === 1 ? '' : 's'} ${onIt.join(
+                    ' and '
+                  )} of ${total} on it, `
+                : ''
+            }hit${outside === 1 ? '' : 's'} ${range(
+              within + 1,
+              within + outside
+            )} after it`;
+            action.warning = action.warning
+              ? `${action.warning} · ${warning}`
+              : warning;
+          }
         }
       } else {
         formEnded.delete(key);
@@ -1429,7 +1473,7 @@ export const buildInspectorView = (
       const own = getLoadedCharacter(action.characterId).actions[
         action.actionId.split(':')[1]
       ];
-      const warning = `${ended} ended: a normal ${own?.label ?? action.label}`;
+      const warning = `${ended} ended: a plain ${own?.label ?? action.label}`;
       action.warning = action.warning
         ? `${action.warning} · ${warning}`
         : warning;
