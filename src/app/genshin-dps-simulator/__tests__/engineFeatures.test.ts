@@ -12,6 +12,7 @@ import { simulateTeam, toTeamActionId } from '../_lib/engine/simulateTeam';
 import formatNumber from '../_lib/formatNumber';
 import { buildDefaultValues, parseValues } from '../_lib/simulationValues';
 import { getRowMultiplier } from '../_lib/talents';
+import { buildMemberValues, createTeamBlock, runTeam } from '../_lib/team';
 
 const startsOf = (
   trace: { action: string; startTime: number; warning: string | null }[],
@@ -2108,5 +2109,48 @@ describe('field actions of a member off the field', () => {
       'nicole:skill',
       'chevreuse:dodge',
     ]);
+  });
+});
+
+describe('held actions with a hold time', () => {
+  // Mavuika on the Flamestrider: Hold E, then a Charged Attack held for
+  // `heldSeconds` (its block's hold time).
+  const heldRun = (heldSeconds: number) => {
+    const run = runTeam(
+      {
+        members: [buildMemberValues('mavuika')],
+        rotation: {
+          loop: false,
+          blocks: [
+            { ...createTeamBlock('mavuika:skill'), hold: true },
+            { ...createTeamBlock('mavuika:charged'), heldSeconds },
+          ],
+        },
+        fillWhileWaiting: false,
+        swapDelayFrames: 0,
+        auras: false,
+      },
+      'expected'
+    );
+    const ca = run.trace.find((entry) => entry.action === 'mavuika:charged')!;
+    const frames = run.members[0].hitLog
+      .filter((hit) => hit.time >= ca.startTime - 1e-6)
+      .map((hit) => Math.round((hit.time - ca.startTime) * 60));
+    return { frames, length: Math.round((ca.endTime - ca.startTime) * 60) };
+  };
+
+  it('repeat their hits every hitEveryFrames up to the release, then the Final', () => {
+    // Held to the cap (375 frames): 9 spin hits, the Final at 7.0 s.
+    expect(heldRun(6.25).frames).toEqual([
+      35, 77, 119, 161, 203, 245, 287, 329, 371, 420,
+    ]);
+    // 1.3 s (78 frames): two spin hits, the Final 45 frames after release.
+    expect(heldRun(1.3).frames).toEqual([35, 77, 123]);
+  });
+
+  it('move the end with the release', () => {
+    const short = heldRun(1.3);
+    const long = heldRun(3);
+    expect(long.length - short.length).toBe(180 - 78);
   });
 });

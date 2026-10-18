@@ -186,7 +186,13 @@
           "repeat": {
             "label": "Spins",
             "everyFrames": 45,
-            "max": 8
+            "max": 8,
+            "hold": {
+              "minFrames": 50,
+              "releaseFrame": 56,
+              "maxFrames": 375,
+              "hitEveryFrames": 42
+            }
           },
           "hits": [
             {
@@ -203,7 +209,7 @@
               "icd": "MavuikaFlamestrider"
             }
           ],
-          "note": "Held for the block's Spins: a Cyclic hit per spin (35, then every 45 frames, up to 8 as gcsim's 375-frame cap) and the Final hit when released (101 for one spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
+          "note": "Held for the block's Hold time (50 to 375 frames: gcsim's shortest spin before the Final and its cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release. A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
         }
       ]
     },

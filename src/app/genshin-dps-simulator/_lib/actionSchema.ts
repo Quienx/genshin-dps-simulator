@@ -132,11 +132,27 @@ export const talentActionSchema = z.object({
   // Charged Attack: spins before the Final hit): its `repeats` hits play
   // that many times, `everyFrames` apart, and every later hit, its end and
   // its cancels come that much later. `max`: the most the block allows.
+  // With `hold`, the block sets how long it is held instead (seconds in the
+  // editor, frames here, from `minFrames` to `maxFrames`): its `repeats`
+  // hits play from their frame every `hitEveryFrames` up to the release,
+  // and the hits after them, its end and its cancels come as much after
+  // the release as they do after `releaseFrame`. A block with no hold time
+  // is held for its count: `releaseFrame` + (count - 1) × `everyFrames`.
   repeat: z
     .object({
       label: z.string(),
       everyFrames: frameSchema.min(1),
       max: z.number().int().min(1),
+      hold: z
+        .object({
+          // The shortest hold the animation allows (gcsim's minimum).
+          minFrames: frameSchema.min(1),
+          releaseFrame: frameSchema.min(1),
+          maxFrames: frameSchema.min(1),
+          hitEveryFrames: frameSchema.min(1),
+        })
+        .strict()
+        .optional(),
     })
     .optional(),
   // Trigger and "uses" key it also counts as (Mualani's bite is Normal
@@ -232,7 +248,18 @@ export type ActionHitData = {
 };
 
 // A held action's count (see the talent action's `repeat`).
-export type RepeatData = { label: string; everyFrames: number; max: number };
+export type HoldData = {
+  minFrames: number;
+  releaseFrame: number;
+  maxFrames: number;
+  hitEveryFrames: number;
+};
+export type RepeatData = {
+  label: string;
+  everyFrames: number;
+  max: number;
+  hold?: HoldData;
+};
 
 type ComboStepData = {
   hits: ActionHitData[];
@@ -599,7 +626,20 @@ const toFormAction = (
 const repeatOf = (
   id: string,
   actions: Record<string, ActionData>
-): { count?: { label: string; max: number } } => {
+): {
+  count?: {
+    label: string;
+    max: number;
+    hold?: {
+      minFrames: number;
+      maxFrames: number;
+      releaseFrame: number;
+      everyFrames: number;
+      firstHitFrame: number;
+      hitEveryFrames: number;
+    };
+  };
+} => {
   const repeats = [id, ...(actions[id].replacements ?? []).map((r) => r.action)]
     .map((actionId) => actions[actionId]?.repeat)
     .filter((repeat): repeat is RepeatData => Boolean(repeat));
@@ -609,7 +649,30 @@ const repeatOf = (
   const widest = repeats.reduce((most, repeat) =>
     repeat.max > most.max ? repeat : most
   );
-  return { count: { label: widest.label, max: widest.max } };
+  // The repeated hit's frame, for the hold's charges.
+  const holder = [id, ...(actions[id].replacements ?? []).map((r) => r.action)]
+    .map((actionId) => actions[actionId])
+    .find((action) => action?.repeat === widest);
+  const firstHitFrame =
+    holder?.hits?.find((hit) => hit.repeats)?.frame ?? widest.everyFrames;
+  return {
+    count: {
+      label: widest.label,
+      max: widest.max,
+      ...(widest.hold
+        ? {
+            hold: {
+              minFrames: widest.hold.minFrames,
+              maxFrames: widest.hold.maxFrames,
+              releaseFrame: widest.hold.releaseFrame,
+              everyFrames: widest.everyFrames,
+              firstHitFrame,
+              hitEveryFrames: widest.hold.hitEveryFrames,
+            },
+          }
+        : {}),
+    },
+  };
 };
 
 // The rotation editor's palette comes straight from the actions.

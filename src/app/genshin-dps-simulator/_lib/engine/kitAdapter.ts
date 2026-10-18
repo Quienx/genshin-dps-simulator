@@ -2,13 +2,15 @@ import { causeId } from './eventLog';
 import { ENERGY_ID } from './modules/energy';
 import { KitRuntime } from './runtime';
 import { AutomaticEntry } from './schema';
-import { ActionData } from '../actionSchema';
+import { ActionData, HoldData } from '../actionSchema';
 import { CharacterData } from '../characterSchema';
 import formatNumber from '../formatNumber';
 import { FRAMES_PER_SECOND } from '../frames';
 import { RotationAction } from '../rotation/rotationSchema';
 import { PlannedStep, RotationAdapter } from '../rotation/sequencePlayer';
 import { RotationStep } from '../rotation/types';
+
+type HeldStep = NonNullable<RotationStep['held']>;
 import { DamageElement } from '../types';
 
 // What the character is doing, carrying what its timing depends on.
@@ -20,8 +22,15 @@ export type KitAction =
   // Any other action of the talents: E, Q, a hold E, a plunge…
   // `stepId`: the action the step asked for, when it turned into this one
   // (a Normal Attack performed as a bite).
-  // `count`: a held action's count (spins of a Charged Attack).
-  | { kind: 'cast'; id: string; stepId?: string; count?: number }
+  // `count`: a held action's count (spins of a Charged Attack); `held`:
+  // its hold time instead, when it has one (see RotationStep).
+  | {
+      kind: 'cast';
+      id: string;
+      stepId?: string;
+      count?: number;
+      held?: HeldStep;
+    }
   | { kind: 'dodge' }
   | { kind: 'wait'; frames: number }
   // A step that cannot be performed now (e.g. not enough Energy): it takes
@@ -81,11 +90,68 @@ export const createKitAdapter = ({
     DEFAULT_DODGE_RECOVERY_FRAMES;
 
   // A cast's timing, held for its count (see `repeat`): its repeated hits
-  // play that many times and everything after them comes later.
+  // play that many times and everything after them comes later. With a
+  // hold time (`repeat.hold`), held that many frames instead.
   const heldCasts = new Map<string, ActionData>();
-  const castOf = (action: { id: string; count?: number }): ActionData => {
+  // Held for `held.frames`: the repeated hits from their frame every
+  // `hitEveryFrames` up to the release; the later hits, the end and the
+  // cancels as far after the release as after `releaseFrame`.
+  const heldCastOf = (
+    id: string,
+    cast: ActionData,
+    hold: HoldData,
+    held: HeldStep
+  ): ActionData => {
+    const key = `${id}@${held.frames}`;
+    const known = heldCasts.get(key);
+    if (known) {
+      return known;
+    }
+    const shift = held.frames - hold.releaseFrame;
+    const hits = cast.hits ?? [];
+    const timed: ActionData = {
+      ...cast,
+      hits: hits
+        .flatMap((hit) => {
+          if (hit.repeats) {
+            const count =
+              held.frames < hit.frame
+                ? 0
+                : Math.floor((held.frames - hit.frame) / hold.hitEveryFrames) +
+                  1;
+            return Array.from({ length: count }, (_, index) => ({
+              ...hit,
+              frame: hit.frame + index * hold.hitEveryFrames,
+            }));
+          }
+          return hit.frame <= hold.releaseFrame
+            ? [hit]
+            : [{ ...hit, frame: hit.frame + shift }];
+        })
+        .sort((first, second) => first.frame - second.frame),
+      end: cast.end === undefined ? undefined : cast.end + shift,
+      cancels:
+        cast.cancels &&
+        Object.fromEntries(
+          Object.entries(cast.cancels).map(([name, frame]) => [
+            name,
+            frame + shift,
+          ])
+        ),
+    };
+    heldCasts.set(key, timed);
+    return timed;
+  };
+  const castOf = (action: {
+    id: string;
+    count?: number;
+    held?: HeldStep;
+  }): ActionData => {
     const cast = actions[action.id];
     const { repeat } = cast ?? {};
+    if (repeat?.hold && action.held) {
+      return heldCastOf(action.id, cast, repeat.hold, action.held);
+    }
     const count = Math.min(repeat?.max ?? 1, Math.max(1, action.count ?? 1));
     if (!repeat || count === 1) {
       return cast;
@@ -161,7 +227,8 @@ export const createKitAdapter = ({
     id: string,
     previous: KitAction,
     seconds = 0,
-    count?: number
+    count?: number,
+    held?: HeldStep
   ): KitAction | null => {
     if (combos[id]) {
       return {
@@ -190,7 +257,12 @@ export const createKitAdapter = ({
       return { kind: 'wait', frames: 0 };
     }
     return actions[id]
-      ? { kind: 'cast', id, ...(count === undefined ? {} : { count }) }
+      ? {
+          kind: 'cast',
+          id,
+          ...(count === undefined ? {} : { count }),
+          ...(held === undefined ? {} : { held }),
+        }
       : null;
   };
 
@@ -354,10 +426,11 @@ export const createKitAdapter = ({
     previous: KitAction,
     previousStart: number,
     seconds = 0,
-    count?: number
+    count?: number,
+    held?: HeldStep
   ): KitAction | null => {
     const replacements = actions[id]?.replacements ?? [];
-    const base = toAction(id, previous, seconds, count);
+    const base = toAction(id, previous, seconds, count, held);
     if (replacements.length > 0 && base) {
       const frame = getEarliestFrame(base, previous, previousStart);
       settle(frame);
@@ -367,7 +440,13 @@ export const createKitAdapter = ({
         })
       );
       if (replacement) {
-        const action = toAction(replacement.action, previous, seconds, count);
+        const action = toAction(
+          replacement.action,
+          previous,
+          seconds,
+          count,
+          held
+        );
         return action?.kind === 'cast' ? { ...action, stepId: id } : action;
       }
     }
@@ -433,7 +512,8 @@ export const createKitAdapter = ({
       previous,
       previousStart,
       step.seconds,
-      step.count
+      step.count,
+      step.held
     );
     if (!action) {
       return null;
@@ -457,7 +537,8 @@ export const createKitAdapter = ({
         previous,
         previousStart,
         step.seconds,
-        step.count
+        step.count,
+        step.held
       )
     );
     const { startFrame } = ready;

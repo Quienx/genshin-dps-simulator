@@ -1,5 +1,14 @@
 import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
-import { GripVertical, Minus, Plus, Trash2, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  Minus,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -14,12 +23,14 @@ import {
   splitTeamActionId,
 } from '../../_lib/engine/simulateTeam';
 import {
+  chargesIn,
+  heldFramesOf,
   removeBlock,
   removeBlocks,
   updateBlock,
 } from '../../_lib/rotation/blocks';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
-import { RotationSetting } from '../../_lib/rotation/types';
+import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
 import { getGeneralPaletteActions } from '../../_lib/team';
 
 type RotationEditBarProps = {
@@ -88,6 +99,90 @@ const Stepper = ({
     </button>
   </span>
 );
+
+// A held action with a hold time (Mavuika's Flamestrider Charged
+// Attack): how long, in seconds, and how many charges (repeated hits) that
+// gets; Prev / Next charge move it to the charge before or after.
+const HoldControls = ({
+  block,
+  hold,
+  onChange,
+}: {
+  block: RotationBlock;
+  hold: NonNullable<NonNullable<RotationAction['count']>['hold']>;
+  onChange: (patch: Partial<RotationBlock>) => void;
+}) => {
+  const frames = heldFramesOf(block, hold);
+  const charges = chargesIn(frames, hold);
+  const [text, setText] = useState<string | null>(null);
+  const setFrames = (next: number) =>
+    onChange({
+      heldSeconds:
+        Math.min(hold.maxFrames, Math.max(hold.minFrames, Math.round(next))) /
+        60,
+    });
+  // The frame of charge `n` (1 = the first).
+  const chargeFrame = (n: number) =>
+    hold.firstHitFrame + (n - 1) * hold.hitEveryFrames;
+  const canNext = chargeFrame(charges + 1) <= hold.maxFrames;
+  const canPrev = charges > 1;
+  return (
+    <span className='flex items-center gap-1'>
+      <button
+        type='button'
+        data-testid='timeline-block-charge-prev'
+        title='Hold until the charge before'
+        disabled={!canPrev}
+        onClick={() => setFrames(chargeFrame(charges - 1))}
+        className='flex h-6 items-center gap-0.5 rounded border border-slate-700/60 bg-slate-800/60 px-1.5 text-slate-200 hover:bg-slate-700/70 disabled:opacity-40'
+      >
+        <ChevronLeft className='size-3' />
+        Prev charge
+      </button>
+      <input
+        type='number'
+        aria-label='Hold (seconds)'
+        data-testid='timeline-block-held'
+        value={text ?? (frames / 60).toFixed(2)}
+        min={hold.minFrames / 60}
+        max={hold.maxFrames / 60}
+        step={0.01}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={() => {
+          const next = Number(text);
+          if (text !== null && Number.isFinite(next)) {
+            setFrames(next * 60);
+          }
+          setText(null);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.currentTarget.blur();
+          }
+        }}
+        className='h-6 w-14 [appearance:textfield] rounded border border-slate-700/60 bg-slate-950/60 px-1 text-center font-mono text-[11px] text-slate-100 focus:border-sky-500 focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+      />
+      s
+      <button
+        type='button'
+        data-testid='timeline-block-charge-next'
+        title='Hold until the next charge'
+        disabled={!canNext}
+        onClick={() => setFrames(chargeFrame(charges + 1))}
+        className='flex h-6 items-center gap-0.5 rounded border border-slate-700/60 bg-slate-800/60 px-1.5 text-slate-200 hover:bg-slate-700/70 disabled:opacity-40'
+      >
+        Next charge
+        <ChevronRight className='size-3' />
+      </button>
+      <span
+        data-testid='timeline-block-charges'
+        className='ml-1 rounded bg-sky-500/20 px-1.5 py-0.5 font-medium text-sky-100'
+      >
+        {charges} {charges === 1 ? 'charge' : 'charges'}
+      </span>
+    </span>
+  );
+};
 
 // A member's action: drag it onto the chart to add it where it drops; a
 // click adds it at the end.
@@ -331,8 +426,18 @@ const RotationEditBar = ({
                 }
               />
             )}
+            {/* A held action with a hold time: how long, how it ends. */}
+            {action.count?.hold && (
+              <HoldControls
+                block={block}
+                hold={action.count.hold}
+                onChange={(patch) =>
+                  onChange(updateBlock(rotation, block.uid, patch))
+                }
+              />
+            )}
             {/* A held action (a Charged Attack's spins): how many. */}
-            {action.count && (
+            {action.count && !action.count.hold && (
               <Stepper
                 label={action.count.label}
                 testId='timeline-block-count'

@@ -44,9 +44,25 @@ export const rotationActionSchema = z.object({
   // Its hold (a hold E): what a block of it plays with Hold on.
   hold: z.string().optional(),
   // A held action's count (spins of a Charged Attack): the block's `hits`,
-  // from 1 to `max`.
+  // from 1 to `max`. With `hold`, the block sets how long it is held
+  // instead (its `heldSeconds`, from `minFrames` to `maxFrames`); without
+  // one it is held `releaseFrame` + (count - 1) × `everyFrames`.
   count: z
-    .object({ label: z.string(), max: z.number().int().min(1) })
+    .object({
+      label: z.string(),
+      max: z.number().int().min(1),
+      hold: z
+        .object({
+          minFrames: z.number().int().min(1),
+          maxFrames: z.number().int().min(1),
+          releaseFrame: z.number().int().min(1),
+          everyFrames: z.number().int().min(1),
+          // Its repeated hits (the charges): the first, then every …
+          firstHitFrame: z.number().int().min(0),
+          hitEveryFrames: z.number().int().min(1),
+        })
+        .optional(),
+    })
     .optional(),
   // A sequence: one block that plays these actions in order (Mualani's
   // Surging Bite is three surfs into the enemy and a bite). Each one is

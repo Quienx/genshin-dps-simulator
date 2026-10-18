@@ -12,6 +12,10 @@ export type RotationBlock = {
   dashCancel: boolean;
   // Plays the action's hold instead (a hold E), when it has one.
   hold?: boolean;
+  // A held action with a hold time (its count's `hold`: Mavuika's
+  // Flamestrider Charged Attack): how long it is held, in seconds (none:
+  // its count's spins).
+  heldSeconds?: number;
 };
 
 // null in SimulationValues means "automatic": the character's built-in
@@ -31,6 +35,8 @@ export type RotationStep = {
   blockAction?: string;
   // A held action's count (its block's `hits`: spins of a Charged Attack).
   count?: number;
+  // A held action with a hold time: for how many frames.
+  held?: { frames: number };
 };
 
 export type RotationTraceEntry = {

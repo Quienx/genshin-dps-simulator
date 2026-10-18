@@ -58,6 +58,13 @@ export const getBlockTitle = (
   if (block.hold && action.hold) {
     return `${action.label} (Hold)`;
   }
+  if (action.count?.hold) {
+    const frames = heldFramesOf(block, action.count.hold);
+    return `${action.label} (${(frames / 60).toFixed(2)} s, ${chargesIn(
+      frames,
+      action.count.hold
+    )} charges)`;
+  }
   if (action.count && block.hits > 1) {
     return `${action.label} (${block.hits} ${action.count.label})`;
   }
@@ -292,11 +299,40 @@ export const selectRange = (
   return uids.slice(Math.min(from, to), Math.max(from, to) + 1);
 };
 
+// How many frames a held action's block holds it: its hold time, else
+// its spins (`releaseFrame` + one spin per extra count), within what the
+// action allows.
+export const heldFramesOf = (
+  block: Pick<RotationBlock, 'hits' | 'heldSeconds'>,
+  hold: NonNullable<NonNullable<RotationAction['count']>['hold']>
+): number => {
+  const frames =
+    block.heldSeconds === undefined
+      ? hold.releaseFrame + (Math.max(1, block.hits) - 1) * hold.everyFrames
+      : Math.round(block.heldSeconds * 60);
+  return Math.min(hold.maxFrames, Math.max(hold.minFrames, frames));
+};
+
+// How many repeated hits (charges) a hold of `frames` gets.
+export const chargesIn = (
+  frames: number,
+  hold: Pick<
+    NonNullable<NonNullable<RotationAction['count']>['hold']>,
+    'firstHitFrame' | 'hitEveryFrames'
+  >
+): number =>
+  frames < hold.firstHitFrame
+    ? 0
+    : Math.floor((frames - hold.firstHitFrame) / hold.hitEveryFrames) + 1;
+
 export const updateBlock = (
   setting: RotationSetting,
   uid: string,
   patch: Partial<
-    Pick<RotationBlock, 'hits' | 'repeat' | 'seconds' | 'dashCancel' | 'hold'>
+    Pick<
+      RotationBlock,
+      'hits' | 'repeat' | 'seconds' | 'dashCancel' | 'hold' | 'heldSeconds'
+    >
   >
 ): RotationSetting => ({
   ...setting,
@@ -356,7 +392,20 @@ const expandRepetition = (
   if (action.kind !== 'normal') {
     const hold = block.hold && action.hold && findAction(actions, action.hold);
     const step = toStep(block, hold || action);
-    return [action.count ? { ...step, count: Math.max(1, block.hits) } : step];
+    if (!action.count) {
+      return [step];
+    }
+    const count = Math.max(1, block.hits);
+    const held = action.count.hold;
+    return [
+      held
+        ? {
+            ...step,
+            count,
+            held: { frames: heldFramesOf(block, held) },
+          }
+        : { ...step, count },
+    ];
   }
   const presses = Array.from({ length: Math.max(1, block.hits) }, () =>
     toStep(block, action)
