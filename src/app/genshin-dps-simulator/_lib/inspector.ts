@@ -1360,6 +1360,46 @@ export const buildInspectorView = (
       warning: entry.warning ?? null,
       waited: getDeadWait(entry),
     }));
+  // An action played as a form while a status lasted, then as itself once
+  // it ended (Mavuika's Charged Attacks after the Flamestrider): those say
+  // so, until it is played as a form again.
+  const formEnded = new Map<string, string>();
+  actions.forEach((action) => {
+    if (action.skipped) {
+      return;
+    }
+    const key = `${action.characterId}/${action.actionId}`;
+    if (action.performedActionId) {
+      const formId = action.performedActionId.split(':')[1];
+      const { character } = getLoadedCharacter(action.characterId);
+      const form = character.talents
+        .flatMap((talent) => talent.forms)
+        .find((entry) => entry.id === formId);
+      const statusId = JSON.stringify(form?.while ?? {}).match(
+        /"status":"([^"]+)"/
+      )?.[1];
+      const status = statusId
+        ? members.get(action.characterId)?.blocks.get(statusId)
+        : undefined;
+      if (status) {
+        formEnded.set(key, status.label);
+      } else {
+        formEnded.delete(key);
+      }
+      return;
+    }
+    const ended = formEnded.get(key);
+    if (ended) {
+      // The action's own name ("Charged Attack"), not its block's.
+      const own = getLoadedCharacter(action.characterId).actions[
+        action.actionId.split(':')[1]
+      ];
+      const warning = `${ended} ended: a normal ${own?.label ?? action.label}`;
+      action.warning = action.warning
+        ? `${action.warning} · ${warning}`
+        : warning;
+    }
+  });
   const actionEnds = new Map(
     actions.map((action) => [action.causeId, action.end])
   );
