@@ -6,6 +6,7 @@ import { getLoadedCharacter } from './characterData';
 import { CharacterData } from './characterSchema';
 import { conditionSpans } from './conditionSpans';
 import { causeId } from './engine/eventLog';
+import { expandSystems } from './engine/modules';
 import { BOND_OF_LIFE_ID } from './engine/modules/bondOfLife';
 import {
   NIGHTSOUL_BLESSING_ID,
@@ -494,6 +495,62 @@ export const buildInspectorView = (
     })
   );
 
+  // A status spent from a resource (a `drain`), or living inside one that
+  // is (Mavuika's Flamestrider within the Blessing): that resource is its
+  // timer, not a fixed duration, so its bar follows it down to 0.
+  const statusBlocks = new Map(
+    run.members.map((member) => {
+      const { character } = getLoadedCharacter(member.characterId);
+      return [
+        member.characterId,
+        [...expandSystems(character), ...character.blocks],
+      ];
+    })
+  );
+  const drainedResource = (
+    characterId: string,
+    statusId: string,
+    depth = 0
+  ): string | null => {
+    const block = statusBlocks
+      .get(characterId)
+      ?.find((entry) => entry.id === statusId);
+    if (!block || block.type !== 'status' || depth > 4) {
+      return null;
+    }
+    if (block.drain) {
+      return block.drain.resource;
+    }
+    return block.endsWith
+      ? drainedResource(characterId, block.endsWith, depth + 1)
+      : null;
+  };
+  const drainMeter = (
+    characterId: string,
+    statusId: string
+  ): Pick<BlockChip, 'meter'> => {
+    const resource = drainedResource(characterId, statusId);
+    const member = members.get(characterId);
+    const log = resource ? member?.activity?.resources[resource] : undefined;
+    if (!resource || !member || !log) {
+      return {};
+    }
+    const resourceBlock = member.blocks.get(resource);
+    return {
+      meter: {
+        resource,
+        label: resourceBlock?.label ?? resource,
+        bounds: { gt: 0 },
+        points: log.map((entry) => ({
+          time: toSeconds(entry.frame),
+          value: entry.value,
+        })),
+        max: resourceBlock?.max ?? null,
+        format: resourceBlock?.format ?? null,
+      },
+    };
+  };
+
   // Its value and description: the first bonus that reads it.
   const describe = (
     characterId: string,
@@ -750,6 +807,7 @@ export const buildInspectorView = (
         holder: null,
         end,
         renewals: [{ start: base.start, end, until }],
+        ...drainMeter(event.characterId, block.id),
       };
       openStatuses.set(statusKey, chip);
       chips.push(chip);
@@ -1126,6 +1184,8 @@ export const buildInspectorView = (
           points,
           max: resource?.max ?? 0,
           bursts: bursts.filter((time) => time >= start && time <= end),
+          // Spent from its points (a `drain`): they are its timer.
+          ...drainMeter(characterId, NIGHTSOUL_BLESSING_ID),
         });
       }
     );

@@ -159,6 +159,7 @@ All accept `ifFlag`, `unlessFlag`, `if`, `icdFrames` and `delayFrames`. A `remov
 
 ## Gotchas
 
+- **Nightsoul timers (it bit Varesa, then Mavuika):** a Blessing with `drain`, and every mode living inside it (`endsWith: nightsoulBlessing`, or its own `drain`: Mavuika's Flamestrider), has **no fixed duration**: it lasts while the points last. Active Effects bars follow the points for those (`drainMeter` in `_lib/inspector.ts`), and a Blessing with `durationFrames` (Varesa, Citlali) keeps a timer bar. For a new Natlan character: make each mode a status with `endsWith: nightsoulBlessing` (or a `drain`) so its bar and its end follow the points, and check a long action against the points: they can run out mid-action (a held Charged Attack keeps spinning after; the game forces its Final then: not simulated yet).
 - `match.actions` compares against the id of the action **performed**. For a bonus to apply to a form (for example `fieryNormal`), include its id.
 - A stack added on a frame starts counting on the next frame (the activity log shows it that way too).
 - Every resource and status id a file names is checked at load (`_lib/engine/validateReferences.ts`), and an E/Q with hits needs an `end`.
