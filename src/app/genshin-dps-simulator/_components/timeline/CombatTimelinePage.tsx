@@ -46,7 +46,11 @@ import {
   DragPayload,
   groupNormalCombos,
   holdLimitOf,
+  pasteBlocks,
 } from './timelineData';
+
+// Blocks copied in edit mode (Ctrl/Cmd + C), for pasting in any team.
+let copiedBlocks: RotationBlock[] = [];
 import TimelineHeader, {
   TeamActions,
   TimelineScenario,
@@ -64,7 +68,7 @@ import { iconUrl } from '../../_lib/genshinIcons';
 import { buildInspectorView } from '../../_lib/inspector';
 import { readNumber } from '../../_lib/readValue';
 import { removeBlocks, selectRange } from '../../_lib/rotation/blocks';
-import { RotationSetting } from '../../_lib/rotation/types';
+import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
 import { parseValues } from '../../_lib/simulationValues';
 import {
   buildDefaultTeam,
@@ -979,8 +983,13 @@ const CombatTimeline = ({
         ? [...selection, ...blockUids.filter((uid) => !selection.includes(uid))]
         : blockUids
     );
-  // Esc, Delete and Ctrl/Cmd + A on the chart.
-  const selectionKey = (key: 'clear' | 'delete' | 'all') => {
+  // Esc, Delete, Ctrl/Cmd + A, C, X and V on the chart.
+  const selectionKey = (
+    key: 'clear' | 'delete' | 'all' | 'copy' | 'cut' | 'paste',
+    // Paste: the block the pointer's place goes before (null: the end);
+    // undefined: the pointer is not on the chart.
+    beforeUid?: string | null
+  ) => {
     if (!edit) {
       return;
     }
@@ -988,6 +997,39 @@ const CombatTimeline = ({
       setPicked([]);
     } else if (key === 'all') {
       setPicked(edit.rotation.blocks.map((block) => block.uid));
+    } else if (key === 'copy' || key === 'cut') {
+      // The picked blocks, in rotation order; then none is picked, so a
+      // paste goes where the pointer is.
+      const picked = new Set(selection);
+      if (picked.size > 0) {
+        copiedBlocks = edit.rotation.blocks.filter((block) =>
+          picked.has(block.uid)
+        );
+        // Cut: they leave the rotation, to be pasted elsewhere.
+        if (key === 'cut') {
+          edit.onChange(removeBlocks(edit.rotation, selection));
+        }
+        setPicked([]);
+      }
+    } else if (key === 'paste') {
+      if (copiedBlocks.length === 0) {
+        return;
+      }
+      // Where the pointer is on the chart; else after the last picked
+      // block in the rotation, else at the end.
+      const picked = new Set(selection);
+      const after =
+        [...edit.rotation.blocks]
+          .reverse()
+          .find((block) => picked.has(block.uid))?.uid ?? null;
+      const result = pasteBlocks(
+        edit.rotation,
+        copiedBlocks,
+        beforeUid === undefined ? { afterUid: after } : { beforeUid },
+        new Set(actionsById.keys())
+      );
+      edit.onChange(result.rotation);
+      setPicked(result.uids);
     } else if (selection.length > 0) {
       edit.onChange(removeBlocks(edit.rotation, selection));
       setPicked([]);

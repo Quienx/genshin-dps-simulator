@@ -1131,3 +1131,37 @@ export const holdLimitOf = (
     label: piece.formEnds.label,
   };
 };
+
+// Copied blocks pasted (edit mode's Ctrl/Cmd + V): new ones, the same in
+// all but their ids, before `beforeUid` (where the pointer is) or after
+// `afterUid` (the last picked block); at the end with neither, or when it
+// is gone. Only the ones the team can play (`known` actions).
+export const pasteBlocks = (
+  rotation: RotationSetting,
+  copied: RotationBlock[],
+  place: { beforeUid: string | null } | { afterUid: string | null },
+  known: Set<string>
+): { rotation: RotationSetting; uids: string[] } => {
+  const pasted = copied
+    .filter((block) => known.has(block.action))
+    .map((block) => ({ ...block, uid: createTeamBlock(block.action).uid }));
+  const uid = 'beforeUid' in place ? place.beforeUid : place.afterUid;
+  const index = rotation.blocks.findIndex((block) => block.uid === uid);
+  const at =
+    index < 0
+      ? rotation.blocks.length
+      : 'beforeUid' in place
+      ? index
+      : index + 1;
+  return {
+    rotation: {
+      ...rotation,
+      blocks: [
+        ...rotation.blocks.slice(0, at),
+        ...pasted,
+        ...rotation.blocks.slice(at),
+      ],
+    },
+    uids: pasted.map((block) => block.uid),
+  };
+};

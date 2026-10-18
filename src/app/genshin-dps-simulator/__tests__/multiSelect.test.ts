@@ -1,7 +1,7 @@
 // Edit mode with several blocks picked: they move, and go, together.
 import { describe, expect, it } from 'vitest';
 
-import { applyDrop } from '../_components/timeline/timelineData';
+import { applyDrop, pasteBlocks } from '../_components/timeline/timelineData';
 import { removeBlocks, selectRange } from '../_lib/rotation/blocks';
 import { createTeamBlock, getTeamActions } from '../_lib/team';
 
@@ -102,5 +102,64 @@ describe('removing and picking several blocks', () => {
     expect(selectRange(rotation, b.uid, d.uid)).toEqual([b.uid, c.uid, d.uid]);
     expect(selectRange(rotation, d.uid, b.uid)).toEqual([b.uid, c.uid, d.uid]);
     expect(selectRange(rotation, null, c.uid)).toEqual([c.uid]);
+  });
+});
+
+describe('copy and paste (edit mode)', () => {
+  it('pastes copies after the given block, with new ids', () => {
+    const [a, b, c] = ['mavuika:skill', 'mavuika:charged', 'mavuika:dodge'].map(
+      (id) => createTeamBlock(id)
+    );
+    const rotation = { loop: false, blocks: [a, b, c] };
+    const known = new Set([a.action, b.action, c.action]);
+    const { rotation: pasted, uids } = pasteBlocks(
+      rotation,
+      [{ ...b, heldSeconds: 1.2 }, c],
+      { afterUid: a.uid },
+      known
+    );
+    expect(pasted.blocks.map((block) => block.action)).toEqual([
+      a.action,
+      b.action,
+      c.action,
+      b.action,
+      c.action,
+    ]);
+    expect(pasted.blocks[1].heldSeconds).toBe(1.2);
+    expect(uids).toEqual([pasted.blocks[1].uid, pasted.blocks[2].uid]);
+    expect(uids).not.toContain(b.uid);
+  });
+
+  it('pastes at the end, and only what the team can play', () => {
+    const a = createTeamBlock('mavuika:skill');
+    const other = createTeamBlock('xilonen:skill');
+    const { rotation } = pasteBlocks(
+      { loop: false, blocks: [a] },
+      [other, a],
+      { afterUid: null },
+      new Set([a.action])
+    );
+    expect(rotation.blocks.map((block) => block.action)).toEqual([
+      a.action,
+      a.action,
+    ]);
+  });
+
+  it('pastes where the pointer is: before the block there', () => {
+    const [a, b] = ['mavuika:skill', 'mavuika:dodge'].map((id) =>
+      createTeamBlock(id)
+    );
+    const { rotation } = pasteBlocks(
+      { loop: false, blocks: [a, b] },
+      [a],
+      { beforeUid: b.uid },
+      new Set([a.action, b.action])
+    );
+    expect(rotation.blocks[2].uid).toBe(b.uid);
+    expect(rotation.blocks.map((block) => block.action)).toEqual([
+      a.action,
+      a.action,
+      b.action,
+    ]);
   });
 });

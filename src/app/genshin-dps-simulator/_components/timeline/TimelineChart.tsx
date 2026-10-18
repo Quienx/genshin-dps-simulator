@@ -144,7 +144,7 @@ type TimelineChartProps = {
   // Edit mode (when `onSelectBlock` is set): the blocks picked, picking
   // one (a click; Ctrl/Cmd: adds or removes it; Shift: the range from the
   // last one picked), picking those a Shift + drag rectangle touches, the
-  // selection keys (Esc, Delete, Ctrl/Cmd + A), and a drop on the tracks:
+  // selection keys (Esc, Delete, Ctrl/Cmd + A, C, X, V), and a drop on the tracks:
   // before that block (null: at the end).
   selectedBlocks?: string[];
   onSelectBlock?: (
@@ -152,7 +152,12 @@ type TimelineChartProps = {
     modifiers: { range: boolean; toggle: boolean }
   ) => void;
   onSelectBlocks?: (blockUids: string[], additive: boolean) => void;
-  onSelectionKey?: (key: 'clear' | 'delete' | 'all') => void;
+  // `beforeUid` (paste): where the pointer is over the tracks, the block
+  // a paste goes before (null: at the end); undefined: not over them.
+  onSelectionKey?: (
+    key: 'clear' | 'delete' | 'all' | 'copy' | 'cut' | 'paste',
+    beforeUid?: string | null
+  ) => void;
   onDropBlock?: (
     payload: DragPayload,
     beforeUid: string | null,
@@ -1700,6 +1705,8 @@ const TimelineChart = ({
   // Where a point of the tracks is on screen, from the tracks' left edge.
   const viewX = (clientX: number) =>
     clientX - (scrollRef.current?.getBoundingClientRect().left ?? 0) - labelPx;
+  // The pointer's x over the tracks (null: not over them), for pastes.
+  const hoverClientX = useRef<number | null>(null);
   const timeAtClient = (clientX: number) =>
     ruler.toTime(viewX(clientX) + (scrollRef.current?.scrollLeft ?? 0));
 
@@ -2135,6 +2142,27 @@ const TimelineChart = ({
             ) {
               event.preventDefault();
               onSelectionKey?.('all');
+            } else if (
+              editing &&
+              (event.ctrlKey || event.metaKey) &&
+              ['c', 'x', 'v'].includes(event.key.toLowerCase())
+            ) {
+              event.preventDefault();
+              if (event.key.toLowerCase() === 'c') {
+                onSelectionKey?.('copy');
+              } else if (event.key.toLowerCase() === 'x') {
+                onSelectionKey?.('cut');
+              } else {
+                // Over the tracks: between the blocks around the pointer,
+                // as a drop there would go.
+                const at = hoverClientX.current;
+                onSelectionKey?.(
+                  'paste',
+                  at === null
+                    ? undefined
+                    : dropBefore(actions, timeAtClient(at))
+                );
+              }
             }
           }}
         >
@@ -2174,6 +2202,9 @@ const TimelineChart = ({
             }}
             onPointerOver={handleTipOver}
             onPointerOut={handleTipOut}
+            onPointerLeave={() => {
+              hoverClientX.current = null;
+            }}
             onPointerDown={(event) => {
               hideTip();
               // The labels (sticky on the left) are not part of the axis;
@@ -2234,6 +2265,8 @@ const TimelineChart = ({
             }}
             onPointerMove={(event) => {
               handleTipMove(event);
+              // Where a paste goes (Ctrl/Cmd + V): the pointer's place.
+              hoverClientX.current = event.clientX;
               const current = gesture.current;
               const element = scrollRef.current;
               if (!current || !element) {
