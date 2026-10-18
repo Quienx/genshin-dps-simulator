@@ -2083,3 +2083,30 @@ describe('Natlan party members in a team', () => {
     ]);
   });
 });
+
+describe('field actions of a member off the field', () => {
+  it('swap that member in first, as any step does', () => {
+    const team = simulateTeam(
+      ['nicole', 'chevreuse'].map((characterId) => ({
+        characterId,
+        values: parseValues(buildDefaultValues(characterId)),
+      })),
+      {
+        loop: false,
+        blocks: [
+          block('e', toTeamActionId('nicole', 'skill')),
+          block('d', toTeamActionId('chevreuse', 'dodge')),
+        ],
+      },
+      {}
+    );
+    expect(team.swaps.map((swap) => swap.characterId)).toEqual([
+      'nicole',
+      'chevreuse',
+    ]);
+    expect(team.rotationTrace.map((entry) => entry.action)).toEqual([
+      'nicole:skill',
+      'chevreuse:dodge',
+    ]);
+  });
+});

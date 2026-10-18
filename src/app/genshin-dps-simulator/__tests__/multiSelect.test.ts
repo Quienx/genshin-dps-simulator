@@ -65,7 +65,7 @@ describe('moving several picked blocks', () => {
     ).toBe(c.uid);
   });
 
-  it('adds a Swap in when the group lands after another member', () => {
+  it('adds no Swap when the group lands after another member', () => {
     const team = getTeamActions(['nicole', 'chevreuse']);
     const blocks = [
       createTeamBlock('nicole:skill'),
@@ -87,7 +87,6 @@ describe('moving several picked blocks', () => {
     expect(result.rotation.blocks.map((block) => block.action)).toEqual([
       'nicole:skill',
       'nicole:burst',
-      'chevreuse:swap',
       'chevreuse:skill',
       'chevreuse:burst',
     ]);

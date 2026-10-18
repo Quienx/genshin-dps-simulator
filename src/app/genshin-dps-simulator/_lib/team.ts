@@ -68,11 +68,9 @@ export const TEAM_PRESET_ROTATION: [string, string, number?][] = [
   ['varesa', 'charged'],
   ['varesa', 'plunge'],
   ['varesa', 'burst'],
-  ['nicole', 'swap'],
   ['nicole', 'burst'],
   ['nicole', 'skill'],
   ['nicole', 'wait', 0.9],
-  ['chevreuse', 'swap'],
   ['chevreuse', 'burst'],
   ['chevreuse', 'skill'],
   ['iansan', 'skill'],
@@ -97,7 +95,6 @@ export const TEAM_PRESET_ROTATION: [string, string, number?][] = [
   ['varesa', 'plunge'],
   ['nicole', 'burst'],
   ['nicole', 'skill'],
-  ['chevreuse', 'swap'],
   ['chevreuse', 'skill'],
   ['iansan', 'skill'],
   ['iansan', 'burst'],
@@ -128,7 +125,6 @@ export const TEAM_PRESET_ROTATION: [string, string, number?][] = [
   ['nicole', 'skill'],
   ['iansan', 'skill'],
   ['iansan', 'burst'],
-  ['nicole', 'swap'],
 ];
 
 // Mavuika's teams. Each cycle is about 21 s, three of them to the end of a
@@ -286,6 +282,10 @@ export const buildRotationFromRun = (run: {
   const blocks: RotationBlock[] = [];
   let last: RotationTraceEntry | null = null;
   run.trace.forEach((entry) => {
+    // Swaps are the engine's own: never a block.
+    if (entry.kind === 'swap') {
+      return;
+    }
     const block = blocks.at(-1);
     if (
       block &&
@@ -430,9 +430,9 @@ export const getTeamPaletteGroups = (
     ),
   }));
 
-// The General group: each field action (Dash, Wait) and Swap once,
-// without a member's name. Whoever is on the field does it, so the block takes the
-// member on the field where it is dropped (stampFieldActions). A kit's own
+// The General group: each field action (Dash, Wait) once, without a
+// member's name. Dropped on a member's row it is theirs, else the
+// member's on the field where it lands (nameFieldAction). A kit's own
 // special dash is a `move` action of its own, in its member's group.
 export const getGeneralPaletteActions = (
   actions: RotationAction[]
@@ -440,11 +440,7 @@ export const getGeneralPaletteActions = (
   const seen = new Set<string>();
   return actions.flatMap((action) => {
     const { actionId } = splitTeamActionId(action.id);
-    if (
-      action.hidden ||
-      !(isFieldAction(action.id) || isSwapAction(action.id)) ||
-      seen.has(actionId)
-    ) {
+    if (action.hidden || !isFieldAction(action.id) || seen.has(actionId)) {
       return [];
     }
     seen.add(actionId);
@@ -452,133 +448,54 @@ export const getGeneralPaletteActions = (
   });
 };
 
-// A Swap in before a block whose member is off the field there (the block
-// before it is another member's), so the swap the run makes anyway is a
-// block of its own to see and move. A Dash or Wait is the field's, so it
-// gets one only when dropped on a member's row (`rowMember`): then it is
-// theirs. Not at the start (that member starts), nor twice.
-export const swapInBefore = (
-  rotation: RotationSetting,
-  uid: string,
-  rowMember: string | null = null
-): RotationSetting => {
-  const index = rotation.blocks.findIndex((entry) => entry.uid === uid);
-  if (index <= 0) {
-    return rotation;
-  }
-  const entry = rotation.blocks[index];
-  if (isSwapAction(entry.action)) {
-    return rotation;
-  }
-  const field = isFieldAction(entry.action);
-  if (field && !rowMember) {
-    return rotation;
-  }
-  const characterId = field
-    ? (rowMember as string)
-    : splitTeamActionId(entry.action).characterId;
-  const onField = splitTeamActionId(
-    rotation.blocks[index - 1].action
-  ).characterId;
-  if (onField === characterId) {
-    return rotation;
-  }
-  return {
-    ...rotation,
-    blocks: [
-      ...rotation.blocks.slice(0, index),
-      createTeamBlock(toTeamActionId(characterId, 'swap')),
-      ...rotation.blocks.slice(index),
-    ],
-  };
-};
-
-// A Swap block pointed at `characterId`.
-export const retargetSwap = (
-  rotation: RotationSetting,
-  uid: string,
-  characterId: string
-): RotationSetting => ({
-  ...rotation,
-  blocks: rotation.blocks.map((entry) =>
-    entry.uid === uid && isSwapAction(entry.action)
-      ? { ...entry, action: toTeamActionId(characterId, 'swap') }
-      : entry
-  ),
-});
-
-// Who a Swap just dropped goes to: the next block's member when they are
-// off the field there, else the first member off it (party order).
-export const aimSwap = (
-  rotation: RotationSetting,
-  uid: string,
-  memberIds: string[]
-): RotationSetting => {
-  const index = rotation.blocks.findIndex((entry) => entry.uid === uid);
-  if (index < 0 || !isSwapAction(rotation.blocks[index].action)) {
-    return rotation;
-  }
-  const memberOf = (action: string) => splitTeamActionId(action).characterId;
-  const onField =
-    index > 0 ? memberOf(rotation.blocks[index - 1].action) : null;
-  const next = rotation.blocks
-    .slice(index + 1)
-    .find(
-      (entry) => !isFieldAction(entry.action) && !isSwapAction(entry.action)
-    );
-  const target =
-    next && memberOf(next.action) !== onField
-      ? memberOf(next.action)
-      : memberIds.find((id) => id !== onField);
-  return target ? retargetSwap(rotation, uid, target) : rotation;
-};
-
-// Without the Swaps that do nothing: to the member already on the field
-// (left behind when a block of theirs was dropped before one).
-export const dropIdleSwaps = (rotation: RotationSetting): RotationSetting => {
-  const blocks = rotation.blocks.filter(
-    (entry, index) =>
-      !isSwapAction(entry.action) ||
-      index === 0 ||
-      splitTeamActionId(rotation.blocks[index - 1].action).characterId !==
-        splitTeamActionId(entry.action).characterId
-  );
+// Without Swap blocks: swaps are the engine's own (it swaps to the block
+// of a member off the field), never the user's. A rotation saved or shared
+// before may still have some.
+export const withoutSwaps = (rotation: RotationSetting): RotationSetting => {
+  const blocks = rotation.blocks.filter((entry) => !isSwapAction(entry.action));
   return blocks.length === rotation.blocks.length
     ? rotation
     : { ...rotation, blocks };
 };
 
-// Each Dash or Wait block named after the member on the field there: the
-// one of the block before it, or, at the start, of the first block that
-// is not one. The run already does them on the field; this keeps the
-// rotation saying so (and a leading one with the member who starts).
-export const stampFieldActions = (
-  rotation: RotationSetting
+// A Dash or Wait block just dropped, named after whose it is: the member
+// whose row it was dropped on (the run swaps them in first if they are
+// off the field), else the member on the field there: the one of the
+// block before it, or, at the start, of the first block that is not one.
+// Other blocks keep their names.
+export const nameFieldAction = (
+  rotation: RotationSetting,
+  uid: string,
+  rowMember: string | null = null
 ): RotationSetting => {
-  let onField: string | null = null;
-  const blocks = rotation.blocks.map((entry, index) => {
-    if (!isFieldAction(entry.action)) {
-      onField = splitTeamActionId(entry.action).characterId;
-      return entry;
-    }
-    const starter = rotation.blocks
-      .slice(index + 1)
-      .find((next) => !isFieldAction(next.action));
-    const characterId =
-      onField ??
-      (starter ? splitTeamActionId(starter.action).characterId : null);
-    if (!characterId) {
-      return entry;
-    }
-    const action = toTeamActionId(
-      characterId,
-      splitTeamActionId(entry.action).actionId
-    );
-    return action === entry.action ? entry : { ...entry, action };
-  });
-  return blocks.every((entry, index) => entry === rotation.blocks[index])
+  const index = rotation.blocks.findIndex((entry) => entry.uid === uid);
+  const entry = rotation.blocks[index];
+  if (!entry || !isFieldAction(entry.action)) {
+    return rotation;
+  }
+  const before = rotation.blocks[index - 1];
+  const starter = rotation.blocks
+    .slice(index + 1)
+    .find((next) => !isFieldAction(next.action));
+  const characterId =
+    rowMember ??
+    (before ? splitTeamActionId(before.action).characterId : null) ??
+    (starter ? splitTeamActionId(starter.action).characterId : null);
+  if (!characterId) {
+    return rotation;
+  }
+  const action = toTeamActionId(
+    characterId,
+    splitTeamActionId(entry.action).actionId
+  );
+  return action === entry.action
     ? rotation
-    : { ...rotation, blocks };
+    : {
+        ...rotation,
+        blocks: rotation.blocks.map((block) =>
+          block.uid === uid ? { ...block, action } : block
+        ),
+      };
 };
 
 // A run's biggest hit: who, with what and when.

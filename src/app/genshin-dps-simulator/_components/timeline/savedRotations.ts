@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { RotationSetting } from '../../_lib/rotation/types';
-import { createTeamBlock } from '../../_lib/team';
+import { createTeamBlock, isSwapAction } from '../../_lib/team';
 
 // A rotation of one's own (edit mode) and how it plays, per scenario.
 export type SavedRotation = {
@@ -41,7 +41,8 @@ export const encodeSavedRotations = (
 ): string => JSON.stringify({ version: 1, scenarios });
 
 // What was saved, as it can play now: a block whose action is gone (a
-// character changed) is dropped, and a rotation left empty with it. Each
+// character changed) is dropped, as is a Swap block (swaps are the
+// engine's own now), and a rotation left empty with it. Each
 // block gets a new id, since new ones count from 1 again after a reload.
 export const decodeSavedRotations = (
   raw: string | null,
@@ -60,7 +61,9 @@ export const decodeSavedRotations = (
     Object.entries(parsed.scenarios).flatMap(([scenarioId, saved]) => {
       const known = knownActions(scenarioId);
       const blocks = saved.rotation.blocks
-        .filter((entry) => known.has(entry.action))
+        .filter(
+          (entry) => known.has(entry.action) && !isSwapAction(entry.action)
+        )
         .map((entry) => ({ ...entry, uid: createTeamBlock(entry.action).uid }));
       return blocks.length === 0
         ? []

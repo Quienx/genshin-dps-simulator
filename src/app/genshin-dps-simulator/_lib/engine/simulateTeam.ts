@@ -480,12 +480,16 @@ export const simulateTeam = (
     });
   });
 
+  // A Dash or Wait is its member's like any step (one off the field swaps
+  // in first); only one naming no member of the team stays with the member
+  // on the field.
   const memberOf = (step: RotationStep, previous: TeamAction) => {
     const { characterId, actionId } = splitTeamActionId(step.action);
-    if (FIELD_ACTIONS.has(actionId) && previous.member >= 0) {
+    const member = ids.indexOf(characterId);
+    if (FIELD_ACTIONS.has(actionId) && member < 0 && previous.member >= 0) {
       return { member: previous.member, actionId };
     }
-    return { member: ids.indexOf(characterId), actionId };
+    return { member, actionId };
   };
 
   // When `member` is on the field after `previous`: the swap is pressed

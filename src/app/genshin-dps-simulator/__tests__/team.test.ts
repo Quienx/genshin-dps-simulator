@@ -202,7 +202,7 @@ describe('swaps', () => {
     expect(team.swaps).toHaveLength(1);
   });
 
-  it('keeps dodges and waits on the member on the field', () => {
+  it('swaps to a Wait’s member like any step', () => {
     const team = simulateTeam(
       [member('nicole'), member('chevreuse')],
       rotation([
@@ -211,7 +211,7 @@ describe('swaps', () => {
         step('nicole', 'normal'),
       ])
     );
-    expect(team.swaps).toHaveLength(1);
+    expect(team.swaps).toHaveLength(3);
   });
 });
 

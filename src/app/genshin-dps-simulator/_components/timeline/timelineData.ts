@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- reads systems params and ops as loose records */
 import { getLoadedCharacter } from '../../_lib/characterData';
-import {
-  isFieldAction,
-  splitTeamActionId,
-} from '../../_lib/engine/simulateTeam';
+import { splitTeamActionId } from '../../_lib/engine/simulateTeam';
 import {
   ActionPiece,
   BlockChip,
@@ -18,12 +15,9 @@ import {
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
 import {
-  aimSwap,
   createTeamBlock,
-  dropIdleSwaps,
   getCharacterState,
-  stampFieldActions,
-  swapInBefore,
+  nameFieldAction,
   TeamMemberRun,
 } from '../../_lib/team';
 
@@ -135,34 +129,25 @@ export const blockFor = (action: RotationAction): RotationBlock => ({
   seconds: action.defaultSeconds ?? 1,
 });
 
-// The party, in order, from its actions' ids.
-const memberIdsOf = (actions: RotationAction[]) =>
-  Array.from(
-    new Set(actions.map((action) => splitTeamActionId(action.id).characterId))
-  );
-
-// After a drop: Dash and Wait name the member on the field, a block
-// dropped where its member is off the field gets a Swap in before it, and
-// a Swap that does nothing any more goes.
-const withSwapIn = (
+// After a drop: a dropped Dash or Wait is named after its row's member,
+// else the member on the field there. There are no Swap blocks: the engine
+// swaps by itself to the block of a member off the field.
+const settle = (
   rotation: RotationSetting,
-  uid: string,
-  rowMember: string | null
-) =>
-  stampFieldActions(
-    dropIdleSwaps(swapInBefore(stampFieldActions(rotation), uid, rowMember))
-  );
+  uid: string | null = null,
+  rowMember: string | null = null
+) => (uid === null ? rotation : nameFieldAction(rotation, uid, rowMember));
 
 // A drop before `beforeUid` (null: at the end): a palette action becomes a
 // new block there (picked), or a block moves there. Dropped on its own
-// place, nothing changes. Dash and Wait blocks then name the member on the
-// field where they are, and a Swap in is added if needed (withSwapIn).
+// place, nothing changes. A Dash or Wait block then names the member of
+// the row it was dropped on, else the member on the field there.
 export const applyDrop = (
   rotation: RotationSetting,
   actions: RotationAction[],
   payload: DragPayload,
   beforeUid: string | null,
-  // The member's row it was dropped on (a Wait there is theirs).
+  // The member's row it was dropped on (a Dash or Wait there is theirs).
   rowMember: string | null = null
 ): { rotation: RotationSetting; selected: string | null } => {
   if (payload.kind === 'move' && (payload.blockUids?.length ?? 0) > 1) {
@@ -170,8 +155,7 @@ export const applyDrop = (
       rotation,
       payload.blockUid,
       payload.blockUids ?? [],
-      beforeUid,
-      rowMember
+      beforeUid
     );
   }
   if (payload.kind === 'new') {
@@ -181,12 +165,8 @@ export const applyDrop = (
     }
     const block = blockFor(action);
     return {
-      rotation: withSwapIn(
-        aimSwap(
-          insertBlock(rotation, block, beforeUid),
-          block.uid,
-          memberIdsOf(actions)
-        ),
+      rotation: settle(
+        insertBlock(rotation, block, beforeUid),
         block.uid,
         rowMember
       ),
@@ -197,21 +177,21 @@ export const applyDrop = (
     (block) => block.uid === payload.blockUid
   );
   const next = rotation.blocks[index + 1]?.uid ?? null;
-  // Dropped on its own place, it stays; a Dash or Wait put on another
-  // member's row there changes hands, though.
-  const changesHands =
-    index >= 0 &&
-    rowMember !== null &&
-    isFieldAction(rotation.blocks[index].action) &&
-    splitTeamActionId(rotation.blocks[index].action).characterId !== rowMember;
-  if (
-    index < 0 ||
-    (!changesHands && (beforeUid === payload.blockUid || beforeUid === next))
-  ) {
+  if (index < 0) {
     return { rotation, selected: payload.blockUid };
   }
+  // Dropped on its own place, it stays; a Dash or Wait put on another
+  // member's row there changes hands, though.
+  if (beforeUid === payload.blockUid || beforeUid === next) {
+    return {
+      rotation: rowMember
+        ? settle(rotation, payload.blockUid, rowMember)
+        : rotation,
+      selected: payload.blockUid,
+    };
+  }
   return {
-    rotation: withSwapIn(
+    rotation: settle(
       insertBlock(
         removeBlock(rotation, payload.blockUid),
         rotation.blocks[index],
@@ -227,14 +207,12 @@ export const applyDrop = (
 // Several blocks dropped before `beforeUid` (null: at the end): they keep
 // their order and land together (picks that were apart are gathered
 // there). Dropped inside the group, or where it already is as one run,
-// nothing changes. The block it lands before gets a Swap in if needed,
-// as the group's first one does.
+// nothing changes.
 const applyGroupDrop = (
   rotation: RotationSetting,
   dragged: string,
   uids: string[],
-  beforeUid: string | null,
-  rowMember: string | null
+  beforeUid: string | null
 ): { rotation: RotationSetting; selected: string | null } => {
   const picked = new Set(uids);
   const indexes = rotation.blocks
@@ -262,11 +240,7 @@ const applyGroupDrop = (
     (setting, block) => insertBlock(setting, block, target),
     removeBlocks(rotation, uids)
   );
-  const swapped = withSwapIn(placed, moved[0].uid, rowMember);
-  return {
-    rotation: target ? withSwapIn(swapped, target, null) : swapped,
-    selected: dragged,
-  };
+  return { rotation: settle(placed), selected: dragged };
 };
 
 // The Selected Event at the playhead: the action playing, else the
