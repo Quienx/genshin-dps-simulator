@@ -4,17 +4,19 @@ A Genshin Impact damage simulator built on a **generic engine**. Every character
 
 Frames, hitmarks and kit rules are taken from [gcsim](https://github.com/genshinsim/gcsim), so results can be checked against a known reference.
 
-- `/genshin-dps-simulator` — the simulator: a team combat timeline with an editable rotation
-- `/` — an unrelated 3D solar system playground (React Three Fiber)
+The site is the simulator: `/` opens a team combat timeline with an editable rotation (the old `/genshin-dps-simulator` redirects there). The team or character picked is kept in the URL (`/?team=solo:mavuika`).
 
-Current roster: **Arlecchino, Mualani, Varesa, Iansan, Chevreuse, Nicole, Escoffier**.
+Current roster: **Arlecchino, Mualani, Varesa, Iansan, Chevreuse, Nicole, Escoffier, Mavuika, Citlali, Bennett, Xilonen, Sucrose**.
+
+Preset teams: Varesa with Iansan, Chevreuse and Nicole; Mavuika's Melt teams (with Citlali, Escoffier and Bennett; Citlali, Xilonen and Bennett; Citlali, Xilonen and Iansan, after [KQM's guide](https://keqingmains.com/q/mavuika-quickguide/)). The Team button picks any party of up to four.
 
 ## Features
 
-- **Solo and team runs.** Up to 4 members share one clock (event queue) against one enemy, with swaps (gcsim's `swap_delay`), team buffs, shared particles, elemental resonance, and Pyro/Electro auras with Overloaded.
+- **Solo and team runs.** Up to 4 members share one clock (event queue) against one enemy, with swaps (gcsim's `swap_delay`), team buffs (stats and infusions), shared particles, elemental resonance, and Pyro/Electro/Cryo auras with Overloaded and Melt.
 - **Expected or rolled damage.** Expected values average CRITs. The Simulate button rolls them.
-- **Real builds.** Enter the character screen totals, or the five artifacts, and the engine computes the screen stats from them.
-- **Combat timeline.** Every action, hit, status and resource on one zoomable timeline, with playback, drag-and-drop rotation editing, a combat log, a damage summary, the enemy's state and each member's character sheet.
+- **Real builds.** Enter the character screen totals, or the five artifacts, and the engine computes the screen stats from them. Each build can wear another catalog weapon or artifact set; typed totals follow the change.
+- **Combat timeline.** Every action, hit, status and resource on one zoomable timeline, with playback, a combat log, a damage summary, the enemy's state and each member's character sheet.
+- **Rotation editor.** Drag-and-drop blocks; an E block with a Hold toggle, a held Charged Attack's spins; pick several blocks (Ctrl/Shift + click, Shift + drag a rectangle) to move or delete them together. Edited rotations are kept in the browser.
 - **Validation at load.** Every file is parsed with zod, and every resource or status it names is checked, so a malformed kit fails at import instead of producing `NaN` damage.
 
 ## How it works
@@ -42,6 +44,7 @@ simulateKit.ts (solo) / simulateTeam.ts (team) → results → UI (_components/)
 | Path (under `src/app/genshin-dps-simulator/`)     | Role                                                                   |
 | ------------------------------------------------- | ---------------------------------------------------------------------- |
 | `_data/characters/*.json`                         | One file per character                                                 |
+| `_data/weapons/*.json`, `_data/sets/*.json`       | The weapon and artifact set catalog (`_lib/catalog.ts`)                |
 | `_data/reactions.json`                            | Reaction formulas (Vaporize, Melt, Overloaded)                         |
 | `_lib/characterData.ts`                           | `CHARACTER_FILES` registry, `loadCharacterFile()`                      |
 | `_lib/characterSchema.ts`, `_lib/actionSchema.ts` | Character and talent schemas; `getCharacterActions()` compiles actions |
@@ -145,8 +148,10 @@ These keep the engine generic. Read them before proposing a change.
 
 ### Add a character
 
-1. Write `_data/characters/<name>.json` with gcsim's frames and rules (`internal/characters/<name>/*.go`, multipliers in `zz_<name>.dm.go`) and the talent tables. Copy the structure of an existing character with similar mechanics.
-2. Validate and simulate it before registering, with `loadCharacterFile()` (`_lib/characterData.ts`) and `simulateLoadedCharacter()` (`_lib/engine/simulateKit.ts`).
+1. Scaffold the drafts (written to `scripts/scaffolds/`, not loaded by the app):
+   - `npx tsx scripts/scaffold/character.ts <gcsim key> --weapon "<name>" --set "<name>"`: stats, ascension stat, every talent table, icons, official texts, and gcsim's frames.
+   - `npx tsx scripts/scaffold/weapon.ts "<name>"` and `scripts/scaffold/set.ts "<name>"` for catalog entries it needs.
+2. Write the mechanics (forms, blocks, systems, `automatic`, defaults) and save it as `_data/characters/<name>.json`. Check it unregistered with `npx tsx scripts/scaffold/check.ts <file> [--team id,id]`; `scripts/scaffold/build.ts` gives a standard build's screen totals.
 3. Add the import to `CHARACTER_FILES` in `_lib/characterData.ts`. The invariants in `__tests__/invariants.test.ts` then cover it automatically.
 4. Add cases to `__tests__/goldenCases.ts`, then regenerate the golden file with `npx tsx scripts/sim-golden.ts`.
 5. Add a row to the "What each character uses" table in `CLAUDE.md`.
@@ -190,14 +195,13 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.
 
 Gaps in the engine, roughly in order of impact. The details are in `CLAUDE.md`.
 
-- A general aura and reaction table for teams (Vaporize/Melt in teams, Crystallize, Electro-Charged, Swirl, coexisting auras, application ICD)
+- The rest of the reaction table in teams: Swirl (Sucrose's A1, VV 4-piece), Crystallize, Vaporize with Hydro auras, Electro-Charged, coexisting auras
 - Additive reactions (Aggravate, Spread) and the remaining transformative reactions
-- A Crystallize pickup event, and resonances as data (Geo, Hydro, Cryo, Dendro)
-- A shield state, and a party-element-count condition
-- `ofStat: "baseAtk"` (Bennett), and infusion carried by team buffs
-- Healing and shields as simulated values
+- A party shield state, more resonances (Geo, Hydro, Dendro, Anemo)
+- Team buffs by the receiver's element or weapon, per-member counters, charges changed by a constellation, a Nightsoul Burst a kit can force (Xilonen, Sucrose)
+- Healing and shields as simulated values; a jump action (Mavuika's Flamestrider plunge)
 
-Planned characters include Mavuika, Flins, Navia, Zhongli and Bennett.
+Planned characters include Flins, Navia and Zhongli.
 
 ## Getting started
 
@@ -210,9 +214,11 @@ pnpm install
 pnpm dev
 ```
 
-Then open [http://localhost:3000/genshin-dps-simulator](http://localhost:3000/genshin-dps-simulator).
+Then open [http://localhost:3000](http://localhost:3000).
 
-On Vercel, the site URL (metadata, sitemap) comes from the production domain. Elsewhere, set `SITE_URL` (for example `https://example.com`, no trailing `/`).
+### Deploy on Vercel
+
+Import the GitHub repository in Vercel; it detects Next.js and pnpm. Set the environment variable `ENABLE_EXPERIMENTAL_COREPACK=1` (so it uses the `packageManager` pnpm version) and Node.js 20 or later. Every push to `main` deploys. The site URL (metadata, sitemap) comes from the production domain; elsewhere, set `SITE_URL` (for example `https://example.com`, no trailing `/`).
 
 | Command           | What it does                              |
 | ----------------- | ----------------------------------------- |
@@ -224,10 +230,11 @@ On Vercel, the site URL (metadata, sitemap) comes from the production domain. El
 | `pnpm lint`       | Lint with ESLint                          |
 | `pnpm format`     | Format with Prettier                      |
 
-**Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui on Radix, zod, `@dnd-kit`, Vitest. The solar canvas uses three.js with `@react-three/fiber` and `@react-three/drei`.
+**Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui on Radix, zod, `@dnd-kit`, Vitest.
 
 ## Credits
 
 - Frames, hitmarks and kit rules: [gcsim](https://github.com/genshinsim/gcsim)
+- Rotations for Mavuika's teams: [KQM's Mavuika guide](https://keqingmains.com/q/mavuika-quickguide/)
 - Ascension stats: [Project Amber](https://gi.yatta.moe)
 - Bootstrapped from [theodorusclarence/ts-nextjs-tailwind-starter](https://github.com/theodorusclarence/ts-nextjs-tailwind-starter)
