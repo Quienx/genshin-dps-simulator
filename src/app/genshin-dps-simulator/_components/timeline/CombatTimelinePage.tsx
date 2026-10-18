@@ -41,7 +41,12 @@ import {
 } from './shareRotation';
 import { SourceLegend } from './sourceStyles';
 import TimelineChart, { TimelineMember } from './TimelineChart';
-import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
+import {
+  applyDrop,
+  DragPayload,
+  groupNormalCombos,
+  holdLimitOf,
+} from './timelineData';
 import TimelineHeader, {
   TeamActions,
   TimelineScenario,
@@ -1124,6 +1129,7 @@ const CombatTimeline = ({
             rotation={edit.rotation}
             selected={selectedBlock}
             selection={selection}
+            holdLimit={holdLimitOf(view.actions, selectedBlock)}
             onChange={edit.onChange}
             onSelect={setSelectedBlock}
             onClearSelection={() => setPicked([])}

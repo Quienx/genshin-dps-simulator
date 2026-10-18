@@ -39,6 +39,7 @@ import { SOURCE_STYLES, SourceKind, sourceKindOfChip } from './sourceStyles';
 import {
   ActionGroup,
   actionTitle,
+  closingHits,
   describeTrigger,
   displayAction,
   DragPayload,
@@ -621,12 +622,22 @@ const buildGroups = (
                   <span
                     key={`${segment.performed}@${segment.start}`}
                     data-testid='timeline-action-segment'
-                    title={`${segment.hits} × ${
-                      segmentAction?.label.replace(/^[^:]+:\s*/, '') ?? ''
-                    }`}
+                    title={
+                      segment.past
+                        ? `${segment.hits} ${
+                            segment.hits === 1 ? 'hit' : 'hits'
+                          } after its state ended (the game cuts the spin there)`
+                        : `${segment.hits} × ${
+                            segmentAction?.label.replace(/^[^:]+:\s*/, '') ?? ''
+                          }`
+                    }
                     className={cn(
                       'absolute inset-y-0 flex items-center justify-center',
-                      index > 0 && 'border-l-2 border-slate-950/70'
+                      index > 0 && 'border-l-2 border-slate-950/70',
+                      // Its own animation going on past its state: the same
+                      // action, faded and striped.
+                      segment.past &&
+                        'bg-[repeating-linear-gradient(135deg,rgb(2_6_23/0.35)_0_4px,transparent_4px_8px)] opacity-60'
                     )}
                     style={{
                       left: segmentLeft,
@@ -662,6 +673,19 @@ const buildGroups = (
                 )}
               </span>
             )}
+            {/* The frame its closing hit lands (the Final of a spin): a
+                gold bar, apart from the dark ones between stretches. */}
+            {closingHits(view.hits, action.blockUid, action.characterId)
+              .filter((hit) => hit.time > action.start && hit.time < action.end)
+              .map((hit) => (
+                <span
+                  key={hit.index}
+                  data-testid='timeline-action-closing-hit'
+                  aria-label={`${hit.label} at ${hit.time.toFixed(2)} s`}
+                  className='pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-amber-300 shadow-[0_0_3px_rgb(252_211_77/0.8)]'
+                  style={{ left: ruler.toX(hit.time) - from }}
+                />
+              ))}
             {warned && (
               <TriangleAlert
                 data-testid='timeline-action-warned'

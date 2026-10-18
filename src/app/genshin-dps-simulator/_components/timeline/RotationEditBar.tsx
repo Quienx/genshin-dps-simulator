@@ -53,6 +53,9 @@ type RotationEditBarProps = {
   // picked (several: moved, removed or cleared together).
   selected: string | null;
   selection?: string[];
+  // How long the picked held block can go before the state its form lasts
+  // while ends (the Flamestrider), from the last run; null: no limit.
+  holdLimit?: { frames: number; label: string } | null;
   onChange: (rotation: RotationSetting) => void;
   onSelect: (blockUid: string | null) => void;
   onClearSelection?: () => void;
@@ -138,6 +141,7 @@ const HoldControls = ({
   block,
   canCancel,
   hold,
+  limit,
   onChange,
 }: {
   block: RotationBlock;
@@ -145,6 +149,9 @@ const HoldControls = ({
   // its Final hit be turned off.
   canCancel: boolean;
   hold: NonNullable<NonNullable<RotationAction['count']>['hold']>;
+  // Until when its form lasts (the Flamestrider), from its start: no
+  // charge past it (the Final still comes after the release).
+  limit?: { frames: number; label: string } | null;
   onChange: (patch: Partial<RotationBlock>) => void;
 }) => {
   const frames = heldFramesOf(block, hold);
@@ -152,17 +159,29 @@ const HoldControls = ({
   // With no Final hit (a Dash after), it can be let go sooner.
   const minFrames = minHeldFramesOf(block, hold);
   const [text, setText] = useState<string | null>(null);
+  // The longest hold: the action's, or until its form ends (as the last
+  // run played it), never under its minimum.
+  const longest = limit
+    ? Math.max(minFrames, Math.min(hold.maxFrames, limit.frames))
+    : hold.maxFrames;
   const setFrames = (next: number) =>
     onChange({
       heldSeconds: toHeldSeconds(
-        Math.min(hold.maxFrames, Math.max(minFrames, Math.round(next)))
+        Math.min(longest, Math.max(minFrames, Math.round(next)))
       ),
     });
   // The frame of charge `n` (1 = the first).
   const chargeFrame = (n: number) =>
     hold.firstHitFrame + (n - 1) * hold.hitEveryFrames;
-  const canNext = chargeFrame(charges + 1) <= hold.maxFrames;
-  const maxCharges = chargesIn(hold.maxFrames, hold);
+  const canNext = chargeFrame(charges + 1) <= longest;
+  const maxCharges = chargesIn(longest, hold);
+  // Held past where its form ends (a change before it shortened it).
+  const over = frames > longest;
+  // The time typed is when its closing hit lands (the Final), from the
+  // start; with none (cancelled at the release), when it is let go.
+  const closingAfter =
+    block.noFinal === true ? 0 : hold.closingAfterFrames ?? 0;
+  const shown = (held: number) => ((held + closingAfter) / 60).toFixed(2);
   // Down to no charge at all when it can be let go before the first.
   const fewest = minFrames < hold.firstHitFrame ? 0 : 1;
   const canPrev = charges > fewest;
@@ -181,17 +200,28 @@ const HoldControls = ({
       </button>
       <input
         type='number'
-        aria-label='Hold (seconds)'
+        aria-label={
+          closingAfter > 0
+            ? 'Final hit lands at (seconds)'
+            : 'Let go at (seconds)'
+        }
+        title={
+          closingAfter > 0
+            ? `When the Final hit lands, from the start (it lands ${(
+                closingAfter / 60
+              ).toFixed(2)} s after letting go)`
+            : 'When the spin is let go, from the start (no Final hit)'
+        }
         data-testid='timeline-block-held'
-        value={text ?? (frames / 60).toFixed(2)}
-        min={minFrames / 60}
-        max={hold.maxFrames / 60}
+        value={text ?? shown(frames)}
+        min={shown(minFrames)}
+        max={shown(longest)}
         step={0.01}
         onChange={(event) => setText(event.target.value)}
         onBlur={() => {
           const next = Number(text);
           if (text !== null && Number.isFinite(next)) {
-            setFrames(next * 60);
+            setFrames(next * 60 - closingAfter);
           }
           setText(null);
         }}
@@ -202,7 +232,7 @@ const HoldControls = ({
         }}
         className='h-6 w-14 [appearance:textfield] rounded border border-slate-700/60 bg-slate-950/60 px-1 text-center font-mono text-[11px] text-slate-100 focus:border-sky-500 focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
       />
-      s
+      s{closingAfter > 0 ? ' (Final)' : ''}
       <button
         type='button'
         data-testid='timeline-block-charge-next'
@@ -251,6 +281,33 @@ const HoldControls = ({
           </Menu.Content>
         </Menu.Portal>
       </Menu.Root>
+      {/* Where its form ends: up to how many charges fit, or (held past
+          it after a change before) a click back to that. */}
+      {limit && longest < hold.maxFrames && (
+        <button
+          type='button'
+          data-testid='timeline-block-hold-limit'
+          disabled={!over}
+          onClick={() => setFrames(longest)}
+          title={
+            over
+              ? `Held past where the ${limit.label} ends: its charges after it would not be dealt. Click to hold until then.`
+              : `The ${limit.label} ends ${(limit.frames / 60).toFixed(
+                  2
+                )} s into it: no charge after that (the Final still comes).`
+          }
+          className={cn(
+            'ml-1 rounded px-1.5 py-0.5 text-[10px]',
+            over
+              ? 'bg-amber-500/25 text-amber-100 hover:bg-amber-500/35'
+              : 'text-slate-400'
+          )}
+        >
+          {over
+            ? `Only ${maxCharges} fit: hold until then`
+            : `max ${maxCharges} (${limit.label} ends)`}
+        </button>
+      )}
       {/* A disabled button gets no hover: the tooltip sits on a wrapper,
           so it says why the Final cannot be turned off. */}
       <TooltipProvider delayDuration={150}>
@@ -382,6 +439,7 @@ const RotationEditBar = ({
   rotation,
   selected,
   selection = [],
+  holdLimit = null,
   onChange,
   onSelect,
   onClearSelection,
@@ -545,6 +603,7 @@ const RotationEditBar = ({
                 block={playedHold(block, nextBlock, actions)}
                 canCancel={cancelsHold(block, nextBlock, actions)}
                 hold={action.count.hold}
+                limit={holdLimit}
                 onChange={(patch) =>
                   onChange(updateBlock(rotation, block.uid, patch))
                 }

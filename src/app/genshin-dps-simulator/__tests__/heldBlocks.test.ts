@@ -65,11 +65,11 @@ describe('a held block', () => {
       heldSeconds: 0.1,
       noFinal: true,
     };
-    // Alone, or before a Normal Attack: the Final lands, after the
-    // minimum spin.
+    // Alone, or before a Normal Attack: not cancelled, the Final lands
+    // after it is let go.
     [[spin], [spin, createTeamBlock('mavuika:normal')]].forEach((blocks) => {
       const [step] = expandBlocks({ loop: false, blocks }, actions);
-      expect(step.held).toEqual({ frames: 50 });
+      expect(step.held).toEqual({ frames: 6 });
     });
     // A Dash after: cancelled.
     const [dashed] = expandBlocks(

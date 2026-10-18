@@ -148,8 +148,9 @@ export const talentActionSchema = z.object({
       max: z.number().int().min(1),
       hold: z
         .object({
-          // The shortest hold the animation allows (gcsim's minimum).
-          minFrames: frameSchema.min(1),
+          // The shortest hold before its closing hit (gcsim's minimum; 0:
+          // let go at once, the closing hit with no repeated one before).
+          minFrames: frameSchema.min(0),
           // The shortest one cancelled at the release (no Final hit: a
           // Dash right after), when that can be shorter (Mavuika's spin,
           // dashed out before its first hit lands). None: `minFrames`.
@@ -663,6 +664,7 @@ const repeatOf = (
       releaseFrame: number;
       everyFrames: number;
       firstHitFrame: number;
+      closingAfterFrames?: number;
       hitEveryFrames: number;
       cancelledBy?: string[];
     };
@@ -683,6 +685,12 @@ const repeatOf = (
     .find((action) => action?.repeat === widest);
   const firstHitFrame =
     holder?.hits?.find((hit) => hit.repeats)?.frame ?? widest.everyFrames;
+  // Its closing hit (the Final): how long after the release it lands.
+  const closing = widest.hold
+    ? holder?.hits?.find(
+        (hit) => !hit.repeats && hit.frame > (widest.hold?.releaseFrame ?? 0)
+      )
+    : undefined;
   return {
     count: {
       label: widest.label,
@@ -698,6 +706,12 @@ const repeatOf = (
               releaseFrame: widest.hold.releaseFrame,
               everyFrames: widest.everyFrames,
               firstHitFrame,
+              ...(closing && widest.hold
+                ? {
+                    closingAfterFrames:
+                      closing.frame - widest.hold.releaseFrame,
+                  }
+                : {}),
               hitEveryFrames: widest.hold.hitEveryFrames,
               ...(widest.hold.cancelledBy
                 ? { cancelledBy: widest.hold.cancelledBy }

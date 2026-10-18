@@ -31,7 +31,7 @@ const blockSchema = z.object({
   seconds: z.number().min(0),
   dashCancel: z.boolean(),
   hold: z.boolean().optional(),
-  heldSeconds: z.number().positive().optional(),
+  heldSeconds: z.number().min(0).optional(),
   noFinal: z.boolean().optional(),
 });
 

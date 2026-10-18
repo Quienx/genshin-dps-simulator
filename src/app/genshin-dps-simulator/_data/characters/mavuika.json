@@ -189,7 +189,7 @@
             "everyFrames": 45,
             "max": 8,
             "hold": {
-              "minFrames": 50,
+              "minFrames": 0,
               "cancelMinFrames": 6,
               "releaseFrame": 56,
               "maxFrames": 375,
@@ -212,7 +212,7 @@
               "icd": "MavuikaFlamestrider"
             }
           ],
-          "note": "Held for the block's Hold time (50 to 375 frames: gcsim's shortest spin before the Final and its cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release, unless a Dash (the Sprint on the bike), an E, a Q or a swap comes next: it cancels the spin at the release (no Final; gcsim's bikeChargeFrames), and then it can be let go from 0.1 s (no hit before the first Cyclic one at 35). A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
+          "note": "Held for the block's Hold time (0 to 375 frames: from letting go at once, the Final landing 0.75 s after the start as seen in-game, where gcsim spins 50 frames first; to gcsim's cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release, unless a Dash (the Sprint on the bike), an E, a Q or a swap comes next: it cancels the spin at the release (no Final; gcsim's bikeChargeFrames), and then it can be let go from 0.1 s (no hit before the first Cyclic one at 35). A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
         }
       ]
     },

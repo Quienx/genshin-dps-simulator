@@ -53,7 +53,7 @@ export const rotationActionSchema = z.object({
       max: z.number().int().min(1),
       hold: z
         .object({
-          minFrames: z.number().int().min(1),
+          minFrames: z.number().int().min(0),
           // The shortest hold with no Final hit (none: `minFrames`).
           cancelMinFrames: z.number().int().min(1).optional(),
           maxFrames: z.number().int().min(1),
@@ -61,6 +61,8 @@ export const rotationActionSchema = z.object({
           everyFrames: z.number().int().min(1),
           // Its repeated hits (the charges): the first, then every …
           firstHitFrame: z.number().int().min(0),
+          // Its closing hit (the Final): frames after the release.
+          closingAfterFrames: z.number().int().min(0).optional(),
           hitEveryFrames: z.number().int().min(1),
           // The next blocks (action ids or kinds) that cancel it.
           cancelledBy: z.array(z.string()).optional(),

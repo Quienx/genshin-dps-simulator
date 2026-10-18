@@ -1000,19 +1000,26 @@ export const describeSystemStatus = (
 
 // A block's runs of one form, in order: the form each part was played as
 // (null: the action itself), from its first part's start, with how many
-// parts. One run: it played one form throughout. A part is split only
-// when its repeated hits went on after its state ended (`formEnd`: spins
-// past the Flamestrider); a closing hit (the Final) is still the form's.
-// `hits` counts parts, or a split part's hits.
+// parts. One run: it played one form throughout. A part whose repeated
+// hits went on after its state ended (`formEnd`: spins past the
+// Flamestrider) is two runs of its form, the second `past` it: it is
+// still that action's animation, not another action. `hits` counts parts,
+// or a split part's hits.
+export type FormSegment = {
+  performed: string | null;
+  start: number;
+  hits: number;
+  past?: boolean;
+};
 export const formSegments = (
   parts: Pick<
     ActionPiece,
     'performedActionId' | 'start' | 'skipped' | 'formEnd'
   >[]
-): { performed: string | null; start: number; hits: number }[] =>
+): FormSegment[] =>
   parts
     .filter((part) => !part.skipped)
-    .flatMap((part) =>
+    .flatMap((part): FormSegment[] =>
       part.formEnd && part.performedActionId
         ? [
             {
@@ -1021,21 +1028,65 @@ export const formSegments = (
               hits: part.formEnd.within,
             },
             {
-              performed: null,
+              performed: part.performedActionId,
               start: part.formEnd.at,
               hits: part.formEnd.after,
+              past: true,
             },
           ]
         : [{ performed: part.performedActionId, start: part.start, hits: 1 }]
     )
-    .reduce<{ performed: string | null; start: number; hits: number }[]>(
-      (segments, segment) => {
-        const last = segments.at(-1);
-        if (last && last.performed === segment.performed) {
-          last.hits += segment.hits;
-          return segments;
-        }
-        return [...segments, { ...segment }];
-      },
-      []
+    .reduce<FormSegment[]>((segments, segment) => {
+      const last = segments.at(-1);
+      if (
+        last &&
+        last.performed === segment.performed &&
+        Boolean(last.past) === Boolean(segment.past)
+      ) {
+        last.hits += segment.hits;
+        return segments;
+      }
+      return [...segments, { ...segment }];
+    }, []);
+
+// The closing hits of a held action that landed in a block (the Final of
+// Mavuika's spin): its hits that are not repeated ones.
+export const closingHits = (
+  hits: EnemyHit[],
+  blockUid: string,
+  characterId: string
+): EnemyHit[] =>
+  hits.filter((hit) => {
+    if (
+      hit.blockUid !== blockUid ||
+      hit.characterId !== characterId ||
+      !hit.actionId ||
+      !hit.row
+    ) {
+      return false;
+    }
+    const action = getLoadedCharacter(characterId).actions[hit.actionId];
+    return Boolean(
+      action?.repeat?.hold &&
+        action.hits?.some((entry) => entry.row === hit.row && !entry.repeats)
     );
+  });
+
+// How long the picked block can be held (frames from its start): until the
+// state its form lasts while ends (Mavuika's spin: the Flamestrider), as
+// the last run played it; null: no such limit.
+export const holdLimitOf = (
+  actions: ActionPiece[],
+  blockUid: string | null
+): { frames: number; label: string } | null => {
+  const piece = actions.find(
+    (action) => action.blockUid === blockUid && !action.skipped
+  );
+  if (!piece?.formEnds) {
+    return null;
+  }
+  return {
+    frames: Math.floor((piece.formEnds.at - piece.start) * 60 + 1e-9),
+    label: piece.formEnds.label,
+  };
+};

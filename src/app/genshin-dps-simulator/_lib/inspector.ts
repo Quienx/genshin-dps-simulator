@@ -223,6 +223,9 @@ export type ActionPiece = {
   // still going (spins past the Flamestrider): when (s), and its hits
   // before and after.
   formEnd?: { at: number; within: number; after: number };
+  // Played as a form that lasts while a status: when that status ended
+  // (s) and its name, for how long a hold of it can go (the editor).
+  formEnds?: { at: number; label: string };
 };
 
 // A hit on the enemy, and the enemy's aura after a hit.
@@ -232,6 +235,9 @@ export type EnemyHit = {
   time: number;
   characterId: string;
   blockUid: string | null;
+  // The talent row it was dealt from, and the action that dealt it.
+  row: string | null;
+  actionId: string | null;
   label: string;
   element: string;
   reaction: string;
@@ -499,6 +505,30 @@ const isSequence = (actionId: string | undefined): actionId is string => {
       (action) => action.id === id
     )?.steps
   );
+};
+
+// A hit's name by its action; one of several kinds of hit of it (a spin's
+// Cyclic hits and its Final) by its talent row ("…Cyclic DMG" → "…Cyclic").
+const actionHitLabel = (
+  characterId: string,
+  actionId: string,
+  row: string | undefined
+): string | undefined => {
+  const { character, actions } = getLoadedCharacter(characterId);
+  const action = actions[actionId];
+  const rows = new Set((action?.hits ?? []).map((hit) => hit.row));
+  if (!action || !row || rows.size < 2) {
+    return action?.label;
+  }
+  const [talentId, rowId] = row.split('/');
+  const label = character.talents
+    .find((talent) => talent.id === talentId)
+    ?.rows.find((entry) => entry.id === rowId)?.label;
+  // A generic one ("Skill DMG", the game's name for Xilonen's Q hit) says
+  // less than the action's.
+  return label && !/^(Elemental )?(Skill|Burst) DMG$/.test(label)
+    ? label.replace(/\s+DMG$/, '')
+    : action.label;
 };
 
 export const buildInspectorView = (
@@ -1395,6 +1425,9 @@ export const buildInspectorView = (
             interval.start <= startFrame && startFrame < interval.end
         );
         const endsAt = span ? toSeconds(span.end) : null;
+        if (endsAt !== null) {
+          action.formEnds = { at: endsAt, label: status.label };
+        }
         const hits =
           endsAt !== null && endsAt < action.end
             ? (
@@ -1503,10 +1536,11 @@ export const buildInspectorView = (
           time: hit.time,
           characterId: member.characterId,
           blockUid: hit.blockUid ?? null,
+          row: hit.row ?? null,
+          actionId: hit.actionId ?? null,
           label:
             (hit.actionId &&
-              getLoadedCharacter(member.characterId).actions[hit.actionId]
-                ?.label) ||
+              actionHitLabel(member.characterId, hit.actionId, hit.row)) ||
             (hit.sourceId &&
               // Its own block, else the member's that made it (a hit dealt
               // as the attacker: Nicole's Arcane Projections).
