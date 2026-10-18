@@ -30,6 +30,10 @@ export type KitAction =
       stepId?: string;
       count?: number;
       held?: HeldStep;
+      // Its charge cancel, picked and allowed: the `into` action starts
+      // `frames` into it; `quickLocked`: picked but locked out.
+      quick?: { into: string; frames: number };
+      quickLocked?: boolean;
     }
   | { kind: 'dodge' }
   | { kind: 'wait'; frames: number }
@@ -355,6 +359,15 @@ export const createKitAdapter = ({
     previous: KitAction,
     next: KitAction | null
   ): number => {
+    // A charge cancel: its `into` action starts that soon.
+    if (
+      previous.kind === 'cast' &&
+      previous.quick &&
+      next &&
+      getActionKeys(next).includes(previous.quick.into)
+    ) {
+      return previous.quick.frames;
+    }
     const cancels = getCancels(previous);
     const key =
       cancels && next
@@ -436,7 +449,8 @@ export const createKitAdapter = ({
     previousStart: number,
     seconds = 0,
     count?: number,
-    held?: HeldStep
+    held?: HeldStep,
+    quickCancel = false
   ): KitAction | null => {
     // A Dash plays the kit's own dash while it holds (the Flamestrider
     // Sprint on the bike).
@@ -456,7 +470,35 @@ export const createKitAdapter = ({
           })
         ) {
           const action = toAction(dashId, previous, seconds);
-          return action?.kind === 'cast' ? { ...action, stepId: id } : action;
+          if (action?.kind !== 'cast') {
+            return action;
+          }
+          // Its charge cancel, picked: allowed after an `after` action,
+          // unless that one was let go mid-spin at a locked-out frame.
+          const quick = dash.quickCancel;
+          if (
+            quickCancel &&
+            quick &&
+            getActionKeys(previous).includes(quick.after)
+          ) {
+            const since = frame - previousStart;
+            const { lockout } = quick;
+            const locked =
+              previous.kind === 'cast' &&
+              Boolean(previous.held?.cancel) &&
+              lockout !== undefined &&
+              since >= lockout.fromFrame &&
+              (since - lockout.fromFrame) % lockout.everyFrames <
+                lockout.frames;
+            return locked
+              ? { ...action, stepId: id, quickLocked: true }
+              : {
+                  ...action,
+                  stepId: id,
+                  quick: { into: quick.into, frames: quick.frames },
+                };
+          }
+          return { ...action, stepId: id };
         }
       }
     }
@@ -544,7 +586,8 @@ export const createKitAdapter = ({
       previousStart,
       step.seconds,
       step.count,
-      step.held
+      step.held,
+      step.quickCancel
     );
     if (!action) {
       return null;
@@ -569,7 +612,8 @@ export const createKitAdapter = ({
         previousStart,
         step.seconds,
         step.count,
-        step.held
+        step.held,
+        step.quickCancel
       )
     );
     const { startFrame } = ready;
@@ -734,6 +778,9 @@ export const createKitAdapter = ({
   ): string | null => {
     if (planned.action.kind === 'skipped') {
       return planned.action.reason;
+    }
+    if (planned.action.kind === 'cast' && planned.action.quickLocked) {
+      return 'Charge cancel locked out: the spin was let go at a locked angle, the next Charged Attack waits the full dash';
     }
     if (planned.action.kind === 'cast' && planned.action.held?.cancel) {
       return 'Cancelled by the next action: no Final hit';

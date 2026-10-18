@@ -26,6 +26,7 @@ import { TimelineMember } from './TimelineChart';
 import { applyDrop, DragPayload } from './timelineData';
 import RotationActionIcon from '../rotation/RotationActionIcon';
 import { describeActionCost, getActionCost } from '../../_lib/actionCosts';
+import { getLoadedCharacter } from '../../_lib/characterData';
 import {
   isFieldAction,
   splitTeamActionId,
@@ -113,6 +114,83 @@ const Stepper = ({
     </button>
   </span>
 );
+
+// A Dash block's charge cancel (Mavuika's CDC), when its member's dash has
+// one: on between two of the actions it joins (her spins), the next one
+// starts that many frames into the Dash instead of at its cancel.
+const QuickCancelToggle = ({
+  block,
+  previous,
+  next,
+  onChange,
+}: {
+  block: RotationBlock;
+  previous: RotationBlock | undefined;
+  next: RotationBlock | undefined;
+  onChange: (quickCancel: boolean) => void;
+}) => {
+  const { characterId } = splitTeamActionId(block.action);
+  const quick = Object.values(getLoadedCharacter(characterId).actions).find(
+    (entry) => entry.quickCancel
+  )?.quickCancel;
+  if (!quick) {
+    return null;
+  }
+  const isMembers = (entry: RotationBlock | undefined, id: string) =>
+    entry !== undefined &&
+    splitTeamActionId(entry.action).characterId === characterId &&
+    splitTeamActionId(entry.action).actionId === id;
+  const between =
+    isMembers(previous, quick.after) && isMembers(next, quick.into);
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-testid='timeline-block-quick-cancel-tip'
+            tabIndex={between ? undefined : 0}
+            className='ml-2 inline-flex'
+          >
+            <button
+              type='button'
+              data-testid='timeline-block-quick-cancel'
+              aria-pressed={between && block.quickCancel === true}
+              disabled={!between}
+              onClick={() => onChange(!block.quickCancel)}
+              className={cn(
+                'rounded border px-2 py-0.5 text-[11px] disabled:pointer-events-none disabled:opacity-60',
+                between && block.quickCancel === true
+                  ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
+                  : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
+              )}
+            >
+              CDC
+            </button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent
+          side='top'
+          className='max-w-72 border-slate-700 bg-slate-900 text-[11px] text-slate-200'
+        >
+          <p className='font-semibold text-slate-50'>
+            Charge → Dash → Charge (CDC)
+          </p>
+          <p className='mt-1'>
+            This Charged Attack cancels the Dash before it: it starts{' '}
+            {quick.frames} frames into the Dash instead of waiting for it to
+            end, so the spin begins sooner and everything after it moves up. The
+            Dash still deals its hit.
+          </p>
+          <p className='mt-1 text-slate-400'>
+            {between
+              ? 'On by itself when this Charged Attack is dropped right after a Dash. Not possible when the spin before the Dash was let go at a locked angle (79–87 frames into it, then every 45): the run warns and the Dash plays in full.'
+              : 'Only after a Dash that follows another Charged Attack of this character.'}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 // What cancels a held action at its release, in words ("a Dash, an E, a
 // Q or another member's block").
@@ -597,6 +675,25 @@ const RotationEditBar = ({
                 }
               />
             )}
+            {/* A Charged Attack right after a Dash that follows another
+                one (Mavuika's CDC): it can cancel that Dash. The flag is
+                the Dash's, the action it cuts short. */}
+            {(() => {
+              const index = rotation.blocks.indexOf(block);
+              const dash = rotation.blocks[index - 1];
+              return action.kind === 'charged' &&
+                dash &&
+                splitTeamActionId(dash.action).actionId === 'dodge' ? (
+                <QuickCancelToggle
+                  block={dash}
+                  previous={rotation.blocks[index - 2]}
+                  next={block}
+                  onChange={(quickCancel) =>
+                    onChange(updateBlock(rotation, dash.uid, { quickCancel }))
+                  }
+                />
+              ) : null;
+            })()}
             {/* A held action with a hold time: how long, how it ends. */}
             {action.count?.hold && (
               <HoldControls

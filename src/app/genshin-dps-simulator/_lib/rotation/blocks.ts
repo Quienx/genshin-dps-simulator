@@ -408,6 +408,7 @@ export const updateBlock = (
       | 'hold'
       | 'heldSeconds'
       | 'noFinal'
+      | 'quickCancel'
     >
   >
 ): RotationSetting => ({
@@ -446,6 +447,9 @@ const toStep = (
   action: action.id,
   kind: action.kind,
   seconds: block.seconds,
+  ...(block.quickCancel && action.kind === 'dodge'
+    ? { quickCancel: true }
+    : {}),
 });
 
 const expandRepetition = (

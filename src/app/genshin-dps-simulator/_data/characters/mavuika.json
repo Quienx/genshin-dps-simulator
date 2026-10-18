@@ -515,9 +515,19 @@
               "icd": "MavuikaFlamestrider"
             }
           ],
-          "note": "Her dash on the Flamestrider (a Dash block there plays it): a Pyro hit (no Skill DMG bonuses: gcsim tags it none), 10 Nightsoul points.",
+          "note": "Her dash on the Flamestrider (a Dash block there plays it): a Pyro hit (no Skill DMG bonuses: gcsim tags it none), 10 Nightsoul points. Between two spins, its charge cancel (a Dash block's CDC check) starts the next spin 6 frames in, not 20: gcsim's charge_cancel; not when the spin before was let go (no Final) 79 to 87 frames into it or a 45-frame turn after (gcsim's cdcLockout).",
           "asDodgeWhile": {
             "status": "flamestrider"
+          },
+          "quickCancel": {
+            "after": "charged",
+            "into": "charged",
+            "frames": 6,
+            "lockout": {
+              "fromFrame": 79,
+              "frames": 9,
+              "everyFrames": 45
+            }
           }
         }
       ],

@@ -174,6 +174,27 @@ export const talentActionSchema = z.object({
   // What a Dash block plays while this holds (Mavuika's Flamestrider
   // Sprint on the Flamestrider: her dash button is the Sprint there).
   asDodgeWhile: conditionSchema.optional(),
+  // A cancel the user can pick for a block of it (its "charge cancel"):
+  // between an `after` and an `into` action (Mavuika's Sprint between two
+  // spins), the `into` one starts `frames` into it instead of at its
+  // cancel. Not while the `after` one was let go mid-spin at a `lockout`
+  // frame (from its start: `fromFrame`, for `frames`, every `everyFrames`).
+  quickCancel: z
+    .object({
+      after: actionIdSchema,
+      into: actionIdSchema,
+      frames: frameSchema.min(1),
+      lockout: z
+        .object({
+          fromFrame: frameSchema.min(0),
+          frames: frameSchema.min(1),
+          everyFrames: frameSchema.min(1),
+        })
+        .strict()
+        .optional(),
+    })
+    .strict()
+    .optional(),
 });
 
 const elementSchema = z.enum([
@@ -329,6 +350,13 @@ export type ActionData = {
   holdOf?: string;
   // A Dash block plays this one while it holds (see `asDodgeWhile`).
   asDodgeWhile?: Condition;
+  // Its pickable charge cancel (see the schema's `quickCancel`).
+  quickCancel?: {
+    after: string;
+    into: string;
+    frames: number;
+    lockout?: { fromFrame: number; frames: number; everyFrames: number };
+  };
   // Held for a count the block sets (see the talent action's `repeat`).
   repeat?: RepeatData;
 };
@@ -574,6 +602,7 @@ const toExtraAction = (
     holdOf: extra.holdOf,
     repeat: extra.repeat,
     asDodgeWhile: extra.asDodgeWhile,
+    quickCancel: extra.quickCancel,
   };
 };
 

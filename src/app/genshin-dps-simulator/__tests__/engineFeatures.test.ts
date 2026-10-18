@@ -2413,3 +2413,50 @@ describe('a combo form that starts over (resetsCombo)', () => {
     ]);
   });
 });
+
+describe("a dash's charge cancel (quickCancel: Mavuika's CDC)", () => {
+  const starts = (
+    first: Record<string, unknown>,
+    quickCancel: boolean
+  ): { dash: number; next: number; warning: string | null } => {
+    const run = runTeam(
+      {
+        members: [buildMemberValues('mavuika')],
+        rotation: {
+          loop: false,
+          blocks: [
+            { ...createTeamBlock('mavuika:skill'), hold: true },
+            { ...createTeamBlock('mavuika:charged'), ...first },
+            { ...createTeamBlock('mavuika:dodge'), quickCancel },
+            { ...createTeamBlock('mavuika:charged'), heldSeconds: 0.6 },
+          ],
+        },
+        fillWhileWaiting: false,
+        swapDelayFrames: 0,
+        auras: false,
+      },
+      'expected'
+    );
+    const [, , dash, next] = run.trace;
+    return {
+      dash: Math.round(dash.startTime * 60),
+      next: Math.round(next.startTime * 60),
+      warning: dash.warning,
+    };
+  };
+
+  it('starts the next spin 6 frames into the Sprint, not 20', () => {
+    const plain = starts({ heldSeconds: 0.6 }, false);
+    const cancelled = starts({ heldSeconds: 0.6 }, true);
+    expect(plain.next - plain.dash).toBe(20);
+    expect(cancelled.dash).toBe(plain.dash);
+    expect(cancelled.next - cancelled.dash).toBe(6);
+  });
+
+  it('is locked out when the spin before was let go at a locked angle', () => {
+    // Let go 83 frames into the spin (no Final): within 79-87.
+    const locked = starts({ heldSeconds: 1.38, noFinal: true }, true);
+    expect(locked.next - locked.dash).toBe(20);
+    expect(locked.warning).toMatch(/^Charge cancel locked out/);
+  });
+});

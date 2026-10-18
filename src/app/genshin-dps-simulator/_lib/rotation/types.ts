@@ -19,6 +19,9 @@ export type RotationBlock = {
   // Dash) right after turns it off; the user can turn it back on.
   heldSeconds?: number;
   noFinal?: boolean;
+  // A Dash block: its charge cancel, when the kit's dash has one (Mavuika's
+  // Sprint between two spins: the next spin starts sooner).
+  quickCancel?: boolean;
 };
 
 // null in SimulationValues means "automatic": the character's built-in
@@ -41,6 +44,8 @@ export type RotationStep = {
   // A held action with a hold time: for how many frames, and whether the
   // next step cancels it at the release (a Dash: no Final hit).
   held?: { frames: number; cancel?: boolean };
+  // A Dash step with its charge cancel picked (see RotationBlock).
+  quickCancel?: boolean;
 };
 
 export type RotationTraceEntry = {

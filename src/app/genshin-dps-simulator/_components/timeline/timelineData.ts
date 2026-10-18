@@ -155,13 +155,54 @@ const settle = (
   uids: string[],
   rowMember: string | null = null
 ) =>
-  cancelHoldsBefore(
-    uids.length === 1
-      ? nameFieldAction(rotation, uids[0], rowMember)
-      : rotation,
-    actions,
+  quickCancelsBefore(
+    cancelHoldsBefore(
+      uids.length === 1
+        ? nameFieldAction(rotation, uids[0], rowMember)
+        : rotation,
+      actions,
+      uids
+    ),
     uids
   );
+
+// A block dropped right after a Dash that follows the action it joins
+// (a Charged Attack after Mavuika's Sprint after a spin): that Dash takes
+// its charge cancel (CDC), as a player would; it can be turned off.
+export const quickCancelsBefore = (
+  rotation: RotationSetting,
+  uids: string[]
+): RotationSetting => {
+  const ownerOf = (id: string) => splitTeamActionId(id);
+  const blocks = rotation.blocks.map((block, index) => {
+    const next = rotation.blocks[index + 1];
+    const before = rotation.blocks[index - 1];
+    if (
+      !next ||
+      !before ||
+      !uids.includes(next.uid) ||
+      ownerOf(block.action).actionId !== 'dodge' ||
+      block.quickCancel
+    ) {
+      return block;
+    }
+    const { characterId } = ownerOf(block.action);
+    const quick = Object.values(getLoadedCharacter(characterId).actions).find(
+      (entry) => entry.quickCancel
+    )?.quickCancel;
+    const isMembers = (entry: RotationBlock, id: string) =>
+      ownerOf(entry.action).characterId === characterId &&
+      ownerOf(entry.action).actionId === id;
+    return quick &&
+      isMembers(before, quick.after) &&
+      isMembers(next, quick.into)
+      ? { ...block, quickCancel: true }
+      : block;
+  });
+  return blocks.every((block, index) => block === rotation.blocks[index])
+    ? rotation
+    : { ...rotation, blocks };
+};
 
 // A drop before `beforeUid` (null: at the end): a palette action becomes a
 // new block there (picked), or a block moves there. Dropped on its own
