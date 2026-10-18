@@ -2,7 +2,8 @@
 // spins) and how many charges (repeated hits) that gets.
 import { describe, expect, it } from 'vitest';
 
-import { chargesIn, heldFramesOf } from '../_lib/rotation/blocks';
+import { chargesIn, expandBlocks, heldFramesOf } from '../_lib/rotation/blocks';
+import { createTeamBlock, getTeamActions } from '../_lib/team';
 
 const hold = {
   minFrames: 50,
@@ -31,5 +32,28 @@ describe('a held block', () => {
     expect(chargesIn(78, hold)).toBe(2);
     expect(chargesIn(375, hold)).toBe(9);
     expect(chargesIn(30, hold)).toBe(0);
+  });
+});
+
+describe('a held block before a Dash', () => {
+  const actions = getTeamActions(['mavuika']);
+  const steps = (heldSeconds: number) =>
+    expandBlocks(
+      {
+        loop: false,
+        blocks: [
+          { ...createTeamBlock('mavuika:charged'), heldSeconds },
+          createTeamBlock('mavuika:dodge'),
+        ],
+      },
+      actions
+    );
+
+  it('is cancelled by it', () => {
+    expect(steps(1.3)[0].held?.cancel).toBe(true);
+  });
+
+  it('keeps its Final when held to the cap (the game forces it)', () => {
+    expect(steps(6.25)[0].held?.cancel).toBeUndefined();
   });
 });

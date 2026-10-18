@@ -331,7 +331,13 @@ export const updateBlock = (
   patch: Partial<
     Pick<
       RotationBlock,
-      'hits' | 'repeat' | 'seconds' | 'dashCancel' | 'hold' | 'heldSeconds'
+      | 'hits'
+      | 'repeat'
+      | 'seconds'
+      | 'dashCancel'
+      | 'hold'
+      | 'heldSeconds'
+      | 'keepFinal'
     >
   >
 ): RotationSetting => ({
@@ -402,7 +408,10 @@ const expandRepetition = (
         ? {
             ...step,
             count,
-            held: { frames: heldFramesOf(block, held) },
+            held: {
+              frames: heldFramesOf(block, held),
+              ...(block.keepFinal ? { keepFinal: true } : {}),
+            },
           }
         : { ...step, count },
     ];
@@ -423,7 +432,7 @@ export const expandBlocks = (
   actions: RotationAction[]
 ): RotationStep[] => {
   const dodge = actions.find((action) => action.kind === 'dodge');
-  return setting.blocks.flatMap((block) => {
+  const steps = setting.blocks.flatMap((block) => {
     const action = findAction(actions, block.action);
     if (!action) {
       return [];
@@ -435,6 +444,28 @@ export const expandBlocks = (
       { length: Math.max(1, block.repeat) },
       () => repetition
     ).flat();
+  });
+  // A held step followed by one that cancels it (a Dash) is cancelled,
+  // unless it keeps its Final or is held to the cap (the Final is forced).
+  return steps.map((step, index) => {
+    const hold = step.held
+      ? findAction(actions, step.blockAction ?? step.action)?.count?.hold
+      : undefined;
+    const next = steps[index + 1];
+    if (
+      !step.held ||
+      !hold?.cancelledBy ||
+      !next ||
+      step.held.keepFinal ||
+      step.held.frames >= hold.maxFrames
+    ) {
+      return step;
+    }
+    const { cancelledBy } = hold;
+    const nextId = next.action.split(':').pop() ?? next.action;
+    return cancelledBy.includes(nextId) || cancelledBy.includes(next.kind)
+      ? { ...step, held: { ...step.held, cancel: true } }
+      : step;
   });
 };
 

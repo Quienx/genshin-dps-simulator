@@ -60,6 +60,8 @@ export const rotationActionSchema = z.object({
           // Its repeated hits (the charges): the first, then every …
           firstHitFrame: z.number().int().min(0),
           hitEveryFrames: z.number().int().min(1),
+          // The next blocks (action ids or kinds) that cancel it.
+          cancelledBy: z.array(z.string()).optional(),
         })
         .optional(),
     })

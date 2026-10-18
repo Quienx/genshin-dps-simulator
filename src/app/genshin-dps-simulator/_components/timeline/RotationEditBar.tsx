@@ -1,4 +1,5 @@
 import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
+import * as Menu from '@radix-ui/react-dropdown-menu';
 import {
   ChevronLeft,
   ChevronRight,
@@ -125,6 +126,7 @@ const HoldControls = ({
   const chargeFrame = (n: number) =>
     hold.firstHitFrame + (n - 1) * hold.hitEveryFrames;
   const canNext = chargeFrame(charges + 1) <= hold.maxFrames;
+  const maxCharges = chargesIn(hold.maxFrames, hold);
   const canPrev = charges > 1;
   return (
     <span className='flex items-center gap-1'>
@@ -174,12 +176,57 @@ const HoldControls = ({
         Next charge
         <ChevronRight className='size-3' />
       </button>
-      <span
-        data-testid='timeline-block-charges'
-        className='ml-1 rounded bg-sky-500/20 px-1.5 py-0.5 font-medium text-sky-100'
+      {/* How many charges: the tag opens a list to hold until one. */}
+      <Menu.Root>
+        <Menu.Trigger asChild>
+          <button
+            type='button'
+            aria-label='Charges'
+            data-testid='timeline-block-charges'
+            className='ml-1 rounded bg-sky-500/20 px-1.5 py-0.5 font-medium text-sky-100 outline-none hover:bg-sky-500/30 focus-visible:ring-1 focus-visible:ring-sky-400'
+          >
+            {charges} {charges === 1 ? 'charge' : 'charges'}
+          </button>
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Content
+            align='start'
+            sideOffset={4}
+            className='z-50 min-w-28 rounded-md border border-slate-700 bg-slate-900 p-1 text-[11px] text-slate-100 shadow-xl'
+          >
+            {Array.from({ length: maxCharges }, (_, index) => index + 1).map(
+              (n) => (
+                <Menu.Item
+                  key={n}
+                  data-testid={`timeline-block-charges-${n}`}
+                  onSelect={() => setFrames(chargeFrame(n))}
+                  className={cn(
+                    'cursor-pointer rounded px-2 py-1 outline-none select-none data-[highlighted]:bg-slate-800',
+                    n === charges && 'text-sky-200'
+                  )}
+                >
+                  {n} {n === 1 ? 'charge' : 'charges'}
+                </Menu.Item>
+              )
+            )}
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu.Root>
+      <button
+        type='button'
+        data-testid='timeline-block-keep-final'
+        aria-pressed={block.keepFinal === true}
+        title='Always release for the Final hit, even with a Dash next (else the Dash cancels the spin)'
+        onClick={() => onChange({ keepFinal: !block.keepFinal })}
+        className={cn(
+          'ml-2 rounded border px-2 py-0.5',
+          block.keepFinal
+            ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
+            : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
+        )}
       >
-        {charges} {charges === 1 ? 'charge' : 'charges'}
-      </span>
+        Final hit
+      </button>
     </span>
   );
 };

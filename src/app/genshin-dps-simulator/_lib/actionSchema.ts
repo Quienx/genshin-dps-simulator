@@ -138,6 +138,9 @@ export const talentActionSchema = z.object({
   // and the hits after them, its end and its cancels come as much after
   // the release as they do after `releaseFrame`. A block with no hold time
   // is held for its count: `releaseFrame` + (count - 1) × `everyFrames`.
+  // `cancelledBy`: the next blocks (action ids or kinds: a Dash) that
+  // cancel it at the release: none of the later hits, it ends there, and
+  // `<id>/cancel` fires.
   repeat: z
     .object({
       label: z.string(),
@@ -150,6 +153,7 @@ export const talentActionSchema = z.object({
           releaseFrame: frameSchema.min(1),
           maxFrames: frameSchema.min(1),
           hitEveryFrames: frameSchema.min(1),
+          cancelledBy: z.array(z.string()).optional(),
         })
         .strict()
         .optional(),
@@ -162,6 +166,9 @@ export const talentActionSchema = z.object({
   // The hold of this action ("skill"): no palette item of its own, it is
   // that action's block with Hold on.
   holdOf: actionIdSchema.optional(),
+  // What a Dash block plays while this holds (Mavuika's Flamestrider
+  // Sprint on the Flamestrider: her dash button is the Sprint there).
+  asDodgeWhile: conditionSchema.optional(),
 });
 
 const elementSchema = z.enum([
@@ -253,6 +260,7 @@ export type HoldData = {
   releaseFrame: number;
   maxFrames: number;
   hitEveryFrames: number;
+  cancelledBy?: string[];
 };
 export type RepeatData = {
   label: string;
@@ -304,6 +312,8 @@ export type ActionData = {
   hidden?: boolean;
   // The action whose block plays this one with Hold on (a hold E).
   holdOf?: string;
+  // A Dash block plays this one while it holds (see `asDodgeWhile`).
+  asDodgeWhile?: Condition;
   // Held for a count the block sets (see the talent action's `repeat`).
   repeat?: RepeatData;
 };
@@ -548,6 +558,7 @@ const toExtraAction = (
     energyCost: extra.energyCost,
     holdOf: extra.holdOf,
     repeat: extra.repeat,
+    asDodgeWhile: extra.asDodgeWhile,
   };
 };
 
@@ -637,6 +648,7 @@ const repeatOf = (
       everyFrames: number;
       firstHitFrame: number;
       hitEveryFrames: number;
+      cancelledBy?: string[];
     };
   };
 } => {
@@ -668,6 +680,9 @@ const repeatOf = (
               everyFrames: widest.everyFrames,
               firstHitFrame,
               hitEveryFrames: widest.hold.hitEveryFrames,
+              ...(widest.hold.cancelledBy
+                ? { cancelledBy: widest.hold.cancelledBy }
+                : {}),
             },
           }
         : {}),

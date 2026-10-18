@@ -102,7 +102,7 @@ export const createKitAdapter = ({
     hold: HoldData,
     held: HeldStep
   ): ActionData => {
-    const key = `${id}@${held.frames}`;
+    const key = `${id}@${held.frames}${held.cancel ? 'c' : ''}`;
     const known = heldCasts.get(key);
     if (known) {
       return known;
@@ -124,20 +124,26 @@ export const createKitAdapter = ({
               frame: hit.frame + index * hold.hitEveryFrames,
             }));
           }
-          return hit.frame <= hold.releaseFrame
-            ? [hit]
-            : [{ ...hit, frame: hit.frame + shift }];
+          if (hit.frame <= hold.releaseFrame) {
+            return [hit];
+          }
+          return held.cancel ? [] : [{ ...hit, frame: hit.frame + shift }];
         })
         .sort((first, second) => first.frame - second.frame),
-      end: cast.end === undefined ? undefined : cast.end + shift,
+      end: held.cancel
+        ? held.frames
+        : cast.end === undefined
+        ? undefined
+        : cast.end + shift,
       cancels:
-        cast.cancels &&
-        Object.fromEntries(
-          Object.entries(cast.cancels).map(([name, frame]) => [
-            name,
-            frame + shift,
-          ])
-        ),
+        held.cancel || !cast.cancels
+          ? undefined
+          : Object.fromEntries(
+              Object.entries(cast.cancels).map(([name, frame]) => [
+                name,
+                frame + shift,
+              ])
+            ),
     };
     heldCasts.set(key, timed);
     return timed;
@@ -429,6 +435,28 @@ export const createKitAdapter = ({
     count?: number,
     held?: HeldStep
   ): KitAction | null => {
+    // A Dash plays the kit's own dash while it holds (the Flamestrider
+    // Sprint on the bike).
+    if (id === 'dodge') {
+      const asDodge = Object.entries(actions).find(
+        ([, entry]) => entry.asDodgeWhile
+      );
+      const dodge = toAction(id, previous, seconds);
+      if (asDodge && dodge) {
+        const frame = getEarliestFrame(dodge, previous, previousStart);
+        settle(frame);
+        const [dashId, dash] = asDodge;
+        if (
+          dash.asDodgeWhile &&
+          runtime.evaluate(dash.asDodgeWhile, frame, {
+            previous: getActionKeys(previous),
+          })
+        ) {
+          const action = toAction(dashId, previous, seconds);
+          return action?.kind === 'cast' ? { ...action, stepId: id } : action;
+        }
+      }
+    }
     const replacements = actions[id]?.replacements ?? [];
     const base = toAction(id, previous, seconds, count, held);
     if (replacements.length > 0 && base) {
@@ -704,6 +732,9 @@ export const createKitAdapter = ({
     if (planned.action.kind === 'skipped') {
       return planned.action.reason;
     }
+    if (planned.action.kind === 'cast' && planned.action.held?.cancel) {
+      return 'Cancelled by the next Dash: no Final hit';
+    }
     if (waitedFrames > 0) {
       const waitedFor =
         waitedForForm.get(planned) ?? getLabel(step, planned.action);
@@ -873,6 +904,19 @@ export const createKitAdapter = ({
       runtime.fireTriggers('use', keys, startFrame, entry);
       // Teammates see it by its kind too: Kablam is a Q.
       runtime.shareUse(Array.from(new Set([...keys, cast.kind])), startFrame);
+      // A cancelled hold: `<id>/cancel` at the release (its Final hit,
+      // which would clean up after it, never comes).
+      if (action.held?.cancel) {
+        const { frames } = action.held;
+        schedule(startFrame + frames, (eventFrame) =>
+          runtime.fireTriggers(
+            'event',
+            [`${action.id}/cancel`],
+            eventFrame,
+            entry
+          )
+        );
+      }
       cast.hits?.forEach((hit) =>
         scheduleHit(
           startFrame + hit.frame,

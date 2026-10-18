@@ -191,7 +191,8 @@
               "minFrames": 50,
               "releaseFrame": 56,
               "maxFrames": 375,
-              "hitEveryFrames": 42
+              "hitEveryFrames": 42,
+              "cancelledBy": ["dodge"]
             }
           },
           "hits": [
@@ -209,7 +210,7 @@
               "icd": "MavuikaFlamestrider"
             }
           ],
-          "note": "Held for the block's Hold time (50 to 375 frames: gcsim's shortest spin before the Final and its cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release. A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
+          "note": "Held for the block's Hold time (50 to 375 frames: gcsim's shortest spin before the Final and its cap): a Cyclic hit at 35, then every 42 frames (gcsim's minimum between hits, the enemy in range), and the Final hit 45 frames after release, unless a Dash (the Sprint on the bike) comes next: it cancels the spin at the release (no Final). A block without a Hold time is held for its Spins (56 frames, plus 45 per extra spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
         }
       ]
     },
@@ -512,7 +513,10 @@
               "icd": "MavuikaFlamestrider"
             }
           ],
-          "note": "Her dash on the Flamestrider: a Pyro hit (no Skill DMG bonuses: gcsim tags it none), 10 Nightsoul points."
+          "note": "Her dash on the Flamestrider (a Dash block there plays it): a Pyro hit (no Skill DMG bonuses: gcsim tags it none), 10 Nightsoul points.",
+          "asDodgeWhile": {
+            "status": "flamestrider"
+          }
         }
       ],
       "forms": [
@@ -1073,6 +1077,21 @@
       "icon": "Skill_S_Mavuika_02",
       "when": {
         "hit": "elementalSkill/skillChargeFinal"
+      },
+      "do": [
+        {
+          "removeStatus": "bikeSpin"
+        }
+      ]
+    },
+    {
+      "id": "bike-charged-cancel",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Flamestrider Charged Attack cancelled: the spin ends",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "event": "flamestriderCharged/cancel"
       },
       "do": [
         {
@@ -1733,7 +1752,7 @@
   ],
   "rotation": {
     "automaticDescription": "Hold E (Flamestrider), then the Q when she has 100 Fighting Spirit, and Flamestrider Normal Attacks; the E again on the Flamestrider when it is ready. Physical Normal Attacks when Nightsoul's Blessing is down.",
-    "palette": ["skill", "burst", "charged", "flamestriderSprint"]
+    "palette": ["skill", "burst", "charged"]
   },
   "systems": {
     "nightsoul": {
