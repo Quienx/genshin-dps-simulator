@@ -138,7 +138,9 @@ const ShareMenu = ({ current, label, onImport }: ShareMenuProps) => {
 
   return (
     <div className='relative'>
-      <Menu.Root>
+      {/* Not modal: a modal menu that opens the paste window leaves the page
+          without pointer events once that window closes (Radix). */}
+      <Menu.Root modal={false}>
         <Menu.Trigger asChild>
           <button
             type='button'
