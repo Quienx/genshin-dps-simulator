@@ -1282,7 +1282,7 @@ const TimelineRows = memo(function TimelineRows({
             data-testid={`timeline-group-${group.id}`}
             className='border-t border-slate-700/50'
           >
-            <div className='flex h-8'>
+            <div className='flex h-10'>
               {labelPx > 0 && (
                 <button
                   type='button'
@@ -1316,7 +1316,7 @@ const TimelineRows = memo(function TimelineRows({
                   data-row-member={
                     row.id.startsWith('action-') ? row.id.slice(7) : undefined
                   }
-                  className='flex h-7 hover:bg-slate-800/30'
+                  className='flex h-8 hover:bg-slate-800/30'
                 >
                   {labelPx > 0 && (
                     <div
@@ -1334,6 +1334,20 @@ const TimelineRows = memo(function TimelineRows({
                   </div>
                 </div>
               ))}
+            {/* Room after a section's rows, so sections stand apart. */}
+            {open && group.rows.length > 0 && (
+              <div aria-hidden className='flex h-3'>
+                {labelPx > 0 && (
+                  <div
+                    className='sticky left-0 z-20 shrink-0 border-r border-slate-700/50 bg-slate-950'
+                    style={{ width: labelPx }}
+                  />
+                )}
+                <div className='relative' style={{ width: trackWidth }}>
+                  {gridLines}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
