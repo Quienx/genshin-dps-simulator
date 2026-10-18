@@ -1212,6 +1212,95 @@ export const buildInspectorView = (
     );
   });
 
+  // A status that stops a special system's points from being spent
+  // (Mavuika's Q: `{ not: { status } }` in a drain's or a spending op's
+  // `if`): a block of its own with those points, next to the system, so a
+  // frozen bar shows why. Its bonuses keep their own block.
+  members.forEach((member, characterId) => {
+    const activity = member.activity;
+    if (!activity || !actors.has(characterId)) {
+      return;
+    }
+    const blocks = statusBlocks.get(characterId) ?? [];
+    const paused = new Map<string, { resource: string; spenders: string[] }>();
+    const pause = (condition: unknown, resource: string, spender: string) => {
+      if (resource !== NIGHTSOUL_ID && resource !== BOND_OF_LIFE_ID) {
+        return;
+      }
+      const statusId = JSON.stringify(condition ?? {}).match(
+        /\{"not":\{"status":"([^"]+)"\}\}/
+      )?.[1];
+      if (!statusId) {
+        return;
+      }
+      const entry = paused.get(statusId) ?? { resource, spenders: [] };
+      if (!entry.spenders.includes(spender)) {
+        entry.spenders.push(spender);
+      }
+      paused.set(statusId, entry);
+    };
+    blocks.forEach((block) => {
+      const label = member.blocks.get(block.id)?.label ?? block.label;
+      if (block.type === 'status' && block.drain) {
+        pause(block.drain.if, block.drain.resource, label);
+      }
+      if (block.type === 'trigger') {
+        block.do.forEach((op) => {
+          if (
+            'addResource' in op &&
+            typeof op.amount === 'number' &&
+            op.amount < 0
+          ) {
+            pause(op.if, op.addResource, label);
+          }
+        });
+      }
+    });
+    paused.forEach(({ resource, spenders }, statusId) => {
+      const status = member.blocks.get(statusId);
+      // Its own block (classified above) lends its source and tooltip.
+      const own = chips.find(
+        (chip) => chip.characterId === characterId && chip.blockId === statusId
+      );
+      (activity.statuses[statusId] ?? []).forEach((interval, index) => {
+        if (interval.start >= limit) {
+          return;
+        }
+        chips.push({
+          key: `${characterId}#pause#${statusId}#${index}`,
+          blockId: statusId,
+          type: 'state',
+          kind: 'status',
+          sourceTag: own?.sourceTag ?? '',
+          sourceName: own?.sourceName ?? null,
+          sourceText: own?.sourceText ?? null,
+          characterId,
+          holder: null,
+          label: status?.label ?? statusId,
+          source: status?.source ?? 'talent',
+          iconUrl: status
+            ? getBlockIconUrl(member.character, status)
+            : own?.iconUrl ?? null,
+          value: `No ${member.blocks.get(resource)?.label ?? resource} spent`,
+          effect: `Pauses: ${spenders.join(', ')}.`,
+          start: toSeconds(interval.start),
+          end: toSeconds(Math.min(interval.end, limit)),
+          meter: {
+            resource,
+            label: member.blocks.get(resource)?.label ?? resource,
+            bounds: { gt: 0 },
+            points: (activity.resources[resource] ?? []).map((entry) => ({
+              time: toSeconds(entry.frame),
+              value: entry.value,
+            })),
+            max: member.blocks.get(resource)?.max ?? null,
+            format: member.blocks.get(resource)?.format ?? null,
+          },
+        });
+      });
+    });
+  });
+
   // A heal of one tick is instant, at its tick.
   chips.forEach((chip) => {
     if (chip.kind === 'heal' && chip.ticks?.length === 1) {

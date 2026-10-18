@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   Block,
   blockSchema,
+  conditionSchema,
   flagNumberSchema,
   frames,
   opSchema,
@@ -31,7 +32,10 @@ const paramsSchema = z
             everyFrames: frames.positive(),
             amount: z.number().positive().default(1),
             firstAfterFrames: frames.optional(),
+            // A tick spends nothing while this does not hold (Mavuika's Q).
+            if: conditionSchema.optional(),
           })
+          .strict()
           .optional(),
         // Or it lasts a fixed time (Varesa's Fiery Passion).
         durationFrames: frames.optional(),

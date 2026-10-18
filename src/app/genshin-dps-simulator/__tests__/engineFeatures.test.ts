@@ -405,6 +405,57 @@ describe('nightsoul system', () => {
     expect(icdFor('3')).toBeLessThan(12 * 60);
   });
 
+  it("keeps the Blessing drain's if (no points spent during Mavuika's Q)", () => {
+    // A Charged Attack fills the points and enters the Blessing, with a
+    // 10 s status that stops the drain.
+    const file = editCharacter('arlecchino', (character) => {
+      character.systems.nightsoul = {
+        maxPoints: 40,
+        blessing: {
+          drain: {
+            everyFrames: 6,
+            amount: 1,
+            if: { not: { status: 'noDrain' } },
+          },
+        },
+      };
+      character.blocks.push(
+        {
+          id: 'noDrain',
+          type: 'status',
+          source: 'talent',
+          label: 'No drain',
+          durationFrames: 600,
+        },
+        {
+          id: 'charged-blessing',
+          type: 'trigger',
+          source: 'talent',
+          label: 'Charged Attack: full points, Blessing, no drain',
+          when: { use: 'charged' },
+          do: [
+            { addResource: 'nightsoul', amount: 40 },
+            { applyStatus: 'nightsoulBlessing' },
+            { applyStatus: 'noDrain' },
+          ],
+        }
+      );
+    });
+    const { result } = simulateFile(file, {
+      blocks: [block('ca', 'charged')],
+    });
+    const [noDrain] = result.activity?.statuses.noDrain ?? [];
+    const spent = (result.activity?.resources.nightsoul ?? []).filter(
+      ({ frame, value }) =>
+        frame > noDrain.start && frame < noDrain.end && value < 40
+    );
+    expect(spent).toEqual([]);
+    // Then the 40 points drain, one every 6 frames.
+    const [blessing] = result.activity?.statuses.nightsoulBlessing ?? [];
+    expect(blessing.end).toBeGreaterThan(noDrain.end + 39 * 6);
+    expect(blessing.end).toBeLessThanOrEqual(noDrain.end + 40 * 6);
+  });
+
   it('rejects a Blessing that both drains and has a duration', () => {
     const file = timedBlessing({ drain: { everyFrames: 6 } });
     expect(() => simulateFile(file)).toThrow(/either drains/);

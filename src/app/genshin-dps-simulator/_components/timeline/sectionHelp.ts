@@ -227,6 +227,7 @@ export const SECTION_HELP = {
     shows: [
       'Nightsoul’s Blessing and the modes inside it (the Flamestrider, Opal Fire).',
       'Effects that spend or give their points.',
+      'Effects that stop their points from being spent (Mavuika’s Q), with the points frozen.',
     ],
   },
   laneBuffs: {
