@@ -26,6 +26,7 @@ import {
 import {
   chargesIn,
   heldFramesOf,
+  minHeldFramesOf,
   removeBlock,
   removeBlocks,
   updateBlock,
@@ -115,19 +116,22 @@ const HoldControls = ({
 }) => {
   const frames = heldFramesOf(block, hold);
   const charges = chargesIn(frames, hold);
+  // With no Final hit (a Dash after), it can be let go sooner.
+  const minFrames = minHeldFramesOf(block, hold);
   const [text, setText] = useState<string | null>(null);
   const setFrames = (next: number) =>
     onChange({
       heldSeconds:
-        Math.min(hold.maxFrames, Math.max(hold.minFrames, Math.round(next))) /
-        60,
+        Math.min(hold.maxFrames, Math.max(minFrames, Math.round(next))) / 60,
     });
   // The frame of charge `n` (1 = the first).
   const chargeFrame = (n: number) =>
     hold.firstHitFrame + (n - 1) * hold.hitEveryFrames;
   const canNext = chargeFrame(charges + 1) <= hold.maxFrames;
   const maxCharges = chargesIn(hold.maxFrames, hold);
-  const canPrev = charges > 1;
+  // Down to no charge at all when it can be let go before the first.
+  const fewest = minFrames < hold.firstHitFrame ? 0 : 1;
+  const canPrev = charges > fewest;
   return (
     <span className='flex items-center gap-1'>
       <button
@@ -146,7 +150,7 @@ const HoldControls = ({
         aria-label='Hold (seconds)'
         data-testid='timeline-block-held'
         value={text ?? (frames / 60).toFixed(2)}
-        min={hold.minFrames / 60}
+        min={minFrames / 60}
         max={hold.maxFrames / 60}
         step={0.01}
         onChange={(event) => setText(event.target.value)}
@@ -194,21 +198,22 @@ const HoldControls = ({
             sideOffset={4}
             className='z-50 min-w-28 rounded-md border border-slate-700 bg-slate-900 p-1 text-[11px] text-slate-100 shadow-xl'
           >
-            {Array.from({ length: maxCharges }, (_, index) => index + 1).map(
-              (n) => (
-                <Menu.Item
-                  key={n}
-                  data-testid={`timeline-block-charges-${n}`}
-                  onSelect={() => setFrames(chargeFrame(n))}
-                  className={cn(
-                    'cursor-pointer rounded px-2 py-1 outline-none select-none data-[highlighted]:bg-slate-800',
-                    n === charges && 'text-sky-200'
-                  )}
-                >
-                  {n} {n === 1 ? 'charge' : 'charges'}
-                </Menu.Item>
-              )
-            )}
+            {Array.from(
+              { length: maxCharges - fewest + 1 },
+              (_, index) => index + fewest
+            ).map((n) => (
+              <Menu.Item
+                key={n}
+                data-testid={`timeline-block-charges-${n}`}
+                onSelect={() => setFrames(chargeFrame(n))}
+                className={cn(
+                  'cursor-pointer rounded px-2 py-1 outline-none select-none data-[highlighted]:bg-slate-800',
+                  n === charges && 'text-sky-200'
+                )}
+              >
+                {n} {n === 1 ? 'charge' : 'charges'}
+              </Menu.Item>
+            ))}
           </Menu.Content>
         </Menu.Portal>
       </Menu.Root>

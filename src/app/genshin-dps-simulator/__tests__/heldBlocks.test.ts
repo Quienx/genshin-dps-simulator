@@ -26,6 +26,38 @@ describe('a held block', () => {
     expect(heldFramesOf({ hits: 1, heldSeconds: 99 }, hold)).toBe(375);
   });
 
+  it('with no Final hit, can be let go from cancelMinFrames', () => {
+    const dashed = { ...hold, cancelMinFrames: 6 };
+    expect(
+      heldFramesOf({ hits: 1, heldSeconds: 0.1, noFinal: true }, dashed)
+    ).toBe(6);
+    // Before the first charge (35): none lands.
+    expect(chargesIn(6, dashed)).toBe(0);
+    expect(chargesIn(36, dashed)).toBe(1);
+    // With the Final, the game spins its minimum first.
+    expect(heldFramesOf({ hits: 1, heldSeconds: 0.1 }, dashed)).toBe(50);
+    // Without cancelMinFrames, the minimum stays.
+    expect(
+      heldFramesOf({ hits: 1, heldSeconds: 0.1, noFinal: true }, hold)
+    ).toBe(50);
+  });
+
+  it("plays no hit when Mavuika's spin is dashed out at 0.1 s", () => {
+    const actions = getTeamActions(['mavuika']);
+    const setting = cancelHoldsBefore(
+      {
+        loop: false,
+        blocks: [
+          { ...createTeamBlock('mavuika:charged'), heldSeconds: 0.1 },
+          createTeamBlock('mavuika:dodge'),
+        ],
+      },
+      actions
+    );
+    const [step] = expandBlocks(setting, actions);
+    expect(step.held).toEqual({ frames: 6, cancel: true });
+  });
+
   it('without one, is held for its spins as before', () => {
     // 4 spins: 56 + 3 × 45, so the Final lands where it did.
     expect(heldFramesOf({ hits: 4 }, hold)).toBe(191);

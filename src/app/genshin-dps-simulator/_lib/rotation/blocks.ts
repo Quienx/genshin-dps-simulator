@@ -299,18 +299,29 @@ export const selectRange = (
   return uids.slice(Math.min(from, to), Math.max(from, to) + 1);
 };
 
+// The shortest hold a block allows: shorter with no Final hit, when the
+// action says so (Mavuika's spin, dashed out before its first hit).
+export const minHeldFramesOf = (
+  block: Pick<RotationBlock, 'noFinal'>,
+  hold: NonNullable<NonNullable<RotationAction['count']>['hold']>
+): number =>
+  block.noFinal ? hold.cancelMinFrames ?? hold.minFrames : hold.minFrames;
+
 // How many frames a held action's block holds it: its hold time, else
 // its spins (`releaseFrame` + one spin per extra count), within what the
 // action allows.
 export const heldFramesOf = (
-  block: Pick<RotationBlock, 'hits' | 'heldSeconds'>,
+  block: Pick<RotationBlock, 'hits' | 'heldSeconds' | 'noFinal'>,
   hold: NonNullable<NonNullable<RotationAction['count']>['hold']>
 ): number => {
   const frames =
     block.heldSeconds === undefined
       ? hold.releaseFrame + (Math.max(1, block.hits) - 1) * hold.everyFrames
       : Math.round(block.heldSeconds * 60);
-  return Math.min(hold.maxFrames, Math.max(hold.minFrames, frames));
+  return Math.min(
+    hold.maxFrames,
+    Math.max(minHeldFramesOf(block, hold), frames)
+  );
 };
 
 // How many repeated hits (charges) a hold of `frames` gets.

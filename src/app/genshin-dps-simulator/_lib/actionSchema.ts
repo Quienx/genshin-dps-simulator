@@ -150,6 +150,10 @@ export const talentActionSchema = z.object({
         .object({
           // The shortest hold the animation allows (gcsim's minimum).
           minFrames: frameSchema.min(1),
+          // The shortest one cancelled at the release (no Final hit: a
+          // Dash right after), when that can be shorter (Mavuika's spin,
+          // dashed out before its first hit lands). None: `minFrames`.
+          cancelMinFrames: frameSchema.min(1).optional(),
           releaseFrame: frameSchema.min(1),
           maxFrames: frameSchema.min(1),
           hitEveryFrames: frameSchema.min(1),
@@ -257,6 +261,7 @@ export type ActionHitData = {
 // A held action's count (see the talent action's `repeat`).
 export type HoldData = {
   minFrames: number;
+  cancelMinFrames?: number;
   releaseFrame: number;
   maxFrames: number;
   hitEveryFrames: number;
@@ -643,6 +648,7 @@ const repeatOf = (
     max: number;
     hold?: {
       minFrames: number;
+      cancelMinFrames?: number;
       maxFrames: number;
       releaseFrame: number;
       everyFrames: number;
@@ -675,6 +681,9 @@ const repeatOf = (
         ? {
             hold: {
               minFrames: widest.hold.minFrames,
+              ...(widest.hold.cancelMinFrames
+                ? { cancelMinFrames: widest.hold.cancelMinFrames }
+                : {}),
               maxFrames: widest.hold.maxFrames,
               releaseFrame: widest.hold.releaseFrame,
               everyFrames: widest.everyFrames,

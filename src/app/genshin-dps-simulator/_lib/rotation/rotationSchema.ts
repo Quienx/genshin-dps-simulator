@@ -54,6 +54,8 @@ export const rotationActionSchema = z.object({
       hold: z
         .object({
           minFrames: z.number().int().min(1),
+          // The shortest hold with no Final hit (none: `minFrames`).
+          cancelMinFrames: z.number().int().min(1).optional(),
           maxFrames: z.number().int().min(1),
           releaseFrame: z.number().int().min(1),
           everyFrames: z.number().int().min(1),
