@@ -1403,18 +1403,22 @@ const TimelineRows = memo(function TimelineRows({
                   type='button'
                   aria-expanded={open}
                   onClick={() => toggle(group.id)}
-                  className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-slate-700/50 bg-slate-950 px-2 text-sm font-medium text-slate-100 hover:text-white'
+                  className='sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-r border-slate-700/50 bg-slate-950 px-2 text-xs font-medium text-slate-100 hover:text-white'
                   style={{ width: labelPx }}
                 >
                   <ChevronDown
                     className={cn(
-                      'size-4 text-slate-400 transition-transform',
+                      'size-3.5 text-slate-400 transition-transform',
                       !open && '-rotate-90'
                     )}
                   />
-                  <group.Icon className='size-4 text-sky-400' aria-hidden />
-                  {group.title}
-                  <SectionHelp section={group.help} />
+                  <group.Icon
+                    className='size-3.5 shrink-0 text-sky-400'
+                    aria-hidden
+                  />
+                  <span className='truncate'>{group.title}</span>
+                  {/* At the column's right edge, the same for every group. */}
+                  <SectionHelp section={group.help} className='ml-auto' />
                 </button>
               )}
               <div className='relative' style={{ width: trackWidth }}>
