@@ -1,4 +1,10 @@
-import { Block, BonusBlock, BonusStat, SheetStat } from './engine/schema';
+import {
+  Block,
+  BonusBlock,
+  BonusStat,
+  OfStat,
+  SheetStat,
+} from './engine/schema';
 import formatNumber from './formatNumber';
 import { readFlag, readNumber } from './readValue';
 import { StatSheet } from './stats';
@@ -144,18 +150,25 @@ export const getEffectValue = (
   return effect.value[index];
 };
 
+// A bonus's stacks: the product of every `perStack` factor, each capped.
+export const countStacks = (
+  perStack: NonNullable<BonusBlock['perStack']>,
+  state: Record<string, number> | undefined
+): number =>
+  perStack.reduce(
+    (product, { state: id, max }) =>
+      product * Math.min(max, Math.max(0, state?.[id] ?? 0)),
+    1
+  );
+
+// The most stacks a bonus can have.
+export const maxStacks = (perStack: BonusBlock['perStack']): number =>
+  (perStack ?? []).reduce((product, { max }) => product * max, 1);
+
 const getStacks = (
   effect: EffectData,
   state: Record<string, number> | undefined
-): number => {
-  if (!effect.perStack) {
-    return 1;
-  }
-  return Math.min(
-    effect.perStack.max,
-    Math.max(0, state?.[effect.perStack.state] ?? 0)
-  );
-};
+): number => (effect.perStack ? countStacks(effect.perStack, state) : 1);
 
 type ActiveEffect = {
   effect: EffectData;
@@ -254,7 +267,8 @@ const EMPTY_SHEET: StatSheet = {
 const getStatTotals = (
   actives: ActiveEffect[],
   sheet: StatSheet
-): Record<SheetStat, number> => ({
+): Record<OfStat, number> => ({
+  baseAtk: sheet.base.atk,
   atk:
     sheet.total.atk +
     (sheet.base.atk * sumStat(actives, 'atkPercent')) / 100 +
@@ -306,8 +320,7 @@ export const sumHitBonuses = (
       applyCap({
         ...active,
         total:
-          (active.total * directTotals[active.effect.ofStat as SheetStat]) /
-          100,
+          (active.total * directTotals[active.effect.ofStat as OfStat]) / 100,
       })
     );
   const actives = [...direct, ...converted].filter(
@@ -339,7 +352,7 @@ export const getEffectTotal = (
   sheet: StatSheet,
   state?: Record<string, number>
 ): number => {
-  const stacks = state ? getStacks(effect, state) : effect.perStack?.max ?? 1;
+  const stacks = state ? getStacks(effect, state) : maxStacks(effect.perStack);
   const total = getEffectValue(effect, values) * stacks;
   const converted = effect.ofStat
     ? (total * getStatTotals([], sheet)[effect.ofStat]) / 100
@@ -361,7 +374,7 @@ export const getMaxDamageBonus = (
     )
     .reduce(
       (sum, effect) =>
-        sum + getEffectValue(effect, values) * (effect.perStack?.max ?? 1),
+        sum + getEffectValue(effect, values) * maxStacks(effect.perStack),
       0
     );
 

@@ -1,0 +1,59 @@
+{
+  "id": "wolfs-gravestone",
+  "name": "Wolf's Gravestone",
+  "icon": "UI_EquipIcon_Claymore_Wolfmound",
+  "type": "Claymore",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "wolfsGravestone",
+  "refinementField": "wolfsGravestoneRefinement",
+  "baseAtk": 608,
+  "substat": {
+    "stat": "atkPercent",
+    "value": 49.6
+  },
+  "rows": [
+    {
+      "id": "weapon-atk-bonus",
+      "label": "R{refinement} passive: ATK",
+      "status": "included",
+      "template": "+{param:atk}% ATK",
+      "params": {
+        "atk": [20, 25, 30, 35, 40]
+      },
+      "screenStat": {
+        "stat": "atkPercent",
+        "param": "atk"
+      }
+    },
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Wolfish Tracker",
+      "status": "included",
+      "template": "Not simulated: hits on an enemy under 30% HP give the party +{param:party}% ATK for 12 s (once every 30 s)",
+      "params": {
+        "party": [40, 50, 60, 70, 80]
+      },
+      "note": "The enemy's HP is not simulated."
+    }
+  ],
+  "passive": {
+    "name": "Wolfish Tracker",
+    "descriptions": [
+      "Increases ATK by 20%. On hit, attacks against opponents with less than 30% HP increase all party members' ATK by 40% for 12s. Can only occur once every 30s.",
+      "Increases ATK by 25%. On hit, attacks against opponents with less than 30% HP increase all party members' ATK by 50% for 12s. Can only occur once every 30s.",
+      "Increases ATK by 30%. On hit, attacks against opponents with less than 30% HP increase all party members' ATK by 60% for 12s. Can only occur once every 30s.",
+      "Increases ATK by 35%. On hit, attacks against opponents with less than 30% HP increase all party members' ATK by 70% for 12s. Can only occur once every 30s.",
+      "Increases ATK by 40%. On hit, attacks against opponents with less than 30% HP increase all party members' ATK by 80% for 12s. Can only occur once every 30s."
+    ]
+  },
+  "defaults": {
+    "numbers": {
+      "wolfsGravestoneRefinement": 1
+    },
+    "flags": {
+      "wolfsGravestone": true
+    }
+  },
+  "blocks": []
+}

@@ -25,6 +25,7 @@ import { ActionData } from '../actionSchema';
 import { CharacterData } from '../characterSchema';
 import { addHit, addTransformativeHit } from '../damageEngine';
 import {
+  countStacks,
   EffectData,
   getEffectTotal,
   isStatBonus,
@@ -34,7 +35,7 @@ import {
 import formatNumber from '../formatNumber';
 import { FRAMES_PER_SECOND } from '../frames';
 import { getTransformativeReaction, isAmplifyingReaction } from '../reactions';
-import { readFlag, readNumber } from '../readValue';
+import { readFlag, readFlagNumber, readNumber } from '../readValue';
 import { RotationTraceEntry } from '../rotation/types';
 import { buildStatSheet } from '../stats';
 import { getRowMultiplier, getRowScaling, StatScaling } from '../talents';
@@ -111,7 +112,13 @@ export const describeBlocks = (
       label: block.label,
       source: block.source,
       type: block.type,
-      max: block.type === 'resource' ? block.max : undefined,
+      // A max by flag reads as its `else` until a run settles it.
+      max:
+        block.type === 'resource'
+          ? typeof block.max === 'number'
+            ? block.max
+            : block.max.else
+          : undefined,
       format:
         block.type === 'resource' ? block.unit ?? block.noteFormat : undefined,
       stackFrames:
@@ -203,12 +210,18 @@ export type PartyLink = {
   // another buff converts (not "Extra" ones, each valued from its giver's
   // screen stats, so they never ask each other back).
   receiveEffects: (frame: number, forConversion?: boolean) => EffectData[];
+  // The element another member's infusion gives this one's Physical hit
+  // (Bennett's C6), if any.
+  receiveInfusion?: (hit: HitRequest, weaponType: string) => string | null;
   // A hit (or reaction) this character dealt: every member's `party:` and
   // `active:` triggers react to it.
   broadcastHit: (keys: string[], frame: number) => void;
   // An action this character used ("burst", its id…): every member's
   // `party:` use triggers react to it.
   broadcastUse: (keys: string[], frame: number) => void;
+  // A resource of this character changed: every member's `party:<id>`
+  // resource triggers react to it.
+  broadcastResource: (id: string, change: number, frame: number) => void;
   // An Elemental hit landing on the enemy's aura (teams with auras): the
   // reaction it triggers, if any: amplifying ("Melt", on the hit itself)
   // or transformative ("Overloaded", a hit of its own).
@@ -241,10 +254,17 @@ type RuntimeOptions = {
 const matchesHit = (
   match: BonusBlock['match'],
   hit: HitRequest,
-  element: string
+  element: string,
+  weaponType?: string
 ): boolean => {
   if (!match) {
     return true;
+  }
+  if (
+    match.weaponTypes &&
+    (!weaponType || !match.weaponTypes.includes(weaponType))
+  ) {
+    return false;
   }
   if (
     match.actions &&
@@ -253,6 +273,9 @@ const matchesHit = (
     return false;
   }
   if (match.categories && !match.categories.includes(hit.category)) {
+    return false;
+  }
+  if (match.rows && (!hit.row || !match.rows.includes(hit.row))) {
     return false;
   }
   if (match.elements && !match.elements.includes(element)) {
@@ -312,10 +335,14 @@ export const createRuntime = ({
     ...character.weapon.blocks,
   ].filter((block) => !block.ifFlag || readFlag(values, block.ifFlag));
 
+  // A flag's max (Mavuika's C1) is settled for the whole run.
   const resourceBlocks = new Map(
     blocks
       .filter((block): block is ResourceBlock => block.type === 'resource')
-      .map((block) => [block.id, block])
+      .map((block) => [
+        block.id,
+        { ...block, max: readFlagNumber(values, block.max) },
+      ])
   );
   const statusBlocks = new Map(
     blocks
@@ -427,11 +454,19 @@ export const createRuntime = ({
       .filter((block) => block.teamBuff && isStatBonus(block))
       .map((block) => [block.id, block])
   );
+  // Infusions for the party (Bennett's C6): the receiver's Physical hits
+  // they match take their element.
+  const teamInfusions = allBonuses.filter(
+    (block) => block.teamBuff && block.infuse
+  );
   const statBonuses: { block: BonusBlock; effect: EffectData }[] = bonuses
     .filter(isStatBonus)
     .map((block) => ({ block, effect: toEffect(block) }));
   const resolvedBlocks = blocks.map(
-    (block) => allBonuses.find((bonus) => bonus.id === block.id) ?? block
+    (block) =>
+      allBonuses.find((bonus) => bonus.id === block.id) ??
+      resourceBlocks.get(block.id) ??
+      block
   );
 
   // The timeline explains each bonus with this run's values.
@@ -671,6 +706,7 @@ export const createRuntime = ({
     } else {
       logPush(activity.statuses, id, { start: frame, end: instance.until });
     }
+    fireTriggers('statusStarts', [id], frame, null);
 
     const { drain } = block;
     if (drain) {
@@ -687,11 +723,13 @@ export const createRuntime = ({
         ) {
           return;
         }
-        setResource(
-          drain.resource,
-          getResource(drain.resource) - drain.amount,
-          tickFrame
-        );
+        if (!drain.if || evaluate(drain.if, tickFrame)) {
+          setResource(
+            drain.resource,
+            getResource(drain.resource) - drain.amount,
+            tickFrame
+          );
+        }
         // It lasts through the frame its last point drains, and ends (with
         // its `statusEnds` triggers) on the next one, as an expiry does.
         if (getResource(drain.resource) <= resource.min) {
@@ -734,6 +772,8 @@ export const createRuntime = ({
             category: ticks.category,
             element: ticks.element,
             scaling: rowScaling(ticks.row),
+            // Its row's `hit` key fires too (Mavuika's Rings at C6).
+            row: ticks.row,
             sourceId: id,
             blockUid: instance.blockUid,
             gauge: ticks.gauge,
@@ -772,6 +812,39 @@ export const createRuntime = ({
       applyStatusNow(id, applyFrame, entry.blockUid);
       entry.appliedUid = instances.get(id)?.uid;
     });
+  };
+
+  // Lengthens the instance that is up (A Thousand Blazing Suns).
+  const extendStatus = (id: string, extra: number, frame: number) => {
+    const instance = instances.get(id);
+    if (
+      statusBlocks.get(id)?.stacks ||
+      !instance ||
+      !isActive(id, frame) ||
+      !Number.isFinite(instance.until)
+    ) {
+      return;
+    }
+    const before = instance.until;
+    instance.until += extra;
+    logEvent('status.refresh', frame, id, { until: instance.until });
+    const application = activity.applications[id]?.at(-1);
+    if (application && application.until === before) {
+      application.until = instance.until;
+      application.end = instance.until;
+    }
+    const interval = activity.statuses[id]?.at(-1);
+    if (interval && interval.end === before) {
+      interval.end = instance.until;
+    }
+    if (endListeners.has(id)) {
+      queue.push(instance.until, (endFrame) => {
+        const current = instances.get(id);
+        if (current?.uid === instance.uid && current.until === endFrame) {
+          fireTriggers('statusEnds', [id], endFrame, null);
+        }
+      });
+    }
   };
 
   // Ends a status on `frame` (it is no longer up then) and fires its
@@ -1103,10 +1176,13 @@ export const createRuntime = ({
 
   // ---------------------------------------------------------- resources (writes)
 
+  // `entry`: the step whose op made the change, so what its triggers do
+  // belongs to that block too (Citlali's Opal Fire, from her E's points).
   const setResource = (
     id: string,
     requested: number,
-    frame: number
+    frame: number,
+    entry: RotationTraceEntry | null = null
   ): number => {
     const block = resourceBlocks.get(id);
     if (!block) {
@@ -1121,7 +1197,8 @@ export const createRuntime = ({
     logPush(activity.resources, id, { frame, value });
     logEvent('resource', frame, id, { before, value });
 
-    fireTriggers('resourceChanges', [id], frame, null, value - before);
+    fireTriggers('resourceChanges', [id], frame, entry, value - before);
+    shareResource(id, value - before, frame);
     return value - before;
   };
 
@@ -1133,9 +1210,19 @@ export const createRuntime = ({
     }
   };
 
-  const getAmount = (amount: Amount, frame: number): number => {
+  const getAmount = (
+    amount: Amount,
+    frame: number,
+    scope?: { change: number }
+  ): number => {
     if (typeof amount === 'number') {
       return amount;
+    }
+    if ('changed' in amount) {
+      return Math.abs(scope?.change ?? 0) * (amount.times ?? 1);
+    }
+    if ('resource' in amount) {
+      return getResource(amount.resource) * (amount.times ?? 1);
     }
     if ('ifStatus' in amount) {
       return isActive(amount.ifStatus, frame) ? amount.then : amount.else;
@@ -1154,6 +1241,8 @@ export const createRuntime = ({
   // `attacker`: whose hit fired it (party and active triggers).
   type OpScope = {
     gained: number;
+    // How much the resource moved, for a `resourceChanges` trigger.
+    change: number;
     sourceId?: string;
     chance: number;
     attacker?: string;
@@ -1197,7 +1286,7 @@ export const createRuntime = ({
     scope: OpScope
   ) => {
     if ('addResource' in op) {
-      let amount = getAmount(op.amount, frame);
+      let amount = getAmount(op.amount, frame, scope);
       const budget =
         op.budget && isActive(op.budget.whileStatus, frame)
           ? op.budget.resource
@@ -1212,7 +1301,8 @@ export const createRuntime = ({
       scope.gained = setResource(
         op.addResource,
         getResource(op.addResource) + amount,
-        frame
+        frame,
+        entry
       );
       // The budget pays for what was gained, not for what a cap cut off.
       if (budget && scope.gained > 0) {
@@ -1229,7 +1319,12 @@ export const createRuntime = ({
       return;
     }
     if ('setResource' in op) {
-      setResource(op.setResource, op.value, frame);
+      setResource(
+        op.setResource,
+        getAmount(op.value, frame, scope),
+        frame,
+        entry
+      );
       return;
     }
     if ('applyStatus' in op) {
@@ -1243,6 +1338,10 @@ export const createRuntime = ({
     }
     if ('removeStatus' in op) {
       removeStatus(op.removeStatus, frame);
+      return;
+    }
+    if ('extendStatus' in op) {
+      extendStatus(op.extendStatus, op.frames, frame);
       return;
     }
     if ('addStack' in op) {
@@ -1399,6 +1498,7 @@ export const createRuntime = ({
     | 'event'
     | 'resourceChanges'
     | 'statusEnds'
+    | 'statusStarts'
     | 'swap'
     | 'heal';
 
@@ -1415,6 +1515,9 @@ export const createRuntime = ({
     }
     if ('statusEnds' in when) {
       return ['statusEnds', when.statusEnds];
+    }
+    if ('statusStarts' in when) {
+      return ['statusStarts', when.statusStarts];
     }
     if ('swap' in when) {
       return ['swap', when.swap];
@@ -1493,6 +1596,7 @@ export const createRuntime = ({
       );
       const scope: OpScope = {
         gained: 0,
+        change,
         sourceId: trigger.id,
         chance: fireChance,
         attacker,
@@ -1569,7 +1673,7 @@ export const createRuntime = ({
     const state = getStateValues(request.frame);
     const holdsFor = (target: HitRequest, block: BonusBlock, element: string) =>
       bonusIfHolds(block, target.frame) &&
-      matchesHit(block.match, target, element) &&
+      matchesHit(block.match, target, element, character.weaponType) &&
       Object.entries(block.while ?? {}).every(([id, bounds]) =>
         meetsBounds(state[id] ?? 0, bounds)
       );
@@ -1590,7 +1694,11 @@ export const createRuntime = ({
     const infusion = bonuses.find(
       (block) => block.infuse && holds(block, hit.element)
     );
-    const element = (infusion?.infuse ?? hit.element) as DamageElement;
+    const element = (infusion?.infuse ??
+      (hit.element === 'Physical'
+        ? party?.receiveInfusion?.(hit, character.weaponType)
+        : null) ??
+      hit.element) as DamageElement;
     const extraBlocks = bonuses.filter(
       (block) => block.addMultiplier && holds(block, element)
     );
@@ -1616,7 +1724,7 @@ export const createRuntime = ({
         .filter(
           ({ block }) =>
             bonusIfHolds(block, hit.frame) &&
-            matchesHit(block.match, hit, element)
+            matchesHit(block.match, hit, element, character.weaponType)
         )
         .map(({ effect }) => effect),
       ...(party?.receiveEffects(hit.frame) ?? []),
@@ -1732,10 +1840,7 @@ export const createRuntime = ({
       const perStack = statBonuses.find(({ block }) => block.id === id)?.block
         .perStack;
       if (perStack) {
-        count(
-          `bonusStacks:${id}`,
-          Math.min(perStack.max, Math.max(0, state[perStack.state] ?? 0))
-        );
+        count(`bonusStacks:${id}`, countStacks(perStack, state));
       }
     });
 
@@ -1745,7 +1850,11 @@ export const createRuntime = ({
       hit.row,
       `category:${hit.category}`,
       `element:${element}`,
-      ...(element === 'Physical' ? [] : ['elemental']),
+      // Elemental (not Physical) hits of a category too: A Thousand
+      // Blazing Suns on "category:Normal:elemental".
+      ...(element === 'Physical'
+        ? []
+        : ['elemental', `category:${hit.category}:elemental`]),
       // A hit the aura amplified (Melt): `reaction:Melt` (and, for the
       // party, `party:reaction:Melt`).
       ...(amplified ? [`reaction:${amplified}`] : []),
@@ -1827,6 +1936,20 @@ export const createRuntime = ({
     }
   };
 
+  // `party:<id>` resource triggers: any member's resource with that id
+  // changed (Mavuika's Fighting Spirit from the party's Nightsoul points).
+  // Alone, the character's own.
+  const firePartyResource = (id: string, change: number, frame: number) =>
+    fireTriggers('resourceChanges', [`party:${id}`], frame, null, change);
+
+  const shareResource = (id: string, change: number, frame: number) => {
+    if (party) {
+      party.broadcastResource(id, change, frame);
+    } else {
+      firePartyResource(id, change, frame);
+    }
+  };
+
   const shareHit = (keys: string[], frame: number) => {
     if (party) {
       party.broadcastHit(keys, frame);
@@ -1859,7 +1982,7 @@ export const createRuntime = ({
         .filter(
           ({ block }) =>
             bonusIfHolds(block, frame) &&
-            matchesHit(block.match, request, element)
+            matchesHit(block.match, request, element, character.weaponType)
         )
         .map(({ effect }) => effect),
       ...(party?.receiveEffects(frame) ?? []),
@@ -1928,6 +2051,25 @@ export const createRuntime = ({
       sheet,
     });
     return { base: sheet.base, total: stats };
+  };
+
+  // The element an infusion for the party gives a member's hit, if any.
+  const getTeamInfusion = (
+    hit: HitRequest,
+    receiverActive: boolean,
+    weaponType: string
+  ): string | null => {
+    const state = getStateValues(hit.frame);
+    const infusion = teamInfusions.find(
+      (block) =>
+        (block.teamBuff !== 'active' || receiverActive) &&
+        bonusIfHolds(block, hit.frame) &&
+        matchesHit(block.match, hit, 'Physical', weaponType) &&
+        Object.entries(block.while ?? {}).every(([id, bounds]) =>
+          meetsBounds(state[id] ?? 0, bounds)
+        )
+    );
+    return infusion?.infuse ?? null;
   };
 
   // `receiverId`: whose stacks count (stacks held by the active member).
@@ -2082,9 +2224,11 @@ export const createRuntime = ({
     getBuffValue,
     getUptime,
     getTeamEffects,
+    getTeamInfusion,
     logEvent,
     firePartyHit,
     firePartyUse,
+    firePartyResource,
     shareUse,
     receiveParticles,
     getCooldownEvents: () => cooldownEvents,

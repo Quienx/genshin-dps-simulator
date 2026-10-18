@@ -41,6 +41,13 @@ export const rotationActionSchema = z.object({
   // Not a palette item: it is what another action turns into (Mualani's
   // bite is her Normal Attack while surfing).
   hidden: z.boolean().optional(),
+  // Its hold (a hold E): what a block of it plays with Hold on.
+  hold: z.string().optional(),
+  // A held action's count (spins of a Charged Attack): the block's `hits`,
+  // from 1 to `max`.
+  count: z
+    .object({ label: z.string(), max: z.number().int().min(1) })
+    .optional(),
   // A sequence: one block that plays these actions in order (Mualani's
   // Surging Bite is three surfs into the enemy and a bite). Each one is
   // simulated as itself; the block only groups them.

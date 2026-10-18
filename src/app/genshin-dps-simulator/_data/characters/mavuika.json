@@ -1,0 +1,1880 @@
+{
+  "id": "mavuika",
+  "name": "Mavuika",
+  "element": "Pyro",
+  "weaponType": "Claymore",
+  "rarity": 5,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 12552,
+    "atk": 359,
+    "def": 792
+  },
+  "ascensionStat": {
+    "stat": "critDamage",
+    "value": 38.4
+  },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Mavuika"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Flames Weave Life",
+      "icon": "Skill_A_04",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nPerforms up to 4 consecutive claymore strikes.\n\nCharged Attack\nConsumes a certain amount of Stamina to perform an especially powerful Severing Splendor strike toward the front.\n\nPlunging Attack\nPlunges from mid-air to strike the ground below, damaging opponents along the path and dealing AoE DMG upon impact.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                80.04, 86.55, 93.06, 102.37, 108.88, 116.33, 126.57, 136.8,
+                147.04, 158.21, 169.38, 180.54, 191.71, 202.88, 214.05
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [21],
+            "end": 40,
+            "cancels": {
+              "normal": 31,
+              "charged": 31
+            },
+            "icd": "NormalAttack",
+            "note": "Physical combo of the Ring form (gcsim attackFrames)."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                36.48, 39.45, 42.42, 46.66, 49.63, 53.02, 57.69, 62.36, 67.02,
+                72.11, 77.2, 82.29, 87.38, 92.47, 97.56
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [14, 26],
+            "end": 50,
+            "cancels": {
+              "normal": 42,
+              "charged": 42
+            },
+            "icd": "NormalAttack"
+          },
+          "hits": 2
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                33.22, 35.93, 38.63, 42.49, 45.2, 48.29, 52.54, 56.79, 61.04,
+                65.67, 70.31, 74.95, 79.58, 84.22, 88.85
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [28, 33, 39],
+            "end": 59,
+            "cancels": {
+              "normal": 46,
+              "charged": 47
+            },
+            "icd": "NormalAttack"
+          },
+          "hits": 3
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-4",
+          "label": "4-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                116.19, 125.65, 135.11, 148.62, 158.08, 168.89, 183.75, 198.61,
+                213.47, 229.68, 245.9, 262.11, 278.32, 294.54, 310.75
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [30],
+            "end": 61,
+            "cancels": {
+              "normal": 60,
+              "charged": 61
+            },
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                193.84, 209.62, 225.4, 247.94, 263.72, 281.75, 306.54, 331.34,
+                356.13, 383.18, 410.23, 437.28, 464.32, 491.37, 518.42
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [79],
+            "end": 99,
+            "cancels": {
+              "normal": 98,
+              "charged": 98,
+              "skill": 98,
+              "dodge": 79
+            },
+            "icd": "NormalAttack"
+          }
+        }
+      ],
+      "forms": [
+        {
+          "id": "flamestriderNormal",
+          "replaces": "normal",
+          "while": {
+            "status": "flamestrider"
+          },
+          "element": "Pyro",
+          "label": "Flamestrider Normal Attack",
+          "shortLabel": "Bike N",
+          "icon": "Skill_S_Mavuika_02",
+          "note": "On the Flamestrider: a 5-hit Pyro combo; each hit spends 1 Nightsoul point (none during her Q)."
+        },
+        {
+          "id": "flamestriderCharged",
+          "replaces": "charged",
+          "while": {
+            "status": "flamestrider"
+          },
+          "element": "Pyro",
+          "label": "Flamestrider Charged Attack",
+          "shortLabel": "Bike CA",
+          "icon": "Skill_S_Mavuika_02",
+          "end": 129,
+          "cancels": {
+            "skill": 101,
+            "burst": 101,
+            "dodge": 101,
+            "swap": 101
+          },
+          "repeat": {
+            "label": "Spins",
+            "everyFrames": 45,
+            "max": 8
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/skillCharge",
+              "frame": 35,
+              "category": "Charged",
+              "icd": "MavuikaFlamestrider",
+              "repeats": true
+            },
+            {
+              "row": "elementalSkill/skillChargeFinal",
+              "frame": 101,
+              "category": "Charged",
+              "icd": "MavuikaFlamestrider"
+            }
+          ],
+          "note": "Held for the block's Spins: a Cyclic hit per spin (35, then every 45 frames, up to 8 as gcsim's 375-frame cap) and the Final hit when released (101 for one spin). Spends 0.2 more Nightsoul points every 0.1 s while spinning. Not simulated: Nightsoul points running out mid-spin forcing the Final early."
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "The Named Moment",
+      "icon": "Skill_S_Mavuika_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c5",
+      "description": "Calling upon her authority over \"conflict,\" Mavuika summons the All-Fire Armaments passed down through the line of human Archons, dealing Nightsoul-aligned Pyro DMG.\nAfter using this, Mavuika's Nightsoul points are restored to max value, and she enters the Nightsoul's Blessing state.\n\nAll-Fire Armaments\nHas different forms when Tapped or Held.\n\nTap\n\"Divine Name Unleashed\": The All-Fire Armaments manifest as a Ring of Searing Radiance. The Ring follows the current active character and attacks nearby opponents at intervals, dealing Nightsoul-aligned Pyro DMG.\n\nHold\n\"Ancient Name Unbound\": The All-Fire Armaments manifest as a Flamestrider. In this state, Mavuika can ride the Flamestrider at high speed, or activate its hidden backup propulsion module to temporarily cross various terrain types and glide in mid-air. Mavuika's Normal, Charged, and Plunging Attacks will also be converted to deal Nightsoul-aligned Pyro DMG which cannot be overridden. When sprinting, she also deals Nightsoul-aligned Pyro DMG to opponents along her path.\n\nWhile in the Nightsoul's Blessing state, Tapping the Elemental Skill can switch the All-Fire Armaments' form. The Armaments will disappear once Mavuika's Nightsoul's Blessing state ends.\n\nNightsoul's Blessing: Mavuika\nContinuously consumes Nightsoul points according to the All-Fire Armaments' form. Mavuika's Nightsoul's Blessing state ends once her Nightsoul points are exhausted.\n\nIf you told Mavuika that in another world vehicles like the Flamestrider required license plates for identification, that would make her happy too:\n\"Well, mine's the only one that exists here. Guess that means I get to pick whatever plate number I want, huh?\"",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                74.4, 79.98, 85.56, 93, 98.58, 104.16, 111.6, 119.04, 126.48,
+                133.92, 141.36, 148.8, 158.1, 167.4, 176.7
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [16]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillRing",
+          "label": "Ring of Searing Radiance DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                128, 137.6, 147.2, 160, 169.6, 179.2, 192, 204.8, 217.6, 230.4,
+                243.2, 256, 272, 288, 304
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "skillAttack-1",
+          "label": "Flamestrider Normal Attack 1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                57.26, 61.93, 66.59, 73.25, 77.91, 83.23, 90.56, 97.88, 105.21,
+                113.2, 121.19, 129.18, 137.17, 145.16, 153.15
+              ]
+            }
+          ],
+          "timing": {
+            "action": "flamestriderNormal",
+            "hitmarks": [19],
+            "end": 39,
+            "cancels": {
+              "normal": 23,
+              "charged": 33
+            },
+            "element": "Pyro",
+            "icd": "MavuikaFlamestrider"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillAttack-2",
+          "label": "Flamestrider Normal Attack 2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                59.13, 63.95, 68.76, 75.63, 80.45, 85.95, 93.51, 101.08, 108.64,
+                116.89, 125.14, 133.39, 141.64, 149.89, 158.15
+              ]
+            }
+          ],
+          "timing": {
+            "action": "flamestriderNormal",
+            "hitmarks": [24],
+            "end": 46,
+            "cancels": {
+              "normal": 32,
+              "charged": 35
+            },
+            "element": "Pyro",
+            "icd": "MavuikaFlamestrider"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillAttack-3",
+          "label": "Flamestrider Normal Attack 3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                69.99, 75.68, 81.38, 89.52, 95.21, 101.73, 110.68, 119.63,
+                128.58, 138.35, 148.11, 157.88, 167.64, 177.41, 187.17
+              ]
+            }
+          ],
+          "timing": {
+            "action": "flamestriderNormal",
+            "hitmarks": [31],
+            "end": 50,
+            "cancels": {
+              "normal": 35,
+              "charged": 40
+            },
+            "element": "Pyro",
+            "icd": "MavuikaFlamestrider"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillAttack-4",
+          "label": "Flamestrider Normal Attack 4-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                69.7, 75.38, 81.05, 89.16, 94.83, 101.32, 110.23, 119.15,
+                128.06, 137.79, 147.51, 157.24, 166.97, 176.69, 186.42
+              ]
+            }
+          ],
+          "timing": {
+            "action": "flamestriderNormal",
+            "hitmarks": [13],
+            "end": 44,
+            "cancels": {
+              "normal": 27,
+              "charged": 29
+            },
+            "element": "Pyro",
+            "icd": "MavuikaFlamestrider"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillAttack-5",
+          "label": "Flamestrider Normal Attack 5-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                91, 98.41, 105.82, 116.4, 123.81, 132.27, 143.91, 155.55,
+                167.19, 179.89, 192.59, 205.29, 217.99, 230.68, 243.38
+              ]
+            }
+          ],
+          "timing": {
+            "action": "flamestriderNormal",
+            "hitmarks": [37],
+            "end": 70,
+            "cancels": {
+              "normal": 68,
+              "charged": 64
+            },
+            "element": "Pyro",
+            "icd": "MavuikaFlamestrider"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillDash",
+          "label": "Flamestrider Sprint DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                80.84, 87.42, 94, 103.4, 109.98, 117.5, 127.84, 138.18, 148.52,
+                159.8, 171.08, 182.36, 193.64, 204.92, 216.2
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "skillCharge",
+          "label": "Flamestrider Charged Attack Cyclic DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                98.9, 106.95, 115, 126.5, 134.55, 143.75, 156.4, 169.05, 181.7,
+                195.5, 209.3, 223.1, 236.9, 250.7, 264.5
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "skillChargeFinal",
+          "label": "Flamestrider Charged Attack Final DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                137.6, 148.8, 160, 176, 187.2, 200, 217.6, 235.2, 252.8, 272,
+                291.2, 310.4, 329.6, 348.8, 368
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "c6Ring",
+          "label": "C6 Scorching Ring DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400,
+                400, 400
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "c6Crash",
+          "label": "C6 Flamestrider crash DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200,
+                200, 200
+              ]
+            }
+          ]
+        }
+      ],
+      "end": 28,
+      "cancels": {
+        "normal": 18,
+        "charged": 19,
+        "skill": 19,
+        "burst": 18,
+        "swap": 24
+      },
+      "cooldown": {
+        "frames": 900,
+        "delayFrames": 18
+      },
+      "note": "Press: All-Fire Armaments as the Ring of Searing Radiance (a Pyro hit every 2 s, 3 Nightsoul points each). Fills Nightsoul points and enters Nightsoul's Blessing. No particles: she has no Energy.",
+      "actions": [
+        {
+          "id": "skillHold",
+          "holdOf": "skill",
+          "label": "Hold E (Flamestrider)",
+          "shortLabel": "Hold E",
+          "icon": "Skill_S_Mavuika_02",
+          "end": 43,
+          "cancels": {
+            "dodge": 42,
+            "swap": 34
+          },
+          "cooldown": {
+            "frames": 900,
+            "delayFrames": 18
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/skill",
+              "frame": 16
+            }
+          ],
+          "note": "All-Fire Armaments as the Flamestrider: her Normal and Charged Attacks become Pyro and drain Nightsoul points faster."
+        },
+        {
+          "id": "flamestriderSprint",
+          "kind": "move",
+          "label": "Flamestrider Sprint",
+          "shortLabel": "Sprint",
+          "icon": "Skill_S_Mavuika_02",
+          "group": "flamestriderSprint",
+          "cooldownId": "flamestriderSprint",
+          "end": 24,
+          "cancels": {
+            "normal": 18,
+            "charged": 20,
+            "skill": 20,
+            "burst": 20,
+            "swap": 6
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/skillDash",
+              "frame": 6,
+              "category": "Sprint",
+              "element": "Pyro",
+              "icd": "MavuikaFlamestrider"
+            }
+          ],
+          "note": "Her dash on the Flamestrider: a Pyro hit (no Skill DMG bonuses: gcsim tags it none), 10 Nightsoul points."
+        }
+      ],
+      "forms": [
+        {
+          "id": "recastToRing",
+          "replaces": "skill",
+          "while": {
+            "all": [
+              {
+                "all": [
+                  {
+                    "status": "nightsoulBlessing"
+                  },
+                  {
+                    "not": {
+                      "ready": "skill"
+                    }
+                  }
+                ]
+              },
+              {
+                "status": "flamestrider"
+              }
+            ]
+          },
+          "group": "skillRecast",
+          "label": "Recast E (to the Ring)",
+          "shortLabel": "Recast",
+          "icon": "Skill_S_Mavuika_01",
+          "cooldown": "none",
+          "end": 38,
+          "cancels": {
+            "normal": 27,
+            "charged": 28,
+            "burst": 28,
+            "skill": 28,
+            "swap": 24
+          },
+          "note": "The E while it recharges in Nightsoul's Blessing, on the Flamestrider: back to the Ring of Searing Radiance. No hit; once a second."
+        },
+        {
+          "id": "recastToBike",
+          "replaces": "skill",
+          "while": {
+            "all": [
+              {
+                "status": "nightsoulBlessing"
+              },
+              {
+                "not": {
+                  "ready": "skill"
+                }
+              }
+            ]
+          },
+          "group": "skillRecast",
+          "label": "Recast E (to the Flamestrider)",
+          "shortLabel": "Recast",
+          "icon": "Skill_S_Mavuika_02",
+          "cooldown": "none",
+          "end": 24,
+          "cancels": {
+            "normal": 13,
+            "charged": 13,
+            "burst": 13,
+            "skill": 13,
+            "dodge": 12
+          },
+          "note": "The E while it recharges in Nightsoul's Blessing, with the Ring: onto the Flamestrider. No hit; once a second."
+        },
+        {
+          "id": "flamestriderRefresh",
+          "replaces": "skill",
+          "while": {
+            "status": "flamestrider"
+          },
+          "label": "E on the Flamestrider",
+          "shortLabel": "Bike E",
+          "icon": "Skill_S_Mavuika_02",
+          "end": 39,
+          "cancels": {
+            "normal": 27,
+            "charged": 27,
+            "burst": 27,
+            "dodge": 25,
+            "swap": 24
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/skill",
+              "frame": 16
+            }
+          ],
+          "note": "The E while riding: a hit, Nightsoul points back to full, stays on the Flamestrider."
+        },
+        {
+          "id": "flamestriderRefreshHold",
+          "replaces": "skillHold",
+          "while": {
+            "status": "flamestrider"
+          },
+          "label": "Hold E on the Flamestrider",
+          "shortLabel": "Bike E",
+          "icon": "Skill_S_Mavuika_02",
+          "end": 39,
+          "cancels": {
+            "normal": 27,
+            "charged": 27,
+            "burst": 27,
+            "dodge": 25,
+            "swap": 24
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/skill",
+              "frame": 16
+            }
+          ],
+          "note": "The E while riding: a hit, Nightsoul points back to full, stays on the Flamestrider."
+        }
+      ]
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Hour of Burning Skies",
+      "icon": "Skill_E_Mavuika_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c3",
+      "description": "Let the people's inner voices reach the divine throne in the heavens.\nMavuika's Elemental Burst is not reliant on Energy, but instead, on \"Fighting Spirit.\"\n\nFighting Spirit\nWhen Mavuika has at least 50% Fighting Spirit, she can consume it all to unleash her Elemental Burst.\nMavuika can obtain Fighting Spirit via the following methods:\n· When in combat, Nightsoul points consumed by nearby party members are converted to Fighting Spirit.\n· When nearby party members' Normal Attacks hit opponents, Mavuika gains 1.5 Fighting Spirit. This can trigger once every 0.1s.\n\nAfter using this, Mavuika gains 10 Nightsoul points and enters the Nightsoul's Blessing state. Riding her Flamestrider high in the air, she uses a powerful Sunfell Slice against opponents on the ground, dealing Nightsoul-aligned AoE Pyro DMG and entering the \"Crucible of Death and Life\" state.\n\nCrucible of Death and Life\nDuring this time, Mavuika's various actions will no longer consume Nightsoul points, and her interruption resistance is increased. Also, the DMG dealt by Sunfell Slice and \"Ancient Name Unbound\"'s Normal and Charged Attacks is increased based on the amount of Fighting Spirit she has when using the Elemental Burst.\nCrucible of Death and Life will be canceled when Mavuika leaves the field.\n\n\"—But this time, I want to break the cycle and free us from this fate for good.\"",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst",
+          "label": "Sunfell Slice DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                444.8, 478.16, 511.52, 556, 589.36, 622.72, 667.2, 711.68,
+                756.16, 800.64, 845.12, 889.6, 945.2, 1000.8, 1056.4
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [106]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "burstQBonus",
+          "label": "Sunfell Slice DMG Bonus (% ATK per Fighting Spirit)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                1.6, 1.72, 1.84, 2, 2.12, 2.24, 2.4, 2.56, 2.72, 2.88, 3.04,
+                3.2, 3.4, 3.6, 3.8
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "burstNABonus",
+          "label": "Flamestrider Normal Attack DMG Bonus (% ATK per Fighting Spirit)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                0.26, 0.28, 0.3, 0.33, 0.35, 0.38, 0.41, 0.44, 0.47, 0.51, 0.55,
+                0.58, 0.62, 0.65, 0.69
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "burstCABonus",
+          "label": "Flamestrider Charged Attack DMG Bonus (% ATK per Fighting Spirit)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                0.52, 0.56, 0.6, 0.66, 0.7, 0.75, 0.82, 0.88, 0.95, 1.02, 1.09,
+                1.16, 1.24, 1.31, 1.38
+              ]
+            }
+          ]
+        }
+      ],
+      "end": 141,
+      "cancels": {
+        "normal": 116,
+        "charged": 116,
+        "skill": 116,
+        "dodge": 116,
+        "swap": 116
+      },
+      "cooldown": {
+        "frames": 1080
+      },
+      "note": "Needs 100 Fighting Spirit and spends all of it: Crucible of Death and Life for 7 s (no Nightsoul points spent, Sunfell Slice, Normal and Charged Attacks deal more by the Fighting Spirit spent). Rides the Flamestrider and +10 Nightsoul points."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fightingSpirit",
+      "type": "resource",
+      "source": "talent",
+      "label": "Fighting Spirit",
+      "icon": "Skill_E_Mavuika_01",
+      "min": 0,
+      "max": 200,
+      "initial": {
+        "field": "startingFightingSpirit"
+      }
+    },
+    {
+      "id": "burstStacks",
+      "type": "resource",
+      "source": "talent",
+      "label": "Fighting Spirit spent on the Q",
+      "icon": "Skill_E_Mavuika_01",
+      "min": 0,
+      "max": 200
+    },
+    {
+      "id": "kiongoziStacks",
+      "type": "resource",
+      "source": "passive",
+      "label": "\"Kiongozi\" left (of 20)",
+      "icon": "UI_Talent_S_Mavuika_06",
+      "min": 0,
+      "max": 20
+    },
+    {
+      "id": "ring",
+      "type": "status",
+      "source": "talent",
+      "label": "Ring of Searing Radiance",
+      "icon": "Skill_S_Mavuika_01",
+      "endsWith": "nightsoulBlessing",
+      "ticks": {
+        "everyFrames": 120,
+        "count": 60,
+        "row": "elementalSkill/skillRing",
+        "element": "Pyro",
+        "category": "Skill"
+      }
+    },
+    {
+      "id": "flamestrider",
+      "type": "status",
+      "source": "talent",
+      "label": "Flamestrider",
+      "icon": "Skill_S_Mavuika_02",
+      "endsWith": "nightsoulBlessing",
+      "drain": {
+        "resource": "nightsoul",
+        "amount": 0.4,
+        "everyFrames": 6,
+        "if": {
+          "not": {
+            "status": "mavuikaBurst"
+          }
+        }
+      }
+    },
+    {
+      "id": "bikeSpin",
+      "type": "status",
+      "source": "talent",
+      "label": "Flamestrider Charged Attack spin",
+      "icon": "Skill_S_Mavuika_02",
+      "endsWith": "flamestrider",
+      "drain": {
+        "resource": "nightsoul",
+        "amount": 0.2,
+        "everyFrames": 6,
+        "if": {
+          "not": {
+            "status": "mavuikaBurst"
+          }
+        }
+      }
+    },
+    {
+      "id": "skillRecastLock",
+      "type": "status",
+      "source": "talent",
+      "label": "E recast cooldown",
+      "icon": "Skill_S_Mavuika_01",
+      "durationFrames": 60
+    },
+    {
+      "id": "mavuikaBurst",
+      "type": "status",
+      "source": "talent",
+      "label": "Crucible of Death and Life",
+      "icon": "Skill_E_Mavuika_01",
+      "durationFrames": 420
+    },
+    {
+      "id": "a1Atk",
+      "type": "status",
+      "source": "passive",
+      "label": "Gift of Flaming Flowers",
+      "icon": "UI_Talent_S_Mavuika_05",
+      "durationFrames": 600
+    },
+    {
+      "id": "kiongozi",
+      "type": "status",
+      "source": "passive",
+      "label": "\"Kiongozi\"",
+      "icon": "UI_Talent_S_Mavuika_06",
+      "durationFrames": 1200,
+      "drain": {
+        "resource": "kiongoziStacks",
+        "amount": 1,
+        "everyFrames": 60,
+        "if": {
+          "not": {
+            "flag": "c4"
+          }
+        }
+      }
+    },
+    {
+      "id": "c1Atk",
+      "type": "status",
+      "source": "constellation",
+      "label": "C1 ATK",
+      "icon": "UI_Talent_S_Mavuika_01",
+      "ifFlag": "c1",
+      "durationFrames": 600
+    },
+    {
+      "id": "c6Ring",
+      "type": "status",
+      "source": "constellation",
+      "label": "C6 Scorching Ring",
+      "icon": "UI_Talent_S_Mavuika_04",
+      "ifFlag": "c6",
+      "endsWith": "flamestrider",
+      "ticks": {
+        "everyFrames": 180,
+        "count": 30,
+        "row": "elementalSkill/c6Ring",
+        "element": "Pyro",
+        "category": "Skill",
+        "gauge": 0
+      }
+    },
+    {
+      "id": "skill-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E: Nightsoul points to full, Nightsoul's Blessing",
+      "icon": "Skill_S_Mavuika_01",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 120
+        },
+        {
+          "applyStatus": "nightsoulBlessing",
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "skill-refresh",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E on the Flamestrider: recast in 1 s",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "use": "skill"
+      },
+      "if": {
+        "status": "flamestrider"
+      },
+      "do": [
+        {
+          "applyStatus": "skillRecastLock"
+        }
+      ]
+    },
+    {
+      "id": "skill-hold",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Hold E: Flamestrider",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "use": "skillHold"
+      },
+      "if": {
+        "not": {
+          "status": "flamestrider"
+        }
+      },
+      "do": [
+        {
+          "removeStatus": "ring"
+        },
+        {
+          "applyStatus": "flamestrider"
+        },
+        {
+          "applyStatus": "c6Ring",
+          "ifFlag": "c6"
+        },
+        {
+          "applyStatus": "skillRecastLock",
+          "delayFrames": 24
+        }
+      ]
+    },
+    {
+      "id": "skill-press",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Press E: Ring of Searing Radiance",
+      "icon": "Skill_S_Mavuika_01",
+      "when": {
+        "use": "skill"
+      },
+      "if": {
+        "not": {
+          "status": "flamestrider"
+        }
+      },
+      "do": [
+        {
+          "applyStatus": "ring"
+        }
+      ]
+    },
+    {
+      "id": "recast-to-bike",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Recast E: Flamestrider",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "use": "recastToBike"
+      },
+      "do": [
+        {
+          "removeStatus": "ring"
+        },
+        {
+          "applyStatus": "flamestrider"
+        },
+        {
+          "applyStatus": "c6Ring",
+          "ifFlag": "c6"
+        },
+        {
+          "applyStatus": "skillRecastLock"
+        }
+      ]
+    },
+    {
+      "id": "recast-to-ring",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Recast E: Ring of Searing Radiance",
+      "icon": "Skill_S_Mavuika_01",
+      "when": {
+        "use": "recastToRing"
+      },
+      "do": [
+        {
+          "removeStatus": "flamestrider"
+        },
+        {
+          "applyStatus": "ring"
+        },
+        {
+          "applyStatus": "skillRecastLock"
+        }
+      ]
+    },
+    {
+      "id": "ring-spend",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Ring hit: 3 Nightsoul points",
+      "icon": "Skill_S_Mavuika_01",
+      "when": {
+        "hit": "elementalSkill/skillRing"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": -3,
+          "if": {
+            "not": {
+              "status": "mavuikaBurst"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "bike-normal-spend",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Flamestrider Normal Attack: 1 Nightsoul point",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "hit": "flamestriderNormal"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": -1,
+          "if": {
+            "not": {
+              "status": "mavuikaBurst"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "bike-charged-spin",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Flamestrider Charged Attack: faster drain while spinning",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "use": "flamestriderCharged"
+      },
+      "do": [
+        {
+          "applyStatus": "bikeSpin"
+        }
+      ]
+    },
+    {
+      "id": "bike-charged-final",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Flamestrider Charged Attack Final hit: the spin ends",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "hit": "elementalSkill/skillChargeFinal"
+      },
+      "do": [
+        {
+          "removeStatus": "bikeSpin"
+        }
+      ]
+    },
+    {
+      "id": "sprint-spend",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Flamestrider Sprint: 10 Nightsoul points",
+      "icon": "Skill_S_Mavuika_02",
+      "when": {
+        "use": "flamestriderSprint"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": -10,
+          "if": {
+            "not": {
+              "status": "mavuikaBurst"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "nightsoul-empty",
+      "type": "trigger",
+      "source": "talent",
+      "label": "No Nightsoul points left: Nightsoul's Blessing ends",
+      "icon": "Skill_S_Mavuika_01",
+      "when": {
+        "resourceChanges": "nightsoul",
+        "change": "decrease"
+      },
+      "if": {
+        "resource": "nightsoul",
+        "lte": 0.001
+      },
+      "do": [
+        {
+          "removeStatus": "nightsoulBlessing"
+        }
+      ]
+    },
+    {
+      "id": "burst-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Q: Fighting Spirit spent, Flamestrider, Crucible of Death and Life",
+      "icon": "Skill_E_Mavuika_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "setResource": "burstStacks",
+          "value": {
+            "resource": "fightingSpirit"
+          }
+        },
+        {
+          "setResource": "fightingSpirit",
+          "value": 0
+        },
+        {
+          "removeStatus": "ring"
+        },
+        {
+          "addResource": "nightsoul",
+          "amount": 10,
+          "delayFrames": 87
+        },
+        {
+          "applyStatus": "nightsoulBlessing",
+          "delayFrames": 87,
+          "if": {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        },
+        {
+          "applyStatus": "flamestrider",
+          "delayFrames": 87,
+          "if": {
+            "not": {
+              "status": "flamestrider"
+            }
+          }
+        },
+        {
+          "applyStatus": "c6Ring",
+          "ifFlag": "c6",
+          "delayFrames": 87,
+          "if": {
+            "not": {
+              "status": "c6Ring"
+            }
+          }
+        },
+        {
+          "applyStatus": "mavuikaBurst",
+          "delayFrames": 105
+        },
+        {
+          "setResource": "kiongoziStacks",
+          "value": 20,
+          "delayFrames": 106
+        },
+        {
+          "applyStatus": "kiongozi",
+          "delayFrames": 106
+        }
+      ]
+    },
+    {
+      "id": "burst-q-bonus",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Sunfell Slice: DMG by Fighting Spirit spent",
+      "stat": "flatDamage",
+      "valueRow": "elementalBurst/burstQBonus",
+      "ofStat": "atk",
+      "perStack": {
+        "state": "burstStacks",
+        "max": 200
+      },
+      "match": {
+        "actions": ["burst"]
+      },
+      "while": {
+        "mavuikaBurst": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "burst-na-bonus",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Flamestrider Normal Attacks: DMG by Fighting Spirit spent",
+      "stat": "flatDamage",
+      "valueRow": "elementalBurst/burstNABonus",
+      "ofStat": "atk",
+      "perStack": {
+        "state": "burstStacks",
+        "max": 200
+      },
+      "match": {
+        "actions": ["flamestriderNormal"]
+      },
+      "while": {
+        "mavuikaBurst": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "burst-ca-bonus",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Flamestrider Charged Attacks: DMG by Fighting Spirit spent",
+      "stat": "flatDamage",
+      "valueRow": "elementalBurst/burstCABonus",
+      "ofStat": "atk",
+      "perStack": {
+        "state": "burstStacks",
+        "max": 200
+      },
+      "match": {
+        "actions": ["flamestriderCharged"]
+      },
+      "while": {
+        "mavuikaBurst": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "spirit-from-nightsoul",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Nightsoul points spent (hers or a party member's): as much Fighting Spirit",
+      "icon": "Skill_E_Mavuika_01",
+      "when": {
+        "resourceChanges": "party:nightsoul",
+        "change": "decrease"
+      },
+      "do": [
+        {
+          "addResource": "fightingSpirit",
+          "amount": {
+            "changed": true
+          },
+          "unlessFlag": "c1"
+        },
+        {
+          "addResource": "fightingSpirit",
+          "amount": {
+            "changed": true,
+            "times": 1.25
+          },
+          "ifFlag": "c1"
+        }
+      ]
+    },
+    {
+      "id": "spirit-from-normals",
+      "type": "trigger",
+      "source": "talent",
+      "label": "A party member's Normal Attack hit: 1.5 Fighting Spirit",
+      "icon": "Skill_E_Mavuika_01",
+      "when": {
+        "hit": "party:category:Normal"
+      },
+      "icdFrames": 6,
+      "do": [
+        {
+          "addResource": "fightingSpirit",
+          "amount": 1.5,
+          "unlessFlag": "c1"
+        },
+        {
+          "addResource": "fightingSpirit",
+          "amount": 1.875,
+          "ifFlag": "c1"
+        }
+      ]
+    },
+    {
+      "id": "swap-out",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Off the field: the Q's state ends, back to the Ring",
+      "icon": "Skill_S_Mavuika_01",
+      "when": {
+        "swap": "out"
+      },
+      "do": [
+        {
+          "removeStatus": "mavuikaBurst"
+        },
+        {
+          "applyStatus": "ring",
+          "if": {
+            "status": "flamestrider"
+          }
+        },
+        {
+          "removeStatus": "flamestrider"
+        }
+      ]
+    },
+    {
+      "id": "a1-atk",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Gift of Flaming Flowers ATK",
+      "icon": "UI_Talent_S_Mavuika_05",
+      "stat": "atkPercent",
+      "value": 30,
+      "while": {
+        "a1Atk": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "a4-self",
+      "type": "bonus",
+      "source": "passive",
+      "label": "\"Kiongozi\" DMG (0.2% per Fighting Spirit spent, decaying)",
+      "icon": "UI_Talent_S_Mavuika_06",
+      "stat": "dmgBonus",
+      "value": 0.01,
+      "perStack": [
+        {
+          "state": "burstStacks",
+          "max": 200
+        },
+        {
+          "state": "kiongoziStacks",
+          "max": 20
+        }
+      ],
+      "while": {
+        "kiongozi": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "a4-party",
+      "type": "bonus",
+      "source": "passive",
+      "label": "\"Kiongozi\" DMG for the active member",
+      "icon": "UI_Talent_S_Mavuika_06",
+      "stat": "dmgBonus",
+      "value": 0.01,
+      "teamBuff": "active",
+      "perStack": [
+        {
+          "state": "burstStacks",
+          "max": 200
+        },
+        {
+          "state": "kiongoziStacks",
+          "max": 20
+        }
+      ],
+      "while": {
+        "kiongozi": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c1-spirit-atk",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: Fighting Spirit gained: +40% ATK",
+      "ifFlag": "c1",
+      "when": {
+        "resourceChanges": "fightingSpirit",
+        "change": "increase"
+      },
+      "do": [
+        {
+          "applyStatus": "c1Atk"
+        }
+      ]
+    },
+    {
+      "id": "c1-atk",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C1 ATK",
+      "ifFlag": "c1",
+      "stat": "atkPercent",
+      "value": 40,
+      "while": {
+        "c1Atk": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-base-atk",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: +200 Base ATK in Nightsoul's Blessing (as flat ATK)",
+      "ifFlag": "c2",
+      "stat": "flatAtk",
+      "value": 200,
+      "while": {
+        "nightsoulBlessing": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-ring-def",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Ring of Searing Radiance: enemy DEF -20%",
+      "ifFlag": "c2",
+      "stat": "defReduction",
+      "value": 20,
+      "while": {
+        "ring": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-ring-def",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: Scorching Ring: enemy DEF -20%",
+      "ifFlag": "c6",
+      "stat": "defReduction",
+      "value": 20,
+      "while": {
+        "c6Ring": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-bike-normal",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Flamestrider Normal Attacks +60% ATK",
+      "ifFlag": "c2",
+      "stat": "flatDamage",
+      "value": 60,
+      "ofStat": "atk",
+      "match": {
+        "actions": ["flamestriderNormal"]
+      },
+      "while": {
+        "flamestrider": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-bike-charged",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Flamestrider Charged Attacks +90% ATK",
+      "ifFlag": "c2",
+      "stat": "flatDamage",
+      "value": 90,
+      "ofStat": "atk",
+      "match": {
+        "actions": ["flamestriderCharged"]
+      },
+      "while": {
+        "flamestrider": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-bike-burst",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Sunfell Slice on the Flamestrider +120% ATK",
+      "ifFlag": "c2",
+      "stat": "flatDamage",
+      "value": 120,
+      "ofStat": "atk",
+      "match": {
+        "actions": ["burst"]
+      },
+      "while": {
+        "flamestrider": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c4-a4-self",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C4: \"Kiongozi\" +10% DMG, no decay",
+      "ifFlag": "c4",
+      "stat": "dmgBonus",
+      "value": 0.5,
+      "perStack": {
+        "state": "kiongoziStacks",
+        "max": 20
+      },
+      "while": {
+        "kiongozi": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c4-a4-party",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C4: \"Kiongozi\" +10% DMG for the active member",
+      "ifFlag": "c4",
+      "stat": "dmgBonus",
+      "value": 0.5,
+      "teamBuff": "active",
+      "perStack": {
+        "state": "kiongoziStacks",
+        "max": 20
+      },
+      "while": {
+        "kiongozi": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-crash",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C6: a Ring hit: a Flamestrider crashes for 200% ATK",
+      "ifFlag": "c6",
+      "when": {
+        "hit": "elementalSkill/skillRing"
+      },
+      "icdFrames": 30,
+      "do": [
+        {
+          "hit": {
+            "row": "elementalSkill/c6Crash",
+            "element": "Pyro",
+            "category": "Skill",
+            "gauge": 0,
+            "afterFrames": 3
+          }
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "mavuika-passive-1",
+      "name": "Gift of Flaming Flowers",
+      "icon": "UI_Talent_S_Mavuika_05",
+      "value": "+30% ATK for 10 s on each Nightsoul Burst of the party.",
+      "description": "When a nearby party member triggers a Nightsoul Burst, Mavuika's ATK increases by 30% for 10s."
+    },
+    {
+      "id": "mavuika-passive-2",
+      "name": "\"Kiongozi\"",
+      "icon": "UI_Talent_S_Mavuika_06",
+      "value": "After her Q, the active member deals 0.2% more DMG per Fighting Spirit spent (up to 40%), decaying to 0 over 20 s.",
+      "description": "After using her Elemental Burst, Hour of Burning Skies, every point of Fighting Spirit present when it is used increases the DMG that the current active party member deals by 0.2%. The maximum increase obtainable this way is 40%, and this effect lasts 20s, decaying over this duration until it reaches 0.",
+      "note": "Self and active member (a team buff). Decays by 1/20 every second, as gcsim."
+    },
+    {
+      "id": "mavuika-passive-3",
+      "name": "Night Realm's Gift: Exhaust Mode",
+      "icon": "UI_Talent_S_Mavuika_07",
+      "value": "Exploration only.",
+      "description": "After Nightsoul points have been fully depleted, Mavuika will switch to using Phlogiston to maintain the All-Fire Armaments' Flamestrider form.\nWhile in an area with Phlogiston Mechanics within Natlan, Nightsoul Transmission: Mavuika can be used. When the current active character is sprinting, climbing, swimming, in movement modes caused by certain Talents, or at a certain height in the air, switching to Mavuika will trigger the following: Mavuika enters the Nightsoul's Blessing state and obtains 50% of her maximum Nightsoul points. Nightsoul Transmission can be triggered once every 10s by your own party."
+    },
+    {
+      "id": "mavuika-passive-4",
+      "name": "Night-Shattering Radiance",
+      "icon": "UI_Talent_S_Citlali_07",
+      "value": "Not simulated.",
+      "description": "The party's Nightsoul Transmission CD is decreased by 20%."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "The Night-Lord's Explication",
+      "icon": "UI_Talent_S_Mavuika_01",
+      "effect": "120 Nightsoul points, 25% more Fighting Spirit, +40% ATK for 10 s after gaining Fighting Spirit.",
+      "impact": "simulated",
+      "note": "gcsim: 10 s (the text says 8 s).",
+      "description": "Mavuika's maximum Nightsoul points are increased to 120, and she gains Fighting Spirit 25% more efficiently.\nAdditionally, she gains 40% ATK for 8s after gaining Fighting Spirit."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "The Ashen Price",
+      "icon": "UI_Talent_S_Mavuika_02",
+      "effect": "In Nightsoul's Blessing: +200 Base ATK; Ring: enemy DEF -20%; Flamestrider: Normal, Charged and Sunfell Slice +60/90/120% ATK as DMG.",
+      "impact": "partial",
+      "note": "The +200 Base ATK is added as flat ATK (ATK% does not scale it).",
+      "description": "When in the Nightsoul's Blessing State, Mavuika's Base ATK is increased by 200, and she obtains the following effects based on All-Fire Armaments' form:\n· Ring of Searing Radiance: Nearby opponents' DEF is decreased by 20%.\n· Flamestrider: Mavuika's Normal Attacks, Charged Attacks, and her Sunfell Slice from the Elemental Burst Hour of Burning Skies deal 60%, 90%, and 120% of her ATK as increased DMG respectively."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "The Burning Sun",
+      "icon": "UI_Talent_U_Mavuika_01",
+      "effect": "+3 Q levels.",
+      "impact": "simulated",
+      "note": "Raises the Q talent level.",
+      "description": "Increases the Level of Hour of Burning Skies by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "The Leader's Resolve",
+      "icon": "UI_Talent_S_Mavuika_03",
+      "effect": "\"Kiongozi\" does not decay and gives 10% more DMG.",
+      "impact": "simulated",
+      "note": "Both for her and the active member.",
+      "description": "Enhances the effects of the Ascension Talent \"Kiongozi\":\nThe DMG increase gained after using the Elemental Burst Hour of Burning Skies will not decay over time, and an additional 10% DMG Bonus will be gained.\nYou must first unlock the Ascension Talent \"Kiongozi.\""
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "The Meaning of Truth",
+      "icon": "UI_Talent_U_Mavuika_02",
+      "effect": "+3 E levels.",
+      "impact": "simulated",
+      "note": "Raises the E talent level.",
+      "description": "Increases the Level of The Named Moment by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "\"Humanity's Name\" Unfettered",
+      "icon": "UI_Talent_S_Mavuika_04",
+      "effect": "Ring hits: a Flamestrider crashes for 200% ATK (once every 0.5 s); on the Flamestrider: a Scorching Ring, 400% ATK every 3 s and enemy DEF -20%.",
+      "impact": "partial",
+      "note": "gcsim values (400%, the text says 500%). The out-of-combat Nightsoul part is not simulated.",
+      "description": "The All-Fire Armaments from the Elemental Skill The Named Moment receive all-round improvements:\n· Ring of Searing Radiance: When the Ring's attacks hit opponents, a Flamestrider will crash into the struck opponent, dealing 200% of ATK as Nightsoul-aligned AoE Pyro DMG.\n· Flamestrider: When Mavuika is riding the Flamestrider, she will also summon a Scorching Ring of Searing Radiance to follow her, which will decrease nearby opponents' DEF by 20% and deal 500% of ATK as Nightsoul-aligned AoE Pyro DMG to nearby opponents once every 3s. Mavuika's terrain-crossing abilities will also be further improved.\n\nAdditionally, when Mavuika is riding her Flamestrider and is not in combat, when her Nightsoul points drop to 5, she will gain 80 Nightsoul points. This effect can trigger once every 15s."
+    }
+  ],
+  "weapon": "wolfs-gravestone",
+  "artifactSet": "obsidian-codex",
+  "defaults": {
+    "numbers": {
+      "atk": 2049,
+      "hp": 19936,
+      "def": 752,
+      "cr": 48.9,
+      "cd": 205.0,
+      "bonus": 0,
+      "elementalBonus": 46.6,
+      "em": 252,
+      "duration": 60,
+      "normalAttackLevel": 6,
+      "skillLevel": 6,
+      "burstLevel": 6,
+      "startingFightingSpirit": 200,
+      "natlanPartyMembers": 1,
+      "wolfsGravestoneRefinement": 1
+    },
+    "flags": {
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "obsidian2": true,
+      "obsidian4": true,
+      "useBurst": true,
+      "wolfsGravestone": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Hour of Burning Skies)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingFightingSpirit",
+      "label": "Starting Fighting Spirit (0-200)",
+      "min": 0,
+      "max": 200,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "natlanPartyMembers",
+      "label": "Natlan party members (Nightsoul Burst every 18/12/9 s)",
+      "min": 1,
+      "max": 4,
+      "step": 1
+    }
+  ],
+  "rotation": {
+    "automaticDescription": "Hold E (Flamestrider), then the Q when she has 100 Fighting Spirit, and Flamestrider Normal Attacks; the E again on the Flamestrider when it is ready. Physical Normal Attacks when Nightsoul's Blessing is down.",
+    "palette": ["skill", "burst", "charged", "flamestriderSprint"]
+  },
+  "systems": {
+    "nightsoul": {
+      "maxPoints": {
+        "flag": "c1",
+        "then": 120,
+        "else": 80
+      },
+      "label": "Nightsoul points",
+      "icon": "Skill_S_Mavuika_01",
+      "blessing": {
+        "label": "Nightsoul's Blessing",
+        "icon": "Skill_S_Mavuika_01",
+        "drain": {
+          "everyFrames": 6,
+          "amount": 0.5,
+          "if": {
+            "not": {
+              "status": "mavuikaBurst"
+            }
+          }
+        }
+      },
+      "nightsoulBurst": {
+        "label": "Nightsoul Burst",
+        "icon": "UI_Talent_S_Mavuika_05",
+        "do": [
+          {
+            "applyStatus": "a1Atk"
+          }
+        ]
+      }
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "all": [
+          {
+            "ready": "burst"
+          },
+          {
+            "resource": "fightingSpirit",
+            "gte": 100
+          },
+          {
+            "status": "flamestrider"
+          }
+        ]
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "all": [
+          {
+            "ready": "skill"
+          },
+          {
+            "status": "flamestrider"
+          }
+        ]
+      }
+    },
+    {
+      "use": "skillHold",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "E uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Q uses",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "Fighting Spirit spent on the last Q",
+      "value": "{resource:burstStacks|fixed1}"
+    },
+    {
+      "label": "Fighting Spirit left at the end",
+      "value": "{resource:fightingSpirit|fixed1}"
+    },
+    {
+      "label": "Nightsoul's Blessing",
+      "value": "{uptime:nightsoulBlessing|percent}"
+    },
+    {
+      "label": "Flamestrider",
+      "value": "{uptime:flamestrider|percent}"
+    },
+    {
+      "label": "Crucible of Death and Life (Q)",
+      "value": "{uptime:mavuikaBurst|percent}"
+    },
+    {
+      "label": "Flamestrider Normal Attack hits",
+      "value": "{hits:Normal:Pyro}"
+    },
+    {
+      "label": "\"Kiongozi\" for the active member",
+      "value": "+{buffValue:a4-party|fixed1}%, up {uptime:kiongozi|percent}"
+    }
+  ],
+  "actionRules": [
+    {
+      "action": "burst",
+      "requires": {
+        "resource": "fightingSpirit",
+        "gte": 100
+      },
+      "message": "The Q needs 100 Fighting Spirit"
+    },
+    {
+      "action": "recastToBike",
+      "requires": {
+        "not": {
+          "status": "skillRecastLock"
+        }
+      },
+      "message": "A recast needs 1 s since the last E"
+    },
+    {
+      "action": "recastToRing",
+      "requires": {
+        "not": {
+          "status": "skillRecastLock"
+        }
+      },
+      "message": "A recast needs 1 s since the last E"
+    },
+    {
+      "action": "flamestriderSprint",
+      "requires": {
+        "status": "flamestrider"
+      },
+      "message": "Only on the Flamestrider"
+    }
+  ]
+}

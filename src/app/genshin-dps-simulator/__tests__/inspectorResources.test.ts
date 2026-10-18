@@ -190,15 +190,14 @@ describe('Selected Event: the character state', () => {
 describe('Selected Event at the playhead', () => {
   it('is an action from where its block starts: its wait for a cooldown first', () => {
     const view = buildInspectorView(runTeam(buildDefaultTeam(), 'expected'));
-    const nicole = view.actions.find(
-      (action) => action.actionId === 'nicole:skill' && action.waited > 0
-    )!;
-    const inItsWait = nicole.start - nicole.waited / 2;
+    // Any action that waited for a cooldown (Iansan's Q in the preset).
+    const waiting = view.actions.find((action) => action.waited > 0)!;
+    const inItsWait = waiting.start - waiting.waited / 2;
 
-    expect(actionAt(view.actions, inItsWait)?.key).toBe(nicole.key);
+    expect(actionAt(view.actions, inItsWait)?.key).toBe(waiting.key);
     // Before its wait, the one before it.
     expect(
-      actionAt(view.actions, nicole.start - nicole.waited - 0.05)?.key
-    ).not.toBe(nicole.key);
+      actionAt(view.actions, waiting.start - waiting.waited - 0.05)?.key
+    ).not.toBe(waiting.key);
   });
 });

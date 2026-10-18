@@ -1,0 +1,1354 @@
+{
+  "id": "xilonen",
+  "name": "Xilonen",
+  "element": "Geo",
+  "weaponType": "Sword",
+  "rarity": 5,
+  "scalingStat": "def",
+  "baseStats": {
+    "hp": 12405,
+    "atk": 275,
+    "def": 930
+  },
+  "ascensionStat": {
+    "stat": "defPercent",
+    "value": 36
+  },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Xilonen"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Ehecatl's Roar",
+      "icon": "Skill_A_01",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nPerforms up to 3 rapid strikes.\n\nCharged Attack\nConsumes a fixed amount of Stamina and performs a forward kick.\n\nPlunging Attack\nPlunges from mid-air to strike the ground below, damaging opponents along the path and dealing AoE DMG upon impact, both based on Xilonen's DEF.\n\nNightsoul's Blessing: Blade Roller\nWhen in the Nightsoul's Blessing state, Xilonen will enter the Blade Roller mode. While in this mode, Xilonen's Normal Attacks will allow her to perform up to 4 kicks using her roller blades, and she will be unable to use Charged Attacks.\nWhen her Normal and Plunging Attacks are used in this mode, they will switch to being based on her DEF, and Xilonen will deal Nightsoul-aligned Geo DMG that cannot be overridden.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                51.79, 56.01, 60.22, 66.25, 70.46, 75.28, 81.9, 88.53, 95.15,
+                102.38, 109.61, 116.83, 124.06, 131.29, 138.51
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [18],
+            "end": 34,
+            "cancels": {
+              "normal": 20,
+              "charged": 26
+            },
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG (×2)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                27.37, 29.6, 31.83, 35.01, 37.24, 39.79, 43.29, 46.79, 50.29,
+                54.11, 57.93, 61.75, 65.57, 69.39, 73.21
+              ]
+            }
+          ],
+          "hits": 2,
+          "timing": {
+            "action": "normal",
+            "hitmarks": [16, 32],
+            "end": 57,
+            "cancels": {
+              "normal": 46,
+              "charged": 39
+            },
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-4",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                72.95, 78.89, 84.83, 93.31, 99.25, 106.03, 115.36, 124.69,
+                134.02, 144.2, 154.38, 164.56, 174.74, 184.92, 195.1
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [22],
+            "end": 70,
+            "cancels": {
+              "normal": 57
+            },
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "ca",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                91.33, 98.77, 106.2, 116.82, 124.25, 132.75, 144.43, 156.11,
+                167.8, 180.54, 193.28, 206.03, 218.77, 231.52, 244.26
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [23],
+            "end": 42,
+            "cancels": {
+              "burst": 40,
+              "dodge": 23,
+              "swap": 27
+            },
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attackE-1",
+          "label": "Blade Roller 1-Hit DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                56.02, 60.58, 65.14, 71.66, 76.22, 81.43, 88.59, 95.76, 102.92,
+                110.74, 118.56, 126.38, 134.19, 142.01, 149.83
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skateNormal",
+            "hitmarks": [17],
+            "end": 44,
+            "cancels": {
+              "normal": 20
+            },
+            "element": "Geo",
+            "icd": "XilonenSkate"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attackE-2",
+          "label": "Blade Roller 2-Hit DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                55.05, 59.53, 64.01, 70.41, 74.89, 80.01, 87.05, 94.09, 101.13,
+                108.82, 116.5, 124.18, 131.86, 139.54, 147.22
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skateNormal",
+            "hitmarks": [17],
+            "end": 48,
+            "cancels": {
+              "normal": 28
+            },
+            "element": "Geo",
+            "icd": "XilonenSkate"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attackE-3",
+          "label": "Blade Roller 3-Hit DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                65.82, 71.17, 76.53, 84.18, 89.54, 95.66, 104.08, 112.5, 120.92,
+                130.1, 139.28, 148.47, 157.65, 166.84, 176.02
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skateNormal",
+            "hitmarks": [22],
+            "end": 50,
+            "cancels": {
+              "normal": 30
+            },
+            "element": "Geo",
+            "icd": "XilonenSkate"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attackE-4",
+          "label": "Blade Roller 4-Hit DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                86.03, 93.03, 100.03, 110.04, 117.04, 125.04, 136.04, 147.05,
+                158.05, 170.05, 182.06, 194.06, 206.07, 218.07, 230.07
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skateNormal",
+            "hitmarks": [32],
+            "end": 69,
+            "cancels": {
+              "normal": 68
+            },
+            "element": "Geo",
+            "icd": "XilonenSkate"
+          }
+        }
+      ],
+      "forms": [
+        {
+          "id": "skateNormal",
+          "replaces": "normal",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "element": "Geo",
+          "label": "Blade Roller",
+          "shortLabel": "Roller",
+          "icon": "Skill_S_Xilonen_01",
+          "note": "Her Normal Attacks on her roller skates in Nightsoul's Blessing: Geo, scaling with DEF."
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Yohual's Scratch",
+      "icon": "Skill_S_Xilonen_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "description": "Let the rhythms of passion resound throughout the land! Xilonen switches to high-speed combat blading gear and rushes forward a certain distance before dealing Nightsoul-aligned Geo DMG based on her DEF.\nAfter using this, Xilonen will gain 45 Nightsoul points and enter the Nightsoul's Blessing state. In this state, she will shift to the Blade Roller mode.\n\nSource Samples\nXilonen has 3 Samplers with her that can generate different Soundscapes based on her other party members' Elemental Types, decreasing nearby opponents' corresponding Elemental RES while active.\nThe initial recorded Source Sample within each Sampler will be Geo, and for each party member who is Pyro/Hydro/Cryo/Electro, 1 Geo Sample will change to that corresponding Element.\nWhile Xilonen is in the Nightsoul's Blessing state, the Geo Source Sample she carries will always be active. After unlocking her Ascension Talent, \"Netotiliztli's Echoes,\" Xilonen can trigger said Ascension Talent's effects to regenerate Nightsoul points for herself. When her Nightsoul points hit the maximum, she will consume all her Nightsoul points and activate the 3 Source Samples she has on hand for 15s.\nWhen the Source Samples are active, nearby opponents' corresponding Elemental RES will decrease. Source Sample effects of the same Elemental Type cannot stack. Xilonen can trigger these effects even when off-field.\n\nNightsoul's Blessing: Xilonen\nContinuously consume Nightsoul points. When these points are depleted or if used again, this Nightsoul's Blessing state will end. This state has the following traits:\n·Switches to the Blade Roller mode, increasing Xilonen's Movement SPD and climbing speed, and she can perform high-speed leaps in Ocelot Form while climbing.\n·Xilonen's Nightsoul's Blessing has the following restrictions: When in this state, Xilonen's Nightsoul points have a 9s time limit. After this limit passes, her Nightsoul points will immediately expire.\n\nAfter Xilonen's Nightsoul points have expired while she is in the Nightsoul's Blessing state, she will no longer be able to generate Nightsoul points via the Ascension Talent \"Netotiliztli's Echoes.\"\n\nIn some ways, gem-craft and music-mixing share similar principles: Filtering out impurities and retaining only the most radiant things.\nXilonen isn't picky about the two, however. She enjoys both immensely, after all!",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skillDMG",
+          "label": "Rush DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                179.2, 192.64, 206.08, 224, 237.44, 250.88, 268.8, 286.72,
+                304.64, 322.56, 340.48, 358.4, 380.8, 403.2, 425.6
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [6]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillShred",
+          "label": "Elemental RES Decrease (%)",
+          "components": [
+            {
+              "stat": "flat",
+              "values": [
+                9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51
+              ]
+            }
+          ]
+        }
+      ],
+      "end": 20,
+      "cancels": {
+        "normal": 19,
+        "dodge": 15,
+        "swap": 19
+      },
+      "cooldown": {
+        "frames": 420,
+        "deferred": true
+      },
+      "note": "A Geo rush (DEF), 45 Nightsoul points and Nightsoul's Blessing for 9 s: her Normal Attacks become Blade Roller. The E again ends it; the 7 s cooldown starts when the Blessing ends.",
+      "forms": [
+        {
+          "id": "skateExit",
+          "replaces": "skill",
+          "while": {
+            "status": "nightsoulBlessing"
+          },
+          "label": "E (leave the roller skates)",
+          "shortLabel": "Exit",
+          "icon": "Skill_S_Xilonen_01",
+          "cooldown": "none",
+          "end": 1,
+          "hits": [],
+          "note": "Pressing the E in Nightsoul's Blessing ends it."
+        }
+      ]
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Ocelotlicue Point!",
+      "icon": "Skill_E_Xilonen_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "description": "Activates the Phlogiston Stereo DJ Controller (Portable) at full power, dealing Nightsoul-aligned AoE Geo DMG based on Xilonen's DEF.\n\nAdditionally, she will trigger the following effects based on her different Source Samples:\n·If she has at least 2 Source Samples that have had their Elemental Types changed, Xilonen will play an Ebullient rhythm, healing nearby active characters at intervals based on her DEF.\n·If she has fewer than 2 Source Samples that have had their Elemental Types changed, Xilonen will start up an Ardent rhythm, which will play two additional beats that deal Nightsoul-aligned AoE Geo DMG based on her DEF.\n\n\"Alright, time for a time-out!\"\n\"It's cool, I recorded those beats just now. Let's see what we get when we mix our rhythms!\"",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burstDMG",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                281.28, 302.38, 323.47, 351.6, 372.7, 393.79, 421.92, 450.05,
+                478.18, 506.3, 534.43, 562.56, 597.72, 632.88, 668.04
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [96],
+            "icd": "ElementalBurst"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "burstFollowDMG",
+          "label": "Follow-Up Beat DMG",
+          "components": [
+            {
+              "stat": "def",
+              "values": [
+                281.28, 302.38, 323.47, 351.6, 372.7, 393.79, 421.92, 450.05,
+                478.18, 506.3, 534.43, 562.56, 597.72, 632.88, 668.04
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [128, 164],
+            "icd": "ElementalBurst"
+          }
+        }
+      ],
+      "end": 101,
+      "cancels": {
+        "normal": 95,
+        "skill": 93,
+        "dodge": 95,
+        "swap": 92
+      },
+      "cooldown": {
+        "frames": 900
+      },
+      "energyCost": 60,
+      "note": "Ocelotlicue Point!: with fewer than 2 Pyro / Hydro / Cryo / Electro party members, two Follow-Up Beats; else heals every 1.5 s.",
+      "forms": [
+        {
+          "id": "burstHeal",
+          "replaces": "burst",
+          "while": {
+            "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+            "gte": 2
+          },
+          "label": "Q (Ebullient Rhythm heals)",
+          "shortLabel": "Q",
+          "hits": [
+            {
+              "row": "elementalBurst/burstDMG",
+              "frame": 96,
+              "icd": "ElementalBurst"
+            }
+          ],
+          "note": "With 2+ Pyro / Hydro / Cryo / Electro party members: one hit, then a heal every 1.5 s (logged; HP is not simulated)."
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "skateDrain",
+      "type": "status",
+      "source": "talent",
+      "label": "Nightsoul points spent on the roller skates",
+      "icon": "Skill_S_Xilonen_01",
+      "endsWith": "nightsoulBlessing",
+      "drain": {
+        "resource": "nightsoul",
+        "amount": 0.5,
+        "everyFrames": 6
+      }
+    },
+    {
+      "id": "samplersActive",
+      "type": "status",
+      "source": "passive",
+      "label": "Samplers active (RES down)",
+      "icon": "UI_Talent_S_Xilonen_05",
+      "durationFrames": 900
+    },
+    {
+      "id": "a4Def",
+      "type": "status",
+      "source": "passive",
+      "label": "Imperial Revel: DEF +20%",
+      "icon": "UI_Talent_S_Xilonen_06",
+      "durationFrames": 900
+    },
+    {
+      "id": "skill-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E: 45 Nightsoul points, Nightsoul's Blessing (9 s)",
+      "icon": "Skill_S_Xilonen_01",
+      "when": {
+        "use": "skill"
+      },
+      "if": {
+        "not": {
+          "status": "nightsoulBlessing"
+        }
+      },
+      "do": [
+        {
+          "applyStatus": "nightsoulBlessing"
+        },
+        {
+          "setResource": "nightsoul",
+          "value": 45
+        },
+        {
+          "applyStatus": "skateDrain"
+        },
+        {
+          "setResource": "c4Stacks",
+          "value": 6,
+          "ifFlag": "c4"
+        },
+        {
+          "applyStatus": "c4Window",
+          "ifFlag": "c4"
+        }
+      ]
+    },
+    {
+      "id": "skate-exit",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E in Nightsoul's Blessing: it ends",
+      "icon": "Skill_S_Xilonen_01",
+      "when": {
+        "use": "skateExit"
+      },
+      "do": [
+        {
+          "removeStatus": "nightsoulBlessing"
+        }
+      ]
+    },
+    {
+      "id": "skill-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E hit: 4 Geo particles",
+      "icon": "Skill_S_Xilonen_01",
+      "when": {
+        "hit": "elementalSkill/skillDMG"
+      },
+      "icdFrames": 30,
+      "do": [
+        {
+          "particles": 4,
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "nightsoul-empty",
+      "type": "trigger",
+      "source": "talent",
+      "label": "No Nightsoul points left: Nightsoul's Blessing ends",
+      "icon": "Skill_S_Xilonen_01",
+      "when": {
+        "resourceChanges": "nightsoul",
+        "change": "decrease"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "resource": "nightsoul",
+            "lte": 0.001
+          }
+        ]
+      },
+      "do": [
+        {
+          "removeStatus": "nightsoulBlessing"
+        }
+      ]
+    },
+    {
+      "id": "blessing-end",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Nightsoul's Blessing ends: points cleared, the E's cooldown starts",
+      "icon": "Skill_S_Xilonen_01",
+      "when": {
+        "statusEnds": "nightsoulBlessing"
+      },
+      "do": [
+        {
+          "setResource": "nightsoul",
+          "value": 0
+        },
+        {
+          "startCooldown": "skill"
+        }
+      ]
+    },
+    {
+      "id": "swap-out",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Off the field: Nightsoul's Blessing ends",
+      "icon": "Skill_S_Xilonen_01",
+      "when": {
+        "swap": "out"
+      },
+      "do": [
+        {
+          "removeStatus": "nightsoulBlessing"
+        }
+      ]
+    },
+    {
+      "id": "burst-heals",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Q (healing form): a heal every 1.5 s",
+      "icon": "Skill_E_Xilonen_01",
+      "when": {
+        "use": "burstHeal"
+      },
+      "do": [
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 185
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 274
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 362
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 450
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 539
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 627
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 716
+        },
+        {
+          "heal": {
+            "effect": "Ebullient Rhythm heal",
+            "short": "Q heal",
+            "target": "active",
+            "from": "burst"
+          },
+          "delayFrames": 805
+        }
+      ]
+    },
+    {
+      "id": "a1-dmg",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Netotiliztli: Blade Roller DMG +30% (fewer than 2 Samplers converted)",
+      "icon": "UI_Talent_S_Xilonen_05",
+      "stat": "dmgBonus",
+      "value": 30,
+      "match": {
+        "actions": ["skateNormal"]
+      },
+      "if": {
+        "not": {
+          "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+          "gte": 2
+        }
+      }
+    },
+    {
+      "id": "a1-points",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Blade Roller hit: +35 Nightsoul points (2+ Samplers converted)",
+      "icon": "UI_Talent_S_Xilonen_05",
+      "when": {
+        "hit": "skateNormal"
+      },
+      "icdFrames": 6,
+      "if": {
+        "all": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+            "gte": 2
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 35
+        }
+      ]
+    },
+    {
+      "id": "a1-max",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Full Nightsoul points: all spent, Samplers active for 15 s",
+      "icon": "UI_Talent_S_Xilonen_05",
+      "when": {
+        "resourceChanges": "nightsoul",
+        "change": "increase"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+            "gte": 2
+          },
+          {
+            "resource": "nightsoul",
+            "gte": 90
+          }
+        ]
+      },
+      "do": [
+        {
+          "setResource": "nightsoul",
+          "value": 0
+        },
+        {
+          "applyStatus": "samplersActive"
+        }
+      ]
+    },
+    {
+      "id": "a4-def",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Imperial Revel: DEF +20%",
+      "icon": "UI_Talent_S_Xilonen_06",
+      "stat": "defPercent",
+      "value": 20,
+      "while": {
+        "a4Def": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "shred-geo-blessing",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Geo Sampler: enemy Geo RES down (her Blessing)",
+      "icon": "Skill_S_Xilonen_01",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Geo"]
+      },
+      "if": {
+        "all": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "not": {
+              "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+              "gte": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "shred-geo-samplers",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Geo Sampler: enemy Geo RES down (Samplers active)",
+      "icon": "Skill_S_Xilonen_01",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Geo"]
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          },
+          {
+            "not": {
+              "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+              "gte": 3
+            }
+          }
+        ]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "shred-pyro",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Pyro Sampler: enemy Pyro RES down",
+      "icon": "Skill_S_Xilonen_01",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Pyro"]
+      },
+      "if": {
+        "partyElements": ["Pyro"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "shred-hydro",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Hydro Sampler: enemy Hydro RES down",
+      "icon": "Skill_S_Xilonen_01",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Hydro"]
+      },
+      "if": {
+        "partyElements": ["Hydro"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "shred-cryo",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Cryo Sampler: enemy Cryo RES down",
+      "icon": "Skill_S_Xilonen_01",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Cryo"]
+      },
+      "if": {
+        "partyElements": ["Cryo"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "shred-electro",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Electro Sampler: enemy Electro RES down",
+      "icon": "Skill_S_Xilonen_01",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Electro"]
+      },
+      "if": {
+        "partyElements": ["Electro"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-geo-shred",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: the Geo Sampler always active",
+      "ifFlag": "c2",
+      "stat": "resShred",
+      "valueRow": "elementalSkill/skillShred",
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Geo"]
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          },
+          {
+            "not": {
+              "partyElements": ["Pyro", "Hydro", "Cryo", "Electro"],
+              "gte": 3
+            }
+          }
+        ]
+      },
+      "while": {
+        "samplersActive": {
+          "lt": 1
+        }
+      }
+    },
+    {
+      "id": "c2-geo",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Geo party members +50% DMG",
+      "ifFlag": "c2",
+      "stat": "dmgBonus",
+      "value": 50,
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Geo"]
+      }
+    },
+    {
+      "id": "c2-pyro",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Pyro party members +45% ATK (Samplers active)",
+      "ifFlag": "c2",
+      "stat": "atkPercent",
+      "value": 45,
+      "teamBuff": true,
+      "match": {
+        "elements": ["Pyro"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-hydro",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Hydro party members +45% Max HP (Samplers active)",
+      "ifFlag": "c2",
+      "stat": "hpPercent",
+      "value": 45,
+      "teamBuff": true,
+      "match": {
+        "elements": ["Hydro"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c2-cryo",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Cryo party members +60% CRIT DMG (Samplers active)",
+      "ifFlag": "c2",
+      "stat": "critDamage",
+      "value": 60,
+      "teamBuff": true,
+      "match": {
+        "elements": ["Cryo"]
+      },
+      "while": {
+        "samplersActive": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c4Window",
+      "type": "status",
+      "source": "constellation",
+      "label": "C4: Suchitl's Trance",
+      "ifFlag": "c4",
+      "durationFrames": 900
+    },
+    {
+      "id": "c4Stacks",
+      "type": "resource",
+      "source": "constellation",
+      "label": "C4: uses left",
+      "ifFlag": "c4",
+      "min": 0,
+      "max": 6
+    },
+    {
+      "id": "c4-flat",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C4: Normal / Charged / Plunge hits +65% of Xilonen's DEF as DMG",
+      "ifFlag": "c4",
+      "stat": "flatDamage",
+      "value": 65,
+      "ofStat": "def",
+      "teamBuff": "everyone",
+      "match": {
+        "categories": ["Normal", "Charged", "Plunge"]
+      },
+      "while": {
+        "c4Window": {
+          "gte": 1
+        },
+        "c4Stacks": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c4-spend-normal",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: a party member's Normal hit uses one",
+      "ifFlag": "c4",
+      "when": {
+        "hit": "party:category:Normal"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "c4Window"
+          },
+          {
+            "resource": "c4Stacks",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "c4Stacks",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "c4-spend-charged",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: a party member's Charged hit uses one",
+      "ifFlag": "c4",
+      "when": {
+        "hit": "party:category:Charged"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "c4Window"
+          },
+          {
+            "resource": "c4Stacks",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "c4Stacks",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "c4-spend-plunge",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: a party member's Plunge hit uses one",
+      "ifFlag": "c4",
+      "when": {
+        "hit": "party:category:Plunge"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "c4Window"
+          },
+          {
+            "resource": "c4Stacks",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "c4Stacks",
+          "amount": -1
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "xilonen-passive-1",
+      "name": "Netotiliztli's Echoes",
+      "icon": "UI_Talent_S_Xilonen_05",
+      "value": "With 2+ Pyro / Hydro / Cryo / Electro party members, Blade Roller hits give 35 Nightsoul points; at full, they are spent and her Samplers turn on for 15 s. Otherwise, Blade Roller hits deal 30% more DMG.",
+      "description": "While in the Nightsoul's Blessing state:\n·If Xilonen has at least 2 Source Samples that have had their Elemental Types changed, she gains 35 Nightsoul points when her Normal or Plunging Attacks hit opponents. Can be triggered once every 0.1s.\n·If Xilonen has fewer than 2 Source Samples that have had their Elemental Types changed, her Normal and Plunging Attacks deal 30% increased DMG.",
+      "note": "The Samplers' RES shred is her E's; reaching full points does not force a Nightsoul Burst here."
+    },
+    {
+      "id": "xilonen-passive-2",
+      "name": "Portable Armored Sheath",
+      "icon": "UI_Talent_S_Xilonen_06",
+      "value": "+20% DEF for 15 s on each Nightsoul Burst.",
+      "description": "While in the Nightsoul's Blessing state, when Xilonen's Nightsoul points reach the maximum, she will trigger an effect equal to that of her Nightsoul Burst. This effect can be triggered once every 14s.\nAdditionally, when nearby party members trigger a Nightsoul Burst, Xilonen's DEF is increased by 20% for 15s."
+    },
+    {
+      "id": "xilonen-passive-3",
+      "name": "Night Realm's Gift: Blessing of Forge-Fire",
+      "icon": "UI_Talent_S_Xilonen_07",
+      "value": "Exploration only.",
+      "description": "After her Nightsoul points are fully depleted, Xilonen will switch to consuming Phlogiston to maintain her Nightsoul's Blessing.\nWhile in an area with Phlogiston Mechanics within Natlan, she can use Nightsoul Transmission: Xilonen. When the active character is currently sprinting, climbing, in a movement mode caused by certain Talents, or at a certain height in the air, the following will trigger when switching to Xilonen: Xilonen will enter the Nightsoul's Blessing state and gain 20 Nightsoul points. In this situation, Xilonen's Nightsoul points have a 4s time limit, after which her Nightsoul points will immediately expire. After she uses Yohual's Scratch within this time limit, her Nightsoul point time limit will be extended by 9s. Nightsoul Transmission can be triggered once every 10s by your own team.\n\nAdditionally, while in Natlan, Xilonen will not consume Stamina when climbing while in the Nightsoul's Blessing state."
+    },
+    {
+      "id": "xilonen-passive-4",
+      "name": "Tour of Tepeilhuitl",
+      "icon": "UI_Talent_S_Xilonen_08",
+      "value": "Exploration only.",
+      "description": "Triggering Nightsoul Transmission restores 15 Phlogiston."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Sabbatical Phrase",
+      "icon": "UI_Talent_S_Xilonen_01",
+      "effect": "Nightsoul's Blessing lasts 45% longer and spends 30% fewer points.",
+      "impact": "not-simulated",
+      "note": "Not modeled yet.",
+      "description": "Xilonen's Nightsoul point and Phlogiston consumption in her Nightsoul's Blessing state is decreased by 30%, and her Nightsoul point time limit is extended by 45%.\nAdditionally, when Xilonen's Source Samples are active, she can also increase nearby active characters' interruption resistance."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Chiucue Mix",
+      "icon": "UI_Talent_S_Xilonen_02",
+      "effect": "The Geo Sampler is always active; Samplers give Geo +50% DMG, Pyro +45% ATK, Hydro +45% HP, Cryo +60% CRIT DMG, Electro 25 Energy and -6 s Q cooldown.",
+      "impact": "partial",
+      "note": "The Electro part is not simulated; the buffs go by the hit's element.",
+      "description": "Xilonen's Geo Source Samples will always remain active. Additionally, when her Source Samples activate, all nearby party members will gain effects corresponding to the active Source Sample that matches their Elemental Type:\n·Geo: DMG dealt +50%.\n·Pyro: ATK +45%.\n·Hydro: Max HP +45%.\n·Cryo: CRIT DMG +60%.\n·Electro: Restore 25 Energy, decrease Elemental Burst CD by 6s."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Tonalpohualli's Loop",
+      "icon": "UI_Talent_U_Xilonen_01",
+      "effect": "+3 E levels.",
+      "impact": "simulated",
+      "note": "Raises the E talent level.",
+      "description": "Increases the Level of Yohual's Scratch by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Suchitl's Trance",
+      "icon": "UI_Talent_S_Xilonen_03",
+      "effect": "After her E, each party member's next 6 Normal / Charged / Plunge hits deal +65% of her DEF.",
+      "impact": "partial",
+      "note": "One shared pool of 6 for the whole party (gcsim: 6 per member).",
+      "description": "After Xilonen uses Yohual's Scratch, she will grant all nearby party members the Blooming Blessing effect for 15s.\nCharacters with Blooming Blessing deal 65% of Xilonen's DEF as increased Normal, Charged, and Plunging Attack DMG. This effect will be removed after triggering 6 times or when the duration ends.\nWhen you hit more than one opponent, trigger counts will be consumed based on the number of opponents hit. The counts for each party member with Blooming Blessing are counted independently."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Tlaltecuhtli's Crossfade",
+      "icon": "UI_Talent_U_Xilonen_02",
+      "effect": "+3 Q levels.",
+      "impact": "simulated",
+      "note": "Raises the Q talent level.",
+      "description": "Increases the Level of Ocelotlicue Point! by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Imperishable Night Carnival",
+      "icon": "UI_Talent_S_Xilonen_04",
+      "effect": "Nightsoul's Blessing pauses for 5 s, Blade Roller +300% DEF, heals.",
+      "impact": "not-simulated",
+      "note": "Not modeled yet.",
+      "description": "When Xilonen is in the Nightsoul's Blessing state, when she sprints, leaps, or uses Normal or Plunging Attacks, she will gain Imperishable Night's Blessing, ignoring the limitations of her Nightsoul's Blessing state and increasing the DMG dealt by her Normal and Plunging Attacks for 5s.\nDuring this time:\n·Her Nightsoul's Blessing time limit countdown will be paused. Xilonen's Nightsoul points, Phlogiston, and Stamina will not decrease, and when her Nightsoul points reach the maximum, her Nightsoul's Blessing state will not end either.\n·Xilonen deals 300% of her DEF as increased Normal and Plunging Attack DMG while in the Nightsoul's Blessing state.\n·She heals nearby party members for 120% of her DEF every 1.5s.\nShe can gain 1 Imperishable Night's Blessing once every 15s."
+    }
+  ],
+  "weapon": "favonius-sword",
+  "artifactSet": "scroll-of-the-hero-of-cinder-city",
+  "defaults": {
+    "numbers": {
+      "atk": 1094,
+      "hp": 18269,
+      "def": 2841,
+      "em": 159,
+      "cr": 60.2,
+      "cd": 103.6,
+      "energyRecharge": 183.9,
+      "elementalBonus": 0,
+      "bonus": 0,
+      "duration": 60,
+      "normalAttackLevel": 6,
+      "skillLevel": 10,
+      "burstLevel": 8,
+      "favoniusRefinement": 5,
+      "startingEnergy": 60,
+      "natlanPartyMembers": 2
+    },
+    "flags": {
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "favonius": true,
+      "scroll2": true,
+      "scroll4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Ocelotlicue Point!)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "natlanPartyMembers",
+      "label": "Natlan party members (Nightsoul Burst every 18/12/9 s)",
+      "min": 1,
+      "max": 4,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "scroll2",
+      "label": "Scroll 2-piece (6 Energy per Nightsoul Burst)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "scroll4",
+      "label": "Scroll 4-piece (on her own reactions)"
+    }
+  ],
+  "rotation": {
+    "automaticDescription": "Q when it is ready, then the E (roller skates, Nightsoul's Blessing) when it is ready; Blade Roller Normal Attacks until the Blessing ends, then plain Normal Attacks."
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "nightsoul": {
+      "maxPoints": 90,
+      "label": "Nightsoul points",
+      "icon": "Skill_S_Xilonen_01",
+      "blessing": {
+        "label": "Nightsoul's Blessing",
+        "icon": "Skill_S_Xilonen_01",
+        "durationFrames": 540
+      },
+      "nightsoulBurst": {
+        "label": "Nightsoul Burst",
+        "icon": "UI_Talent_S_Xilonen_06",
+        "do": [
+          {
+            "applyStatus": "a4Def"
+          },
+          {
+            "addResource": "energy",
+            "amount": 6,
+            "ifFlag": "scroll2"
+          }
+        ]
+      }
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "all": [
+          {
+            "ready": "skill"
+          },
+          {
+            "not": {
+              "status": "nightsoulBlessing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "E uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Q uses",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "Nightsoul's Blessing",
+      "value": "{uptime:nightsoulBlessing|percent}"
+    },
+    {
+      "label": "Samplers active (RES down)",
+      "value": "{uptime:samplersActive|percent}"
+    },
+    {
+      "label": "Pyro RES down while active",
+      "value": "-{buffValue:shred-pyro|fixed1}%"
+    },
+    {
+      "label": "Particles",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    }
+  ]
+}

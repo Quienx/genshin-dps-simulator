@@ -1,0 +1,542 @@
+{
+  "id": "sucrose",
+  "name": "Sucrose",
+  "element": "Anemo",
+  "weaponType": "Catalyst",
+  "rarity": 4,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 9244,
+    "atk": 170,
+    "def": 703
+  },
+  "ascensionStat": {
+    "stat": "elementalDmg",
+    "value": 24
+  },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Sucrose"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Wind Spirit Creation",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nPerforms up to 4 attacks using Wind Spirits, dealing Anemo DMG.\n\nCharged Attack\nConsumes a certain amount of Stamina and deals AoE Anemo DMG after a short casting time.\n\nPlunging Attack\nCalling upon the power of her Wind Spirits, Sucrose plunges towards the ground from mid-air, damaging all opponents in her path. Deals AoE Anemo DMG upon impact with the ground.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                33.46, 35.97, 38.48, 41.83, 44.34, 46.85, 50.2, 53.54, 56.89,
+                60.24, 63.58, 66.93, 71.11, 75.29, 79.48
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [17],
+            "end": 28,
+            "cancels": {
+              "normal": 17,
+              "charged": 20
+            },
+            "element": "Anemo",
+            "icd": "NormalAttack",
+            "note": "Catalyst combo (Anemo)."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                30.62, 32.91, 35.21, 38.27, 40.57, 42.86, 45.92, 48.99, 52.05,
+                55.11, 58.17, 61.23, 65.06, 68.89, 72.71
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [18],
+            "end": 38,
+            "cancels": {
+              "normal": 26,
+              "charged": 18
+            },
+            "element": "Anemo",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                38.45, 41.33, 44.22, 48.06, 50.94, 53.83, 57.67, 61.52, 65.36,
+                69.21, 73.05, 76.9, 81.7, 86.51, 91.31
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [28],
+            "end": 46,
+            "cancels": {
+              "normal": 33,
+              "charged": 28
+            },
+            "element": "Anemo",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-4",
+          "label": "4-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                47.92, 51.51, 55.11, 59.9, 63.49, 67.08, 71.88, 76.67, 81.46,
+                86.25, 91.04, 95.84, 101.82, 107.81, 113.8
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [28],
+            "end": 65,
+            "cancels": {
+              "normal": 51,
+              "charged": 54
+            },
+            "element": "Anemo",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                120.16, 129.17, 138.18, 150.2, 159.21, 168.22, 180.24, 192.26,
+                204.27, 216.29, 228.3, 240.32, 255.34, 270.36, 285.38
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [54],
+            "end": 71,
+            "cancels": {
+              "normal": 69,
+              "charged": 66,
+              "skill": 60,
+              "burst": 61,
+              "dodge": 54,
+              "swap": 54
+            },
+            "element": "Anemo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Astable Anemohypostasis Creation - 6308",
+      "icon": "Skill_S_Sucrose_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "description": "Creates a small Wind Spirit that pulls opponents and objects towards its location, launches opponents within its AoE, and deals Anemo DMG.\n\nThis is a little embarrassing, but though the elemental lifeforms birthed through this procedure dissipate very rapidly, they are incredibly useful when adventuring. Even failed experiments can have practical applications.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                211.2, 227.04, 242.88, 264, 279.84, 295.68, 316.8, 337.92,
+                359.04, 380.16, 401.28, 422.4, 448.8, 475.2, 501.6
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [42]
+          }
+        }
+      ],
+      "end": 68,
+      "cancels": {
+        "normal": 57,
+        "charged": 56,
+        "skill": 56,
+        "burst": 57,
+        "dodge": 11,
+        "swap": 56
+      },
+      "cooldown": {
+        "frames": 900,
+        "delayFrames": 9
+      },
+      "note": "An Anemo blast (4 particles). Its hit gives the party 20% of her EM for 8 s (A4)."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Forbidden Creation - Isomer 75 / Type II",
+      "icon": "Skill_E_Sucrose_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "description": "Sucrose hurls an unstable concoction that creates a Large Wind Spirit.\nWhile it persists, the Large Wind Spirit will continuously pull in surrounding opponents and objects, launch nearby opponents, and deal Anemo DMG.\n\nElemental Absorption\nIf the Wind Spirit comes into contact with Hydro/Pyro/Cryo/Electro energy, it will deal additional elemental DMG of that type.\nElemental Absorption may only occur once per use.\n\nSucrose used to give names to her volatile Anemo Hypostases, but their line of heirs quickly grew to surpass Baron Bunny the 893rd.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burstDot",
+          "label": "DoT",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                148, 159.1, 170.2, 185, 196.1, 207.2, 222, 236.8, 251.6, 266.4,
+                281.2, 296, 314.5, 333, 351.5
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [137, 250, 363]
+          }
+        }
+      ],
+      "end": 65,
+      "cancels": {
+        "normal": 49,
+        "charged": 48,
+        "skill": 48,
+        "dodge": 47,
+        "swap": 47
+      },
+      "cooldown": {
+        "frames": 1200,
+        "delayFrames": 18
+      },
+      "energyCost": 80,
+      "note": "A Large Wind Spirit: 3 Anemo hits about every 1.9 s (4 at C2). Absorbing an element is not simulated (no Swirl)."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "sucroseA4",
+      "type": "status",
+      "source": "passive",
+      "label": "Mollis Favonius: EM shared",
+      "icon": "UI_Talent_S_Sucrose_06",
+      "durationFrames": 480
+    },
+    {
+      "id": "a4-skill",
+      "type": "trigger",
+      "source": "passive",
+      "label": "E hit: the party gets 20% of her EM (8 s)",
+      "icon": "UI_Talent_S_Sucrose_06",
+      "when": {
+        "hit": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "sucroseA4"
+        }
+      ]
+    },
+    {
+      "id": "a4-burst",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Q hit: the party gets 20% of her EM (8 s)",
+      "icon": "UI_Talent_S_Sucrose_06",
+      "when": {
+        "hit": "burst"
+      },
+      "do": [
+        {
+          "applyStatus": "sucroseA4"
+        }
+      ]
+    },
+    {
+      "id": "a4-em",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Mollis Favonius: +20% of Sucrose's EM for the party",
+      "icon": "UI_Talent_S_Sucrose_06",
+      "stat": "elementalMastery",
+      "value": 20,
+      "ofStat": "em",
+      "extra": true,
+      "teamBuff": true,
+      "while": {
+        "sucroseA4": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "skill-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E hit: 4 Anemo particles",
+      "icon": "Skill_S_Sucrose_01",
+      "when": {
+        "hit": "elementalSkill/skill"
+      },
+      "icdFrames": 24,
+      "do": [
+        {
+          "particles": 4,
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "c2-tick",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C2: the Q lasts 2 s longer (a 4th hit)",
+      "ifFlag": "c2",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "hit": {
+            "row": "elementalBurst/burstDot",
+            "element": "Anemo",
+            "category": "Burst",
+            "afterFrames": 476
+          }
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "sucrose-passive-1",
+      "name": "Catalyst Conversion",
+      "icon": "UI_Talent_S_Sucrose_05",
+      "value": "When she triggers Swirl, party members of that element get +50 EM for 8 s.",
+      "description": "When Sucrose triggers a Swirl or Stellar Swirl reaction, all characters in the party with the matching element (excluding Sucrose) have their Elemental Mastery increased by 50 for 8s.",
+      "note": "Not simulated: Swirl is not a reaction in the engine yet."
+    },
+    {
+      "id": "sucrose-passive-2",
+      "name": "Mollis Favonius",
+      "icon": "UI_Talent_S_Sucrose_06",
+      "value": "Her E and Q hits give the other party members 20% of her EM for 8 s.",
+      "description": "When Astable Anemohypostasis Creation - 6308 or Forbidden Creation - Isomer 75 / Type II hits an opponent, increases all party members' (excluding Sucrose) Elemental Mastery by an amount equal to 20% of Sucrose's Elemental Mastery for 8s.",
+      "note": "A team buff, valued from her EM at each hit (gcsim snapshots it)."
+    },
+    {
+      "id": "sucrose-passive-3",
+      "name": "Astable Invention",
+      "icon": "UI_Talent_Combine_Material",
+      "value": "Not simulated.",
+      "description": "When Sucrose crafts Character and Weapon Enhancement Materials, she has a 10% chance to obtain double the product."
+    },
+    {
+      "id": "sucrose-passive-4",
+      "name": "Witch's Eve Rite: Sevenfold Transmutation",
+      "icon": "UI_Talent_S_Sucrose_07",
+      "value": "Not simulated.",
+      "description": "After completing Witch's Homework: Of Wonderland Flowers, Sucrose will become a Hexerei character. When the party includes at least 2 Hexerei characters, you will gain the Hexerei: Secret Rite effect, which enhances Hexerei characters.\n\nHexerei: Secret Rite\n· After Sucrose creates a Small Wind Spirit, nearby party members' Normal Attack, Charged Attack, Plunging Attack, Elemental Skill, and Elemental Burst DMG are increased by 5.71428% for 15s.\n· After Sucrose creates a Large Wind Spirit, nearby Hexerei party members' Normal Attack, Charged Attack, Plunging Attack, Elemental Skill, and Elemental Burst DMG are increased by 7.14285% for 20s."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Clustered Vacuum Field",
+      "icon": "UI_Talent_S_Sucrose_01",
+      "effect": "Her E gets 2 charges.",
+      "impact": "not-simulated",
+      "note": "Charges by constellation are not modeled.",
+      "description": "Astable Anemohypostasis Creation - 6308 gains 1 additional charge."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Beth: Unbound Form",
+      "icon": "UI_Talent_S_Sucrose_02",
+      "effect": "Her Q lasts 2 s longer.",
+      "impact": "simulated",
+      "note": "A 4th hit at 476 frames.",
+      "description": "The duration of Forbidden Creation - Isomer 75 / Type II is increased by 2s."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Flawless Alchemistress",
+      "icon": "UI_Talent_U_Sucrose_01",
+      "effect": "+3 E levels.",
+      "impact": "simulated",
+      "note": "Raises the E talent level.",
+      "description": "Increases the Level of Astable Anemohypostasis Creation - 6308 by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Alchemania",
+      "icon": "UI_Talent_S_Sucrose_03",
+      "effect": "Every 7 Normal / Charged hits cut her E cooldown by 1-7 s.",
+      "impact": "not-simulated",
+      "note": "Random; not modeled.",
+      "description": "Sucrose will reduce the CD of Astable Anemohypostasis Creation - 6308 by 1-7s for every 7 Normal or Charged Attack hits she scores against opponents.\nOne hit may be counted every 0.1s."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Caution: Standard Flask",
+      "icon": "UI_Talent_U_Sucrose_02",
+      "effect": "+3 Q levels.",
+      "impact": "simulated",
+      "note": "Raises the Q talent level.",
+      "description": "Increases the Level of Forbidden Creation - Isomer 75 / Type II by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Chaotic Entropy",
+      "icon": "UI_Talent_S_Sucrose_04",
+      "effect": "Her Q gives +20% DMG of the element it absorbs.",
+      "impact": "not-simulated",
+      "note": "Absorption needs Swirl.",
+      "description": "If Forbidden Creation - Isomer 75 / Type II triggers an Elemental Absorption, all party members gain a 20% Elemental DMG Bonus for the corresponding absorbed element during its duration."
+    }
+  ],
+  "weapon": "thrilling-tales-of-dragon-slayers",
+  "artifactSet": "viridescent-venerer",
+  "defaults": {
+    "numbers": {
+      "atk": 726,
+      "hp": 20219,
+      "def": 858,
+      "em": 651,
+      "cr": 17.8,
+      "cd": 111.4,
+      "energyRecharge": 138.2,
+      "elementalBonus": 39.0,
+      "bonus": 0,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 8,
+      "burstLevel": 8,
+      "thrillingTalesOfDragonSlayersRefinement": 5,
+      "startingEnergy": 80
+    },
+    "flags": {
+      "c1": true,
+      "c2": true,
+      "c3": true,
+      "c4": true,
+      "c5": true,
+      "c6": true,
+      "thrillingTalesOfDragonSlayers": true,
+      "viridescentVenerer2": true,
+      "viridescentVenerer4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Forbidden Creation-Isomer 75/Type II)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-80)",
+      "min": 0,
+      "max": 80,
+      "step": 1
+    }
+  ],
+  "rotation": {
+    "automaticDescription": "Q when it is ready, then the E when it is ready; Normal Attacks while they recharge."
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "E uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Q uses",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "EM for the party (A4)",
+      "value": "+{buffValue:a4-em|fixed1}, up {uptime:sucroseA4|percent}"
+    },
+    {
+      "label": "Particles",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 80"
+    }
+  ]
+}

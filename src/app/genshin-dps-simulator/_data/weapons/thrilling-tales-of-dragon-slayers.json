@@ -1,0 +1,104 @@
+{
+  "id": "thrilling-tales-of-dragon-slayers",
+  "name": "Thrilling Tales of Dragon Slayers",
+  "icon": "UI_EquipIcon_Catalyst_Pulpfic",
+  "type": "Catalyst",
+  "rarity": 3,
+  "level": 90,
+  "enabledFlag": "thrillingTalesOfDragonSlayers",
+  "refinementField": "thrillingTalesOfDragonSlayersRefinement",
+  "baseAtk": 401,
+  "substat": {
+    "stat": "hpPercent",
+    "value": 35.2
+  },
+  "rows": [
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Heritage",
+      "status": "toggle",
+      "template": "When the wielder leaves the field, the member coming in gets +{param:atk}% ATK for 10 s (once every 20 s)",
+      "params": {
+        "atk": [24, 30, 36, 42, 48]
+      },
+      "note": "The ATK goes to the member on the field during those 10 s."
+    }
+  ],
+  "passive": {
+    "name": "Heritage",
+    "descriptions": [
+      "When switching characters, the new character taking the field has their ATK increased by 24% for 10s. This effect can only occur once every 20s.",
+      "When switching characters, the new character taking the field has their ATK increased by 30% for 10s. This effect can only occur once every 20s.",
+      "When switching characters, the new character taking the field has their ATK increased by 36% for 10s. This effect can only occur once every 20s.",
+      "When switching characters, the new character taking the field has their ATK increased by 42% for 10s. This effect can only occur once every 20s.",
+      "When switching characters, the new character taking the field has their ATK increased by 48% for 10s. This effect can only occur once every 20s."
+    ]
+  },
+  "defaults": {
+    "numbers": {
+      "thrillingTalesOfDragonSlayersRefinement": 1
+    },
+    "flags": {
+      "thrillingTalesOfDragonSlayers": true
+    }
+  },
+  "blocks": [
+    {
+      "id": "ttdsBuff",
+      "type": "status",
+      "source": "weapon",
+      "label": "Thrilling Tales: Heritage",
+      "ifFlag": "thrillingTalesOfDragonSlayers",
+      "durationFrames": 600
+    },
+    {
+      "id": "ttdsCooldown",
+      "type": "status",
+      "source": "weapon",
+      "label": "Thrilling Tales cooldown",
+      "ifFlag": "thrillingTalesOfDragonSlayers",
+      "durationFrames": 1200
+    },
+    {
+      "id": "ttds-swap",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Leaving the field: ATK for the member coming in",
+      "ifFlag": "thrillingTalesOfDragonSlayers",
+      "when": {
+        "swap": "out"
+      },
+      "if": {
+        "not": {
+          "status": "ttdsCooldown"
+        }
+      },
+      "do": [
+        {
+          "applyStatus": "ttdsBuff"
+        },
+        {
+          "applyStatus": "ttdsCooldown"
+        }
+      ]
+    },
+    {
+      "id": "ttds-atk",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Thrilling Tales: ATK for the active member",
+      "ifFlag": "thrillingTalesOfDragonSlayers",
+      "stat": "atkPercent",
+      "value": [24, 30, 36, 42, 48],
+      "scaleBy": {
+        "field": "thrillingTalesOfDragonSlayersRefinement"
+      },
+      "teamBuff": "active",
+      "while": {
+        "ttdsBuff": {
+          "gte": 1
+        }
+      }
+    }
+  ]
+}

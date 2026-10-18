@@ -1,0 +1,1013 @@
+{
+  "id": "citlali",
+  "name": "Citlali",
+  "element": "Cryo",
+  "weaponType": "Catalyst",
+  "rarity": 5,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 11634,
+    "atk": 127,
+    "def": 763
+  },
+  "ascensionStat": {
+    "stat": "elementalMastery",
+    "value": 115.2
+  },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Citlali"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Shadow-Stealing Spirit Vessel",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nCalls upon secret arts passed down through the Masters of the Night-Wind from generation to generation, performing up to three strikes that deal Cryo DMG.\n\nCharged Attack\nEnters Aiming Mode, and after Holding, consumes a certain amount of Stamina to call forth a Frost Star that deals Cryo DMG to opponents in its path.\n\nPlunging Attack\nGathers the power of Cryo and plunges towards the ground from mid-air, damaging all opponents in her path. Deals Aoe Cryo DMG upon impact with the ground.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                43.41, 46.66, 49.92, 54.26, 57.51, 60.77, 65.11, 69.45, 73.79,
+                78.13, 82.47, 86.81, 92.24, 97.67, 103.09
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [26],
+            "end": 38,
+            "cancels": {
+              "normal": 34,
+              "charged": 33
+            },
+            "element": "Cryo",
+            "icd": "NormalAttack",
+            "note": "Catalyst combo (Cryo). gcsim: each hit lands 10 frames after its hitmark (travel)."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                38.81, 41.72, 44.64, 48.52, 51.43, 54.34, 58.22, 62.1, 65.98,
+                69.86, 73.75, 77.63, 82.48, 87.33, 92.18
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [26],
+            "end": 39,
+            "cancels": {
+              "normal": 37,
+              "charged": 37
+            },
+            "element": "Cryo",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                53.77, 57.8, 61.84, 67.21, 71.25, 75.28, 80.66, 86.03, 91.41,
+                96.79, 102.17, 107.54, 114.26, 120.99, 127.71
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [46],
+            "end": 52,
+            "cancels": {
+              "normal": 49,
+              "charged": 50
+            },
+            "element": "Cryo",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                99.2, 106.64, 114.08, 124, 131.44, 138.88, 148.8, 158.72,
+                168.64, 178.56, 188.48, 198.4, 210.8, 223.2, 235.6
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [50],
+            "end": 56,
+            "cancels": {
+              "normal": 49,
+              "charged": 52,
+              "skill": 52,
+              "burst": 51,
+              "dodge": 45,
+              "swap": 50
+            },
+            "element": "Cryo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Dawnfrost Darkstar",
+      "icon": "Skill_S_Citlali_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "description": "Invoking secret pacts passed down by her tribe over the millennia, Citlali deploys an Opal Shield and calls forth \"Obsidian Tzitzimitl: Itzpapa,\" a creature that is (reputedly) terrifying beyond compare, dealing Nightsoul-aligned AoE Cryo DMG.\nThe Opal Shield's DMG absorption scales based on Citlali's Elemental Mastery, and absorbs Cryo DMG with 250% efficiency. When it is deployed, it will cause Citlali to briefly be affected by Cryo.\nAfter using this skill, Citlali gains 24 Nightsoul points and enters the Nightsoul's Blessing state.\n\nNightsoul's Blessing: Citlali\nWhen Itzpapa leaves the field, Citlali exits the Nightsoul's Blessing state.\n\nItzpapa\n·Itzpapa will follow the character.\n·If Citlali has at least 50 Nightsoul points, Itzpapa enters the Opal Fire state and continuously consumes Nightsoul points to whip up a Frostfall Storm that follows the character and attacks opponents within its AoE, dealing Nightsoul-aligned Cryo DMG.\n·When Citlali's Nightsoul points are fully depleted, Itzpapa's Opal Fire state also ends.\n\nUsually, the wills that symbolize different stars cannot coexist, for how can purest black be reflected in purest white?\nBe that as it may, Citlali has never harbored a particular preference for colors themselves, and that is just how things played out.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Obsidian Tzitzimitl DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                72.96, 78.43, 83.9, 91.2, 96.67, 102.14, 109.44, 116.74, 124.03,
+                131.33, 138.62, 145.92, 155.04, 164.16, 173.28
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [20]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "frostfall",
+          "label": "Frostfall Storm DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                17.02, 18.3, 19.58, 21.28, 22.56, 23.83, 25.54, 27.24, 28.94,
+                30.64, 32.35, 34.05, 36.18, 38.3, 40.43
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "c4Skull",
+          "label": "C4 Spiritvessel Skull DMG (% EM)",
+          "components": [
+            {
+              "stat": "em",
+              "values": [
+                1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800,
+                1800, 1800, 1800, 1800, 1800
+              ]
+            }
+          ]
+        }
+      ],
+      "end": 50,
+      "cancels": {
+        "normal": 42,
+        "charged": 42,
+        "burst": 41,
+        "swap": 41
+      },
+      "cooldown": {
+        "frames": 960,
+        "delayFrames": 18
+      },
+      "note": "Summons Itzpapa: +24 Nightsoul points and Nightsoul's Blessing for 20 s, and a shield (its HP is not simulated). With 50 points Itzpapa enters Opal Fire: a Frostfall Storm hit about every second, spending 8 points a second."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Edict of Entwined Splendor",
+      "icon": "Skill_E_Citlali_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "description": "Summons \"allies\" from the starry skies and the vast earth, hurling forth an ice storm to bombard the area in front and deal Nightsoul-aligned AoE Cryo DMG. This restores a set amount of Nightsoul points for Citlali, and also summons a Spiritvessel Skull near a maximum of 3 opponents within the AoE, with 1 Skull for each opponent. Spiritvessel Skulls explode after some time, dealing Nightsoul-aligned AoE Cryo DMG and restoring a set amount of Nightsoul points for Citlali.\n\n\"Ugh, enough of this 'dark star, opal star' stuff! Citlalin, Itzpapa, get 'em!\"",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "iceStorm",
+          "label": "Ice Storm DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                537.6, 577.92, 618.24, 672, 712.32, 752.64, 806.4, 860.16,
+                913.92, 967.68, 1021.44, 1075.2, 1142.4, 1209.6, 1276.8
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [118],
+            "gauge": 2
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "spiritVessel",
+          "label": "Spiritvessel Skull DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                134.4, 144.48, 154.56, 168, 178.08, 188.16, 201.6, 215.04,
+                228.48, 241.92, 255.36, 268.8, 285.6, 302.4, 319.2
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [220],
+            "icd": "CitlaliSpiritVessel",
+            "note": "One Spiritvessel Skull for one enemy, at the average of gcsim's random 205-235 frames."
+          }
+        }
+      ],
+      "end": 113,
+      "cancels": {
+        "normal": 112,
+        "charged": 112,
+        "skill": 111,
+        "dodge": 112,
+        "swap": 110
+      },
+      "cooldown": {
+        "frames": 900
+      },
+      "energyCost": 60,
+      "note": "Ice Storm, then a Spiritvessel Skull: +24 Nightsoul points as it lands and +3 with the Skull."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "opalFire",
+      "type": "status",
+      "source": "talent",
+      "label": "Opal Fire",
+      "icon": "Skill_S_Citlali_01",
+      "endsWith": "nightsoulBlessing",
+      "drain": {
+        "resource": "nightsoul",
+        "amount": 0.8,
+        "everyFrames": 6
+      },
+      "ticks": {
+        "everyFrames": 59,
+        "count": 40,
+        "row": "elementalSkill/frostfall",
+        "element": "Cryo",
+        "category": "Skill",
+        "icd": "CitlaliFrostfallStorm",
+        "icdGroup": "citlaliFrostfallStorm"
+      }
+    },
+    {
+      "id": "shield",
+      "type": "status",
+      "source": "talent",
+      "label": "Dawnfrost Darkstar (shield)",
+      "icon": "Skill_S_Citlali_01",
+      "durationFrames": 1200
+    },
+    {
+      "id": "a1Shred",
+      "type": "status",
+      "source": "passive",
+      "label": "Itzpapa: Pyro and Hydro RES down",
+      "icon": "UI_Talent_S_Citlali_05",
+      "durationFrames": 720
+    },
+    {
+      "id": "stellarBlades",
+      "type": "resource",
+      "source": "constellation",
+      "label": "C1: Stellar Blades",
+      "icon": "UI_Talent_S_Citlali_01",
+      "ifFlag": "c1",
+      "min": 0,
+      "max": 40
+    },
+    {
+      "id": "skill-use",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E: Itzpapa, +24 Nightsoul points, Nightsoul's Blessing (20 s), shield",
+      "icon": "Skill_S_Citlali_01",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "nightsoulBlessing",
+          "delayFrames": 18
+        },
+        {
+          "addResource": "nightsoul",
+          "amount": 24,
+          "delayFrames": 18
+        },
+        {
+          "applyStatus": "shield",
+          "delayFrames": 37
+        },
+        {
+          "setResource": "stellarBlades",
+          "value": 10,
+          "ifFlag": "c1"
+        }
+      ]
+    },
+    {
+      "id": "skill-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E hit: 5 Cryo particles",
+      "icon": "Skill_S_Citlali_01",
+      "when": {
+        "hit": "skill"
+      },
+      "icdFrames": 18,
+      "do": [
+        {
+          "particles": 5,
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "opal-fire-enter",
+      "type": "trigger",
+      "source": "talent",
+      "label": "50 Nightsoul points in Nightsoul's Blessing: Opal Fire",
+      "icon": "Skill_S_Citlali_01",
+      "when": {
+        "resourceChanges": "nightsoul",
+        "change": "increase"
+      },
+      "if": {
+        "all": [
+          {
+            "status": "nightsoulBlessing"
+          },
+          {
+            "resource": "nightsoul",
+            "gte": 50
+          },
+          {
+            "not": {
+              "status": "opalFire"
+            }
+          }
+        ]
+      },
+      "do": [
+        {
+          "applyStatus": "opalFire"
+        }
+      ]
+    },
+    {
+      "id": "burst-points",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Q: +24 Nightsoul points, +3 with the Skull",
+      "icon": "Skill_E_Citlali_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 24,
+          "delayFrames": 115
+        },
+        {
+          "addResource": "nightsoul",
+          "amount": 3,
+          "delayFrames": 220
+        }
+      ]
+    },
+    {
+      "id": "a1-points",
+      "type": "trigger",
+      "source": "passive",
+      "label": "A party member's Melt in Nightsoul's Blessing: +16 Nightsoul points (once every 8 s)",
+      "icon": "UI_Talent_S_Citlali_05",
+      "when": {
+        "hit": "party:reaction:Melt"
+      },
+      "if": {
+        "status": "nightsoulBlessing"
+      },
+      "icdFrames": 480,
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 16
+        },
+        {
+          "addResource": "stellarBlades",
+          "amount": 3,
+          "ifFlag": "c1"
+        }
+      ]
+    },
+    {
+      "id": "a1-shred-apply",
+      "type": "trigger",
+      "source": "passive",
+      "label": "A party member's Melt in Nightsoul's Blessing: enemy Pyro and Hydro RES down for 12 s",
+      "icon": "UI_Talent_S_Citlali_05",
+      "when": {
+        "hit": "party:reaction:Melt"
+      },
+      "if": {
+        "status": "nightsoulBlessing"
+      },
+      "do": [
+        {
+          "applyStatus": "a1Shred"
+        }
+      ]
+    },
+    {
+      "id": "a1-shred",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Itzpapa: enemy Pyro and Hydro RES -20%",
+      "icon": "UI_Talent_S_Citlali_05",
+      "stat": "resShred",
+      "value": 20,
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Pyro", "Hydro"]
+      },
+      "while": {
+        "a1Shred": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "a4-frostfall",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Frostfall Storm +90% of EM as DMG",
+      "icon": "UI_Talent_S_Citlali_06",
+      "stat": "flatDamage",
+      "value": 90,
+      "ofStat": "em",
+      "match": {
+        "rows": ["elementalSkill/frostfall"]
+      }
+    },
+    {
+      "id": "a4-ice-storm",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Ice Storm +1200% of EM as DMG",
+      "icon": "UI_Talent_S_Citlali_06",
+      "stat": "flatDamage",
+      "value": 1200,
+      "ofStat": "em",
+      "match": {
+        "rows": ["elementalBurst/iceStorm"]
+      }
+    },
+    {
+      "id": "c1-blades",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C1: Stellar Blade (+200% of Citlali's EM as DMG) (active member)",
+      "ifFlag": "c1",
+      "stat": "flatDamage",
+      "value": 200,
+      "ofStat": "em",
+      "teamBuff": "active",
+      "match": {
+        "categories": ["Normal", "Charged", "Plunge", "Skill", "Burst"]
+      },
+      "while": {
+        "stellarBlades": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c1-blades-end",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: Nightsoul's Blessing ends: Stellar Blades lost",
+      "ifFlag": "c1",
+      "when": {
+        "statusEnds": "nightsoulBlessing"
+      },
+      "do": [
+        {
+          "setResource": "stellarBlades",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "c2-em-self",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: +125 Elemental Mastery",
+      "ifFlag": "c2",
+      "stat": "elementalMastery",
+      "value": 125
+    },
+    {
+      "id": "c2-em-party",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: +250 Elemental Mastery for the active member (shield or Nightsoul's Blessing)",
+      "ifFlag": "c2",
+      "stat": "elementalMastery",
+      "value": 250,
+      "teamBuff": "active",
+      "if": {
+        "any": [
+          {
+            "status": "shield"
+          },
+          {
+            "status": "nightsoulBlessing"
+          }
+        ]
+      }
+    },
+    {
+      "id": "c2-shred",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C2: Pyro and Hydro RES down another 20%",
+      "ifFlag": "c2",
+      "stat": "resShred",
+      "value": 20,
+      "teamBuff": "everyone",
+      "match": {
+        "elements": ["Pyro", "Hydro"]
+      },
+      "while": {
+        "a1Shred": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c4-skull",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C4: Frostfall Storm hit: a Skull (1800% EM), +16 Nightsoul points, +8 Energy (once every 8 s)",
+      "ifFlag": "c4",
+      "when": {
+        "hit": "elementalSkill/frostfall"
+      },
+      "icdFrames": 480,
+      "do": [
+        {
+          "addResource": "nightsoul",
+          "amount": 16
+        },
+        {
+          "addResource": "energy",
+          "amount": 8
+        },
+        {
+          "hit": {
+            "row": "elementalSkill/c4Skull",
+            "element": "Cryo",
+            "category": "Skull",
+            "afterFrames": 57
+          }
+        }
+      ]
+    },
+    {
+      "id": "c1-spend-normal",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: the active member's Normal hit uses a Stellar Blade",
+      "ifFlag": "c1",
+      "when": {
+        "hit": "active:category:Normal"
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "onField": true
+            }
+          },
+          {
+            "resource": "stellarBlades",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "stellarBlades",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "c1-spend-charged",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: the active member's Charged hit uses a Stellar Blade",
+      "ifFlag": "c1",
+      "when": {
+        "hit": "active:category:Charged"
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "onField": true
+            }
+          },
+          {
+            "resource": "stellarBlades",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "stellarBlades",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "c1-spend-plunge",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: the active member's Plunge hit uses a Stellar Blade",
+      "ifFlag": "c1",
+      "when": {
+        "hit": "active:category:Plunge"
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "onField": true
+            }
+          },
+          {
+            "resource": "stellarBlades",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "stellarBlades",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "c1-spend-skill",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: the active member's Skill hit uses a Stellar Blade",
+      "ifFlag": "c1",
+      "when": {
+        "hit": "active:category:Skill"
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "onField": true
+            }
+          },
+          {
+            "resource": "stellarBlades",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "stellarBlades",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "c1-spend-burst",
+      "type": "trigger",
+      "source": "constellation",
+      "label": "C1: the active member's Burst hit uses a Stellar Blade",
+      "ifFlag": "c1",
+      "when": {
+        "hit": "active:category:Burst"
+      },
+      "if": {
+        "all": [
+          {
+            "not": {
+              "onField": true
+            }
+          },
+          {
+            "resource": "stellarBlades",
+            "gte": 1
+          }
+        ]
+      },
+      "do": [
+        {
+          "addResource": "stellarBlades",
+          "amount": -1
+        }
+      ]
+    }
+  ],
+  "passives": [
+    {
+      "id": "citlali-passive-1",
+      "name": "Mamaloaco's Frigid Rain",
+      "icon": "UI_Talent_S_Citlali_05",
+      "value": "When a party member triggers Melt during Nightsoul's Blessing: +16 Nightsoul points (once every 8 s) and enemy Pyro / Hydro RES -20% for 12 s.",
+      "description": "While Itzpapa is on the field, after nearby party members trigger the Frozen or Melt reactions, the Pyro and Hydro RES of opponents affected by that reaction decreases by 20% for 12s. Additionally, Citlali will regain 16 Nightsoul points. Nightsoul points can be restored this way once every 8s.",
+      "note": "Frozen is not simulated (no Hydro auras)."
+    },
+    {
+      "id": "citlali-passive-2",
+      "name": "Itzpapalotl's Star Garments",
+      "icon": "UI_Talent_S_Citlali_06",
+      "value": "+4 Nightsoul points per Nightsoul Burst; Frostfall Storm +90% and Ice Storm +1200% of her EM as DMG.",
+      "description": "During the Elemental Skill Dawnfrost Darkstar, Itzpapa's Frostfall Storm DMG is increased by 90% of Citlali's Elemental Mastery. During the Elemental Burst Edict of Entwined Splendor, Ice Storm DMG is increased by 1200% of Citlali's Elemental Mastery.\nIn addition, when nearby party members trigger Nightsoul Bursts, Citlali regains 4 Nightsoul points."
+    },
+    {
+      "id": "citlali-passive-3",
+      "name": "Night Realm's Gift: Smoke, Mirrors, and the Flowing Winds",
+      "icon": "UI_Talent_S_Citlali_08",
+      "value": "Exploration only.",
+      "description": "While in an area with Phlogiston Mechanics within Natlan, can use Nightsoul Transmission: Citlali. When the active character is currently high enough in the air, the following will trigger when switching to Citlali: Citlali will leap up high, and will deploy \"White Obsidian Tzitzimitl: Citlalin\" to float in the air. Nightsoul Transmission can be triggered once every 10s by your party.\n\nHolding Aiming Mode will cause Citlali to enter the \"Spiritspeaker\" state, which will allow her to interact with \"Nightspirit Graffiti\" and \"Nightspirit Sigils,\" extracting information and power from them. The rules for interacting with these objects follow the same rules as those governing Iktomisaurus interactions.\n\nAdditionally, holding the jump button will cause Citlali to consume 75 Stamina and leap. In areas within Natlan where Phlogiston mechanics are present, Citlali will prioritize consuming 5 Phlogiston to leap to a height higher still.\nWhen in the air, Citlali can Hold her Normal Attack to consume Phlogiston or Stamina and enter Aiming Mode and trigger Charged Attacks. When initiating Charged Attacks in mid-air, Citlali will prioritize consuming 20 Phlogiston."
+    },
+    {
+      "id": "citlali-passive-4",
+      "name": "Songs of Profound Mystery",
+      "icon": "UI_Talent_S_Mavuika_08",
+      "value": "Exploration only.",
+      "description": "While in an area with Phlogiston Mechanics within Natlan, triggering \"Nightsoul Burst\" restores 20 Phlogiston.\nThis cannot take effect in Domains, Trounce Domains, or the Spiral Abyss."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Radiant Blades of Centzon Mimixcoah",
+      "icon": "UI_Talent_S_Citlali_01",
+      "effect": "Her E gives 10 Stellar Blades (+3 on each A1 proc): the active member's hits use one for +200% of her EM as DMG.",
+      "impact": "simulated",
+      "note": "A team buff for the member on the field; lost when Nightsoul's Blessing ends.",
+      "description": "When she uses the Elemental Skill Dawnfrost Darkstar, Citlali gains the \"Opalstar Vestments\" effect until Itzpapa leaves the field. During this time, she will obtain 10 stacks of Stellar Blade. When a nearby active character other than Citlali deals DMG using Normal, Charged, or Plunging Attacks, or Elemental Skills and Bursts, 1 stack of Stellar Blade will be consumed to increase the DMG dealt by 200% of Citlali's Elemental Mastery.\nAfter nearby party members trigger Frozen or Melt, Citlali will gain another 3 stacks of Stellar Blade. This effect can trigger once every 8s.\n\nUsing the Elemental Skill Dawnfrost Darkstar will reset Stellar Blade stacks.\nAdditionally, when Citlali is using her leap, or is Aiming or using her Charged Attack in mid-air, her Phlogiston consumption is decreased by 45%."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Heart Devourer's Travail",
+      "icon": "UI_Talent_S_Citlali_02",
+      "effect": "+125 EM; the active member +250 EM with her shield or Blessing; A1 RES down 40%.",
+      "impact": "simulated",
+      "note": "The +125 EM is a bonus (not in the screen totals).",
+      "description": "Citlali gains 125 Elemental Mastery, and other characters shielded by her Opal Shield, or who have Itzpapa following them, gain 250 Elemental Mastery.\nAdditionally, when the Elemental Skill Dawnfrost Darkstar is used, nearby active characters will also be granted an Opal Shield.\n\nAlso, the Ascension Talent \"Mamaloaco's Frigid Rain\" has its effects enhanced:\nWhile Itzpapa is on the field, after nearby party members trigger Frozen or Melt, the opponent(s) affected by this reaction will have their Pyro and Hydro RES additionally decreased by 20% for 12s. You must first unlock the Ascension Talent \"Mamaloaco's Frigid Rain\" to gain access to the above effect."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Cloud Serpent's Feathered Crown",
+      "icon": "UI_Talent_U_Citlali_01",
+      "effect": "+3 E levels.",
+      "impact": "simulated",
+      "note": "Raises the E talent level.",
+      "description": "Increases the Level of Dawnfrost Darkstar by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Death Defier's Spirit Skull",
+      "icon": "UI_Talent_S_Citlali_03",
+      "effect": "Frostfall Storm hits: a Skull for 1800% EM, +16 Nightsoul points and +8 Energy, once every 8 s.",
+      "impact": "simulated",
+      "note": "gcsim values.",
+      "description": "While the Elemental Skill Dawnfrost Darkstar is active, when Itzpapa's Frostfall Storm hits opponents, an additional Obsidian Spiritvessel Skull will be summoned. When a Spiritvessel Skull summoned this way explodes, it deals 1800% of Citlali's Elemental Mastery as Nightsoul-aligned AoE Cryo DMG and restores 16 Nightsoul points and 8 Energy for Citlali. This effect can trigger once every 8s. This DMG is not considered Elemental Burst DMG."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Nemontemi's Hex",
+      "icon": "UI_Talent_U_Citlali_02",
+      "effect": "+3 Q levels.",
+      "impact": "simulated",
+      "note": "Raises the Q talent level.",
+      "description": "Increases the Level of Edict of Entwined Splendor by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Teoiztac's Secret Pact",
+      "icon": "UI_Talent_S_Citlali_04",
+      "effect": "Opal Fire never ends; points spent become stacks: party +1.5% Pyro / Hydro DMG, her +2.5% DMG each (max 40).",
+      "impact": "not-simulated",
+      "note": "Needs Opal Fire to outlast its points; not modeled yet.",
+      "description": "After being summoned with the Elemental Skill Dawnfrost Darkstar, Itzpapa will always be in the Opal Fire state, and when Nightsoul points are exhausted, this state will not end.\nAdditionally, when Dawnfrost Darkstar is used, Itzpapa will consume all Nightsoul points, and while it is on the field, it will continuously consume Nightsoul points. Each Nightsoul point consumed in this way will grant Citlali 1 \"Cifra of the Secret Law\" point.\nA maximum of 40 such points can be gained, and each point Citlali possesses will grant all nearby party members a 1.5% Pyro and Hydro DMG Bonus, and increase the DMG Citlali deals by 2.5%.\nWhen Itzpapa leaves the field, or upon using Citlali's Elemental Skill again, all \"Cifra of the Secret Law\" points she has will be removed."
+    }
+  ],
+  "weapon": "starcallers-watch",
+  "artifactSet": "scroll-of-the-hero-of-cinder-city",
+  "defaults": {
+    "numbers": {
+      "atk": 1079,
+      "hp": 18076,
+      "def": 897,
+      "em": 1039.3,
+      "cr": 18.2,
+      "cd": 76.5,
+      "energyRecharge": 155.1,
+      "elementalBonus": 0,
+      "bonus": 0,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 10,
+      "burstLevel": 10,
+      "starcallersWatchRefinement": 1,
+      "startingEnergy": 60,
+      "natlanPartyMembers": 2
+    },
+    "flags": {
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "starcallersWatch": true,
+      "scroll2": true,
+      "scroll4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Edict of Entwined Splendor)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "natlanPartyMembers",
+      "label": "Natlan party members (Nightsoul Burst every 18/12/9 s)",
+      "min": 1,
+      "max": 4,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "scroll2",
+      "label": "Scroll 2-piece (6 Energy per Nightsoul Burst)"
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "scroll4",
+      "label": "Scroll 4-piece (Pyro / Cryo DMG on her Melt)"
+    }
+  ],
+  "rotation": {
+    "automaticDescription": "Q when it is ready, then the E when it is ready (Itzpapa and the shield); Normal Attacks while they recharge."
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "nightsoul": {
+      "maxPoints": 100,
+      "label": "Nightsoul points",
+      "icon": "Skill_S_Citlali_01",
+      "blessing": {
+        "label": "Nightsoul's Blessing",
+        "icon": "Skill_S_Citlali_01",
+        "durationFrames": 1200
+      },
+      "nightsoulBurst": {
+        "label": "Nightsoul Burst",
+        "icon": "UI_Talent_S_Citlali_06",
+        "do": [
+          {
+            "addResource": "nightsoul",
+            "amount": 4
+          },
+          {
+            "addResource": "energy",
+            "amount": 6,
+            "ifFlag": "scroll2"
+          }
+        ]
+      }
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "E uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Q uses",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "Opal Fire (Frostfall Storm)",
+      "value": "{uptime:opalFire|percent}"
+    },
+    {
+      "label": "Pyro / Hydro RES down (A1)",
+      "value": "-{buffValue:a1-shred|fixed1}%, up {uptime:a1Shred|percent}"
+    },
+    {
+      "label": "Particles",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    }
+  ]
+}

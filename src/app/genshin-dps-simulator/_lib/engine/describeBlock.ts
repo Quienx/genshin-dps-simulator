@@ -45,7 +45,13 @@ const FLAT_STATS: BonusStat[] = [
   'flatDamage',
 ];
 
-const SCALING_NAMES = { atk: 'ATK', hp: 'Max HP', def: 'DEF', em: 'EM' };
+const SCALING_NAMES = {
+  atk: 'ATK',
+  hp: 'Max HP',
+  def: 'DEF',
+  em: 'EM',
+  baseAtk: 'Base ATK',
+};
 
 const ACTION_NAMES: Record<string, string> = {
   normal: 'Normal Attack',
@@ -111,8 +117,12 @@ const describeStacks = (
   if (!block.perStack) {
     return null;
   }
-  const label = context.labelOf(block.perStack.state)?.label;
-  return `per stack (max ${block.perStack.max}${label ? `, ${label}` : ''})`;
+  return block.perStack
+    .map(({ state, max }) => {
+      const label = context.labelOf(state)?.label;
+      return `per stack (max ${max}${label ? `, ${label}` : ''})`;
+    })
+    .join(' × ');
 };
 
 const describeMatch = (block: BonusBlock): string | null => {

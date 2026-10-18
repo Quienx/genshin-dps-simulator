@@ -12,7 +12,11 @@ import {
   isFieldAction,
   splitTeamActionId,
 } from '../../_lib/engine/simulateTeam';
-import { removeBlock, updateBlock } from '../../_lib/rotation/blocks';
+import {
+  removeBlock,
+  removeBlocks,
+  updateBlock,
+} from '../../_lib/rotation/blocks';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { RotationSetting } from '../../_lib/rotation/types';
 import { getGeneralPaletteActions, retargetSwap } from '../../_lib/team';
@@ -22,9 +26,13 @@ type RotationEditBarProps = {
   // Every member's actions (team ids, "arlecchino:normal").
   actions: RotationAction[];
   rotation: RotationSetting;
+  // The block whose controls show (the last one picked), and every block
+  // picked (several: moved, removed or cleared together).
   selected: string | null;
+  selection?: string[];
   onChange: (rotation: RotationSetting) => void;
   onSelect: (blockUid: string | null) => void;
+  onClearSelection?: () => void;
 };
 
 const STEP_BUTTON =
@@ -214,9 +222,16 @@ const RotationEditBar = ({
   actions,
   rotation,
   selected,
+  selection = [],
   onChange,
   onSelect,
+  onClearSelection,
 }: RotationEditBarProps) => {
+  const many = selection.length > 1;
+  const removeSelection = () => {
+    onChange(removeBlocks(rotation, selection));
+    onSelect(null);
+  };
   const block = rotation.blocks.find((entry) => entry.uid === selected);
   const action = block
     ? actions.find((entry) => entry.id === block.action)
@@ -226,8 +241,13 @@ const RotationEditBar = ({
     onDragEnd: (event) => {
       const payload = payloadOf(event);
       if (event.over?.id === TRASH_DROP_ID && payload?.kind === 'move') {
-        onChange(removeBlock(rotation, payload.blockUid));
-        onSelect(null);
+        // A block picked with others takes them all.
+        if (many && selection.includes(payload.blockUid)) {
+          removeSelection();
+        } else {
+          onChange(removeBlock(rotation, payload.blockUid));
+          onSelect(null);
+        }
       }
     },
   });
@@ -295,7 +315,35 @@ const RotationEditBar = ({
       </div>
 
       <div className='ml-auto flex items-center gap-2'>
-        {block && action ? (
+        <span
+          data-testid='timeline-block-count'
+          title='Blocks in the rotation'
+          className='rounded bg-slate-800/80 px-1.5 py-0.5 text-slate-400 tabular-nums'
+        >
+          {rotation.blocks.length} blocks
+        </span>
+        {many ? (
+          <>
+            <span
+              data-testid='timeline-selection-count'
+              className='font-semibold text-slate-100'
+            >
+              {selection.length} selected
+            </span>
+            <span className='text-slate-500'>
+              drag one to move them together
+            </span>
+            <button
+              type='button'
+              aria-label='Clear the selection'
+              title='Clear the selection (Esc)'
+              onClick={() => onClearSelection?.()}
+              className={STEP_BUTTON}
+            >
+              <X className='size-3.5' />
+            </button>
+          </>
+        ) : block && action ? (
           <>
             <span className='font-semibold text-slate-100'>
               {action.label.replace(/^[^:]+:\s*/, '')}
@@ -348,6 +396,48 @@ const RotationEditBar = ({
                 }
               />
             )}
+            {/* A held action (a Charged Attack's spins): how many. */}
+            {action.count && (
+              <Stepper
+                label={action.count.label}
+                testId='timeline-block-count'
+                value={String(block.hits)}
+                lessDisabled={block.hits <= 1}
+                moreDisabled={block.hits >= action.count.max}
+                onLess={() =>
+                  onChange(
+                    updateBlock(rotation, block.uid, { hits: block.hits - 1 })
+                  )
+                }
+                onMore={() =>
+                  onChange(
+                    updateBlock(rotation, block.uid, { hits: block.hits + 1 })
+                  )
+                }
+              />
+            )}
+            {/* An action with a hold (a hold E): one block, Hold on or off. */}
+            {action.hold && (
+              <button
+                type='button'
+                data-testid='timeline-block-hold'
+                aria-pressed={Boolean(block.hold)}
+                title='Hold the button (the hold version of this action)'
+                onClick={() =>
+                  onChange(
+                    updateBlock(rotation, block.uid, { hold: !block.hold })
+                  )
+                }
+                className={cn(
+                  'rounded border px-2 py-0.5',
+                  block.hold
+                    ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
+                    : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
+                )}
+              >
+                Hold
+              </button>
+            )}
             {action.kind === 'wait' && (
               <Stepper
                 label='Seconds'
@@ -384,7 +474,8 @@ const RotationEditBar = ({
           </>
         ) : (
           <span className='text-slate-500'>
-            Click a block on the chart to change it
+            Click a block to change it · Ctrl/Shift + click or Shift + drag to
+            pick several
           </span>
         )}
         {/* A block dropped here leaves the rotation; a click removes the
@@ -392,7 +483,9 @@ const RotationEditBar = ({
         <Trash
           canRemove={Boolean(block)}
           onRemove={() => {
-            if (block) {
+            if (many) {
+              removeSelection();
+            } else if (block) {
               onChange(removeBlock(rotation, block.uid));
               onSelect(null);
             }

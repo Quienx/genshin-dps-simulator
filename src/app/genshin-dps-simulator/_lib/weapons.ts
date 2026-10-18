@@ -13,6 +13,7 @@ const SUBSTAT_LABELS: Record<WeaponData['substat']['stat'], string> = {
   hpPercent: 'HP',
   energyRecharge: 'Energy Recharge',
   elementalMastery: 'Elemental Mastery',
+  physicalDmg: 'Physical DMG Bonus',
 };
 
 const SUBSTAT_ROW_IDS: Record<WeaponData['substat']['stat'], string> = {
@@ -22,6 +23,7 @@ const SUBSTAT_ROW_IDS: Record<WeaponData['substat']['stat'], string> = {
   hpPercent: 'weapon-hp',
   energyRecharge: 'weapon-energy-recharge',
   elementalMastery: 'weapon-elemental-mastery',
+  physicalDmg: 'weapon-physical-dmg',
 };
 
 const formatSubstatValue = (

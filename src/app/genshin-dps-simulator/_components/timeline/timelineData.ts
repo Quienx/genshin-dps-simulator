@@ -10,7 +10,11 @@ import {
   EnemyHit,
   InspectorView,
 } from '../../_lib/inspector';
-import { insertBlock, removeBlock } from '../../_lib/rotation/blocks';
+import {
+  insertBlock,
+  removeBlock,
+  removeBlocks,
+} from '../../_lib/rotation/blocks';
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
 import {
@@ -84,9 +88,10 @@ export const groupNormalCombos = (
 
 // Edit mode's drag and drop: a palette action to add, or a block of the
 // rotation to move (or drop on the trash).
+// `blockUids`: the whole multi-selection the dragged block is part of.
 export type DragPayload =
   | { kind: 'new'; actionId: string }
-  | { kind: 'move'; blockUid: string };
+  | { kind: 'move'; blockUid: string; blockUids?: string[] };
 
 // Edit mode: the rotation block a drop at `time` goes before, the first
 // whose middle is past it (null: at the end). A block's wait for its
@@ -160,6 +165,15 @@ export const applyDrop = (
   // The member's row it was dropped on (a Wait there is theirs).
   rowMember: string | null = null
 ): { rotation: RotationSetting; selected: string | null } => {
+  if (payload.kind === 'move' && (payload.blockUids?.length ?? 0) > 1) {
+    return applyGroupDrop(
+      rotation,
+      payload.blockUid,
+      payload.blockUids ?? [],
+      beforeUid,
+      rowMember
+    );
+  }
   if (payload.kind === 'new') {
     const action = actions.find((entry) => entry.id === payload.actionId);
     if (!action) {
@@ -207,6 +221,51 @@ export const applyDrop = (
       rowMember
     ),
     selected: payload.blockUid,
+  };
+};
+
+// Several blocks dropped before `beforeUid` (null: at the end): they keep
+// their order and land together (picks that were apart are gathered
+// there). Dropped inside the group, or where it already is as one run,
+// nothing changes. The block it lands before gets a Swap in if needed,
+// as the group's first one does.
+const applyGroupDrop = (
+  rotation: RotationSetting,
+  dragged: string,
+  uids: string[],
+  beforeUid: string | null,
+  rowMember: string | null
+): { rotation: RotationSetting; selected: string | null } => {
+  const picked = new Set(uids);
+  const indexes = rotation.blocks
+    .map((block, index) => (picked.has(block.uid) ? index : -1))
+    .filter((index) => index >= 0);
+  if (indexes.length === 0) {
+    return { rotation, selected: null };
+  }
+  const moved = indexes.map((index) => rotation.blocks[index]);
+  // Dropped on one of them: before the first block after it that is not.
+  const target =
+    beforeUid !== null && picked.has(beforeUid)
+      ? rotation.blocks
+          .slice(rotation.blocks.findIndex((block) => block.uid === beforeUid))
+          .find((block) => !picked.has(block.uid))?.uid ?? null
+      : beforeUid;
+  const contiguous = indexes.every(
+    (index, position) => position === 0 || index === indexes[position - 1] + 1
+  );
+  const after = rotation.blocks[indexes[indexes.length - 1] + 1]?.uid ?? null;
+  if (contiguous && target === after) {
+    return { rotation, selected: dragged };
+  }
+  const placed = moved.reduce(
+    (setting, block) => insertBlock(setting, block, target),
+    removeBlocks(rotation, uids)
+  );
+  const swapped = withSwapIn(placed, moved[0].uid, rowMember);
+  return {
+    rotation: target ? withSwapIn(swapped, target, null) : swapped,
+    selected: dragged,
   };
 };
 
@@ -568,6 +627,14 @@ export const changesSpecialSystem = (
   if (block?.type !== 'status') {
     return false;
   }
+  // It spends a system's resource, or lives inside a system's status
+  // (Mavuika's Flamestrider drains Nightsoul points within the Blessing).
+  if (
+    (block.drain && SYSTEM_IDS.has(block.drain.resource)) ||
+    (block.endsWith && SYSTEM_IDS.has(block.endsWith))
+  ) {
+    return true;
+  }
   // Read as a condition, an amount's `ifStatus`, a budget's `whileStatus`
   // or the status ending.
   const reference = new RegExp(
@@ -668,6 +735,8 @@ export const describeTrigger = (
     lines.push(`When ${humanize(when.use)} is used:`);
   else if (typeof when.hit === 'string')
     lines.push(`On a ${humanize(String(when.hit).replace(/^.*\//, ''))} hit:`);
+  else if (typeof when.statusStarts === 'string')
+    lines.push(`When ${nameOf(when.statusStarts)} starts:`);
   else if (typeof when.statusEnds === 'string')
     lines.push(`When ${nameOf(when.statusEnds)} ends:`);
   else if (typeof when.resourceChanges === 'string')
@@ -854,6 +923,13 @@ export const describeSystemStatus = (
   const name = blessing.label ?? "Nightsoul's Blessing";
   const points = nightsoul.label ?? 'Nightsoul points';
   const lines = [`${name}: ${character.name}'s Nightsoul state.`];
+  // A max by flag (Mavuika's C1) reads as both values.
+  const maxPoints =
+    typeof nightsoul.maxPoints === 'object'
+      ? `${nightsoul.maxPoints.else}, ${
+          nightsoul.maxPoints.then
+        } with ${nightsoul.maxPoints.flag.toUpperCase()}`
+      : nightsoul.maxPoints;
   if (typeof blessing.durationFrames === 'number') {
     lines.push(`• Lasts ${Math.round(blessing.durationFrames / FRAMES)} s.`);
   }
@@ -864,11 +940,11 @@ export const describeSystemStatus = (
           blessing.drain.everyFrames
       ) / 10;
     lines.push(
-      `• Drains ${perSecond} ${points} per second (max ${nightsoul.maxPoints}); ends when they run out.`
+      `• Drains ${perSecond} ${points} per second (max ${maxPoints}); ends when they run out.`
     );
   }
   if (blessing.enterAtMax) {
-    lines.push(`• Entered when the ${points} reach ${nightsoul.maxPoints}.`);
+    lines.push(`• Entered when the ${points} reach ${maxPoints}.`);
   }
   if (blessing.resetPointsOnEnd) {
     lines.push(`• ${points} go back to 0 when it ends.`);

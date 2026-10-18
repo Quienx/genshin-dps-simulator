@@ -396,7 +396,7 @@ const bonusesReading = (character: CharacterData, statusId: string) =>
   allBlocks(character).filter(
     (block) =>
       block.type === 'bonus' &&
-      (block.perStack?.state === statusId ||
+      (block.perStack?.some(({ state }) => state === statusId) ||
         Object.keys(block.while ?? {}).includes(statusId))
   );
 
@@ -859,6 +859,16 @@ export const buildInspectorView = (
             : ('bonus' as const),
         sourceTag,
       };
+    }
+    // A mode: some form's `while` names it, so it changes her actions
+    // (Mavuika's Flamestrider), even if a bonus also reads it.
+    const isMode = character.talents.some((talent) =>
+      talent.forms.some((form) =>
+        JSON.stringify(form.while).includes(`"status":"${blockId}"`)
+      )
+    );
+    if (isMode && definition?.type === 'status') {
+      return { type: 'state' as const, sourceTag };
     }
     // Statuses and stacks: a bonus reads it, or a trigger waits on it.
     const bonus = bonusesReading(character, blockId)[0];

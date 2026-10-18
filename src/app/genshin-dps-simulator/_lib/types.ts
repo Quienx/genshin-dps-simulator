@@ -57,12 +57,19 @@ export type SimulationValues = {
   flags: Record<string, boolean>;
   rotation: RotationSetting | null;
   artifacts?: ArtifactBuild;
+  // Catalog ids of the weapon and set this build wears instead of the
+  // character file's (getLoadedVariant).
+  weapon?: string;
+  artifactSet?: string;
 };
 
 export type ParsedValues = {
   numbers: Record<string, number>;
   flags: Record<string, boolean>;
   rotation?: RotationSetting | null;
+  // The build's gear (see SimulationValues), for the runs that load it.
+  weapon?: string;
+  artifactSet?: string;
 };
 
 export type DamageElement = DamageElementName;

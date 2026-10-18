@@ -86,12 +86,18 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 // ---------------------------------------------------------------- operations
 
 // How much: a number, one of two numbers depending on a status, a talent
-// row's value at the character's talent level, or a number form field.
+// row's value at the character's talent level, a number form field, a
+// resource's current value, or (in a `resourceChanges` trigger) how much the
+// resource moved, as a positive number. `times` scales the last two
+// (Mavuika's Fighting Spirit: the Nightsoul points she spent, × 0.25 more at
+// C1).
 const amountSchema = z.union([
   z.number(),
   z.object({ ifStatus: z.string(), then: z.number(), else: z.number() }),
   z.object({ row: z.string() }),
   z.object({ field: z.string() }),
+  z.object({ resource: z.string(), times: z.number().optional() }).strict(),
+  z.object({ changed: z.literal(true), times: z.number().optional() }).strict(),
 ]);
 
 // Every operation can be limited to a flag, a condition and an ICD of its own,
@@ -123,7 +129,7 @@ export const opSchema = z.union([
     .object({ multiplyResource: z.string(), by: z.number(), ...opGuardShape })
     .strict(),
   z
-    .object({ setResource: z.string(), value: z.number(), ...opGuardShape })
+    .object({ setResource: z.string(), value: amountSchema, ...opGuardShape })
     .strict(),
   z
     .object({
@@ -134,6 +140,8 @@ export const opSchema = z.union([
     })
     .strict(),
   z.object({ removeStatus: z.string(), ...opGuardShape }).strict(),
+  // Lengthens the status that is up now (nothing when it is down).
+  z.object({ extendStatus: z.string(), frames, ...opGuardShape }).strict(),
   z.object({ addStack: z.string(), ...opGuardShape }).strict(),
   z
     .object({
@@ -275,6 +283,11 @@ const blockBaseShape = {
 const hitMatchSchema = z.object({
   // Action ids ("normal", "charged", "skill", "burst").
   actions: z.array(z.string()).optional(),
+  // Talent rows ("elementalSkill/frostfall"): status ticks too.
+  rows: z.array(z.string()).optional(),
+  // The weapon types of whoever deals the hit (Bennett's C6 infuses
+  // Swords, Claymores and Polearms).
+  weaponTypes: z.array(z.string()).optional(),
   elements: z.array(z.string()).optional(),
   categories: z.array(z.string()).optional(),
 });
@@ -306,6 +319,17 @@ export const BONUS_STATS = [
 ] as const;
 
 export const sheetStatSchema = z.enum(['atk', 'hp', 'def', 'em']);
+// What a bonus can convert (`ofStat`): a screen stat, or Base ATK (the
+// character's and the weapon's: Bennett's Q).
+export const ofStatSchema = z.enum(['atk', 'hp', 'def', 'em', 'baseAtk']);
+
+const perStackSchema = z.object({ state: z.string(), max: z.number() });
+
+// A number, or one of two depending on a UI flag (a constellation).
+export const flagNumberSchema = z.union([
+  z.number(),
+  z.object({ flag: z.string(), then: z.number(), else: z.number() }).strict(),
+]);
 
 // Changes the hits it matches while its conditions hold: a stat, the
 // element (infusion) or an extra multiplier that scales with a resource.
@@ -327,9 +351,16 @@ export const bonusBlockSchema = z
     // `value` is a % of this stat's total at the moment of the hit (after
     // the other bonuses, but not other `ofStat` ones): flat DMG equal to 60%
     // of DEF, or 1% ATK per 1,000 Max HP (0.1).
-    ofStat: sheetStatSchema.optional(),
-    // Multiplied by a state value (e.g. set stacks), capped at `max`.
-    perStack: z.object({ state: z.string(), max: z.number() }).optional(),
+    ofStat: ofStatSchema.optional(),
+    // Multiplied by a state value (e.g. set stacks), capped at `max`; with
+    // several, by each of them (Mavuika's A4: Fighting Spirit spent × the
+    // stacks left).
+    perStack: z
+      .union([perStackSchema, z.array(perStackSchema).min(1)])
+      .transform((perStack) =>
+        Array.isArray(perStack) ? perStack : [perStack]
+      )
+      .optional(),
     // The most it ever gives, after `ofStat` and `perStack` (in the stat's
     // unit: "flat DMG up to 20000").
     cap: z.number().optional(),
@@ -408,7 +439,8 @@ export const resourceBlockSchema = z.object({
   ...blockBaseShape,
   type: z.literal('resource'),
   min: z.number().default(0),
-  max: z.number(),
+  // A number, or one by a flag (Mavuika's C1: 120 Nightsoul points).
+  max: flagNumberSchema,
   // Starting value: a number, or a form field (clamped to min/max).
   initial: z.union([z.number(), z.object({ field: z.string() })]).default(0),
   // Shown in each hit's notes ("Bond of Life: 130.0%").
@@ -465,6 +497,9 @@ export const statusBlockSchema = z
         everyFrames: frames.min(1),
         // Defaults to `everyFrames`.
         firstAfterFrames: frames.optional(),
+        // A tick spends nothing while this does not hold (it keeps
+        // ticking): no Nightsoul drain during Mavuika's Q.
+        if: conditionSchema.optional(),
       })
       .optional(),
   })
@@ -485,7 +520,8 @@ const whenSchema = z.union([
   // After a hit of an action ("normal"), its group ("skill" for a hold E),
   // a talent row ("elementalSkill/skill-cleave"), a category
   // ("category:Plunge"), an element ("element:Hydro"), any non-Physical
-  // hit ("elemental") or any hit ("*"). "crit:<key>" fires only on a CRIT
+  // hit ("elemental", or of a category: "category:Normal:elemental") or any
+  // hit ("*"). "crit:<key>" fires only on a CRIT
   // (expected-damage runs: always, with counts and particles × CRIT Rate);
   // "reaction:Overloaded" on a transformative reaction's hit.
   z.object({ hit: z.string() }).strict(),
@@ -502,6 +538,9 @@ const whenSchema = z.union([
     .strict(),
   // When a status ends: removed, drained or expired.
   z.object({ statusEnds: z.string() }).strict(),
+  // When a status is applied (or refreshed). A shield is the status
+  // "shield" by convention: Starcaller's Watch reacts to it.
+  z.object({ statusStarts: z.string() }).strict(),
   // When the character comes on the field ("in") or leaves it ("out"),
   // in a team.
   z.object({ swap: z.enum(['in', 'out']) }).strict(),
@@ -551,6 +590,7 @@ export const actionWarningSchema = z.object({
 
 export type BonusStat = (typeof BONUS_STATS)[number];
 export type SheetStat = z.infer<typeof sheetStatSchema>;
+export type OfStat = z.infer<typeof ofStatSchema>;
 export type BlockSource = z.infer<typeof blockSourceSchema>;
 export type BonusBlock = z.infer<typeof bonusBlockSchema>;
 export type ResourceBlock = z.infer<typeof resourceBlockSchema>;
@@ -559,6 +599,8 @@ export type TriggerBlock = z.infer<typeof triggerBlockSchema>;
 export type Block = z.infer<typeof blockSchema>;
 export type Op = z.infer<typeof opSchema>;
 export type Amount = z.infer<typeof amountSchema>;
+export type FlagNumber = z.infer<typeof flagNumberSchema>;
+export type PerStack = z.infer<typeof perStackSchema>;
 export type AutomaticEntry = z.infer<typeof automaticEntrySchema>;
 export type DetailData = z.infer<typeof detailSchema>;
 export type ActionWarning = z.infer<typeof actionWarningSchema>;

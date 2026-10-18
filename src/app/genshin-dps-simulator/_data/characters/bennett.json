@@ -1,0 +1,899 @@
+{
+  "id": "bennett",
+  "name": "Bennett",
+  "element": "Pyro",
+  "weaponType": "Sword",
+  "rarity": 4,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 12397,
+    "atk": 191,
+    "def": 771
+  },
+  "ascensionStat": {
+    "stat": "energyRecharge",
+    "value": 26.7
+  },
+  "icons": {
+    "avatar": "UI_AvatarIcon_Bennett"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Strike of Fortune",
+      "icon": "Skill_A_01",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nPerforms up to 5 rapid strikes.\n\nCharged Attack\nConsumes a certain amount of Stamina to unleash 2 rapid sword strikes.\n\nPlunging Attack\nPlunges from mid-air to strike the ground below, damaging opponents along the path and dealing AoE DMG upon impact.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                44.55, 48.17, 51.8, 56.98, 60.61, 64.75, 70.45, 76.15, 81.84,
+                88.06, 94.28, 100.49, 106.71, 112.92, 119.14
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [13],
+            "end": 33,
+            "icd": "NormalAttack",
+            "cancels": {
+              "normal": 20
+            }
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                42.74, 46.22, 49.7, 54.67, 58.15, 62.13, 67.59, 73.06, 78.53,
+                84.49, 90.45, 96.42, 102.38, 108.35, 114.31
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [9],
+            "end": 27,
+            "icd": "NormalAttack",
+            "cancels": {
+              "normal": 17
+            }
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                54.61, 59.06, 63.5, 69.85, 74.3, 79.38, 86.36, 93.35, 100.33,
+                107.95, 115.57, 123.19, 130.81, 138.43, 146.05
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [13],
+            "end": 46,
+            "icd": "NormalAttack",
+            "cancels": {
+              "normal": 37
+            }
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-4",
+          "label": "4-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                59.68, 64.54, 69.4, 76.34, 81.2, 86.75, 94.38, 102.02, 109.65,
+                117.98, 126.31, 134.64, 142.96, 151.29, 159.62
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [25],
+            "end": 48,
+            "icd": "NormalAttack",
+            "cancels": {
+              "normal": 44
+            }
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-5",
+          "label": "5-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                71.9, 77.75, 83.6, 91.96, 97.81, 104.5, 113.7, 122.89, 132.09,
+                142.12, 152.15, 162.18, 172.22, 182.25, 192.28
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [24],
+            "end": 60,
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge-1",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                55.9, 60.45, 65, 71.5, 76.05, 81.25, 88.4, 95.55, 102.7, 110.5,
+                118.3, 126.1, 133.9, 141.7, 149.5
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [10],
+            "end": 55,
+            "cancels": {
+              "skill": 41,
+              "burst": 41,
+              "dodge": 21,
+              "swap": 44
+            },
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge-2",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                60.72, 65.66, 70.6, 77.66, 82.6, 88.25, 96.02, 103.78, 111.55,
+                120.02, 128.49, 136.96, 145.44, 153.91, 162.38
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [21],
+            "end": 55,
+            "cancels": {
+              "skill": 41,
+              "burst": 41,
+              "dodge": 21,
+              "swap": 44
+            },
+            "icd": "NormalAttack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Passion Overload",
+      "icon": "Skill_S_Bennett_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "description": "#Bennett puts all his fire and passion for adventuring into his sword. Results may vary based on how fired up he is...\n\n{LAYOUT_MOBILE#Tap}{LAYOUT_PC#Press}{LAYOUT_PS#Press}\nA single, swift flame strike that deals Pyro DMG.\n\nHold (Short)\nCharges up, resulting in different effects when unleashed based on the Charge Level.\n·Level 1: Strikes twice, dealing Pyro DMG and launching opponents.\n·Level 2: Unleashes 3 consecutive attacks that deal impressive Pyro DMG, but the last attack triggers an explosion that launches both Bennett and the enemy.\nBennett takes no damage from being launched.\n\nAn attack that combines Bennett's dreams and passion with Pyro. But passion is sometimes overblown, and Pyro sometimes blows over.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Press DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                137.6, 147.92, 158.24, 172, 182.32, 192.64, 206.4, 220.16,
+                233.92, 247.68, 261.44, 275.2, 292.4, 309.6, 326.8
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [16],
+            "gauge": 2
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillHold-1",
+          "label": "Charge Level 1 DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                84, 90.3, 96.6, 105, 111.3, 117.6, 126, 134.4, 142.8, 151.2,
+                159.6, 168, 178.5, 189, 199.5
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skillHold",
+            "hitmarks": [45]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillHold-2",
+          "label": "Charge Level 1 DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                92, 98.9, 105.8, 115, 121.9, 128.8, 138, 147.2, 156.4, 165.6,
+                174.8, 184, 195.5, 207, 218.5
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skillHold",
+            "hitmarks": [57]
+          }
+        }
+      ],
+      "cooldown": {
+        "frames": 240,
+        "delayFrames": 14
+      },
+      "end": 42,
+      "cancels": {
+        "dodge": 22,
+        "swap": 41
+      },
+      "note": "Press: one Pyro slash (2 or 3 particles). Cooldown 4 s with A1, 2 s inside his Q's field (A4).",
+      "actions": [
+        {
+          "id": "skillHold",
+          "holdOf": "skill",
+          "label": "Hold E (Charge Level 1)",
+          "shortLabel": "Hold E",
+          "icon": "Skill_S_Bennett_01",
+          "end": 98,
+          "cancels": {
+            "burst": 97,
+            "dodge": 65,
+            "swap": 96
+          },
+          "cooldown": {
+            "frames": 360,
+            "delayFrames": 43
+          },
+          "note": "Two slashes (3 particles). Cooldown 6 s with A1, 3 s inside his Q's field (A4). Charge Level 2 is not simulated."
+        }
+      ],
+      "forms": [
+        {
+          "id": "skillInField",
+          "replaces": "skill",
+          "while": {
+            "status": "bennettField"
+          },
+          "label": "E (in his field)",
+          "shortLabel": "E",
+          "cooldown": {
+            "frames": 120,
+            "delayFrames": 14
+          },
+          "cooldownId": "skill",
+          "hits": [
+            {
+              "row": "elementalSkill/skill",
+              "frame": 16,
+              "gauge": 2
+            }
+          ],
+          "note": "A4: half the cooldown inside Fantastic Voyage's field."
+        },
+        {
+          "id": "skillHoldInField",
+          "replaces": "skillHold",
+          "while": {
+            "status": "bennettField"
+          },
+          "label": "Hold E (in his field)",
+          "shortLabel": "Hold E",
+          "cooldown": {
+            "frames": 180,
+            "delayFrames": 43
+          },
+          "cooldownId": "skill",
+          "hits": [
+            {
+              "row": "elementalSkill/skillHold-1",
+              "frame": 45
+            },
+            {
+              "row": "elementalSkill/skillHold-2",
+              "frame": 57
+            }
+          ],
+          "note": "A4: half the cooldown inside Fantastic Voyage's field."
+        }
+      ]
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Fantastic Voyage",
+      "icon": "Skill_E_Bennett_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "description": "Bennett performs a jumping attack that deals Pyro DMG, creating an Inspiration Field.\n\nInspiration Field\n·If the health of a character within the AoE is equal to or falls below 70%, their health will continuously regenerate. The amount of HP restored scales off Bennett's Max HP.\n·If the health of a character within the AoE is higher than 70%, they gain an ATK Bonus that is based on Bennett's Base ATK.\n·Imbues characters within the AoE with Pyro.\n\nBenny's Adventure Team's adventures are always fraught with unexpected danger. However, Bennett is more inclined to call them \"journeys full of wonder, excitement, and beauty.\"",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                232.8, 250.26, 267.72, 291, 308.46, 325.92, 349.2, 372.48,
+                395.76, 419.04, 442.32, 465.6, 494.7, 523.8, 552.9
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [37],
+            "gauge": 2
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "burstatk",
+          "label": "ATK Bonus Ratio (% of Base ATK)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                56, 60.2, 64.4, 70, 74.2, 78.4, 84, 89.6, 95.2, 100.8, 106.4,
+                112, 119, 126, 133
+              ]
+            }
+          ]
+        }
+      ],
+      "end": 53,
+      "cancels": {
+        "dodge": 49,
+        "swap": 51
+      },
+      "cooldown": {
+        "frames": 900,
+        "delayFrames": 34
+      },
+      "energyCost": 60,
+      "note": "Fantastic Voyage: a field for 12 s. The member on the field gets ATK equal to a share of Bennett's Base ATK and is healed every second."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "bennettField",
+      "type": "status",
+      "source": "talent",
+      "label": "Fantastic Voyage field",
+      "icon": "Skill_E_Bennett_01",
+      "durationFrames": 846
+    },
+    {
+      "id": "burst-field",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Q: the field (12 s); a heal every second",
+      "icon": "Skill_E_Bennett_01",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "applyStatus": "bennettField",
+          "delayFrames": 34
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 94
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 154
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 214
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 274
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 334
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 394
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 454
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 514
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 574
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 634
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 694
+        },
+        {
+          "heal": {
+            "effect": "Inspiration Field heal",
+            "short": "Q heal",
+            "target": "active"
+          },
+          "delayFrames": 754
+        }
+      ]
+    },
+    {
+      "id": "burst-atk-self",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Fantastic Voyage ATK (of Base ATK)",
+      "icon": "Skill_E_Bennett_01",
+      "stat": "flatAtk",
+      "valueRow": "elementalBurst/burstatk",
+      "ofStat": "baseAtk",
+      "extra": true,
+      "if": {
+        "onField": true
+      },
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "burst-atk",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Fantastic Voyage ATK for the active member (of Bennett's Base ATK)",
+      "icon": "Skill_E_Bennett_01",
+      "stat": "flatAtk",
+      "valueRow": "elementalBurst/burstatk",
+      "ofStat": "baseAtk",
+      "extra": true,
+      "teamBuff": "active",
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "press-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Press E: 2 or 3 Pyro particles",
+      "icon": "Skill_S_Bennett_01",
+      "when": {
+        "hit": "elementalSkill/skill"
+      },
+      "icdFrames": 18,
+      "do": [
+        {
+          "particles": {
+            "min": 2,
+            "max": 3,
+            "maxChance": 0.25
+          },
+          "afterFrames": 80
+        }
+      ]
+    },
+    {
+      "id": "hold-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Hold E: 3 Pyro particles",
+      "icon": "Skill_S_Bennett_01",
+      "when": {
+        "hit": "elementalSkill/skillHold-1"
+      },
+      "icdFrames": 90,
+      "do": [
+        {
+          "particles": 3,
+          "afterFrames": 80
+        }
+      ]
+    },
+    {
+      "id": "c1-atk-self",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C1: +20% of Base ATK more",
+      "ifFlag": "c1",
+      "stat": "flatAtk",
+      "value": 20,
+      "ofStat": "baseAtk",
+      "extra": true,
+      "if": {
+        "onField": true
+      },
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c1-atk",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C1: +20% of Bennett's Base ATK more for the active member",
+      "ifFlag": "c1",
+      "stat": "flatAtk",
+      "value": 20,
+      "ofStat": "baseAtk",
+      "extra": true,
+      "teamBuff": "active",
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-pyro-self",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: +15% Pyro DMG in the field",
+      "ifFlag": "c6",
+      "stat": "dmgBonus",
+      "value": 15,
+      "match": {
+        "elements": ["Pyro"]
+      },
+      "if": {
+        "onField": true
+      },
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-pyro",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: +15% Pyro DMG for the active member in the field",
+      "ifFlag": "c6",
+      "stat": "dmgBonus",
+      "value": 15,
+      "match": {
+        "elements": ["Pyro"]
+      },
+      "teamBuff": "active",
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-infuse-self",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: Pyro infusion in the field",
+      "ifFlag": "c6",
+      "infuse": "Pyro",
+      "match": {
+        "categories": ["Normal", "Charged", "Plunge"],
+        "weaponTypes": ["Sword", "Claymore", "Polearm"]
+      },
+      "if": {
+        "onField": true
+      },
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "c6-infuse",
+      "type": "bonus",
+      "source": "constellation",
+      "label": "C6: Pyro infusion for the active member in the field (Sword, Claymore, Polearm)",
+      "ifFlag": "c6",
+      "infuse": "Pyro",
+      "match": {
+        "categories": ["Normal", "Charged", "Plunge"],
+        "weaponTypes": ["Sword", "Claymore", "Polearm"]
+      },
+      "teamBuff": "active",
+      "while": {
+        "bennettField": {
+          "gte": 1
+        }
+      }
+    }
+  ],
+  "passives": [
+    {
+      "id": "bennett-passive-1",
+      "name": "Rekindle",
+      "icon": "UI_Talent_S_Bennett_05",
+      "value": "E cooldown 20% shorter.",
+      "description": "Decreases Passion Overload's CD by 20%.",
+      "note": "Always on: the E's cooldowns are already shortened."
+    },
+    {
+      "id": "bennett-passive-2",
+      "name": "Fearnaught",
+      "icon": "UI_Talent_S_Bennett_06",
+      "value": "Inside his Q's field: E cooldown halved (and no launch at Charge Level 2).",
+      "description": "Within the area created by Fantastic Voyage, Passion Overload takes on the following effects:\n·CD is reduced by 50%.\n·Bennett will not be launched by the effects of Charge Level 2.",
+      "note": "Forms of the E while the field lasts."
+    },
+    {
+      "id": "bennett-passive-3",
+      "name": "It Should Be Safe...",
+      "icon": "UI_Talent_Expedition_Mengde",
+      "value": "Exploration only.",
+      "description": "When dispatched on an expedition in Mondstadt, time consumed is reduced by 25%."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Grand Expectation",
+      "icon": "UI_Talent_S_Bennett_01",
+      "effect": "The Q's ATK no longer needs HP under 70% and gets +20% of his Base ATK.",
+      "impact": "simulated",
+      "note": "HP is not simulated: the ATK always applies.",
+      "description": "Fantastic Voyage's ATK increase no longer has an HP restriction, and gains an additional 20% of Bennett's Base ATK."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Impasse Conqueror",
+      "icon": "UI_Talent_S_Bennett_02",
+      "effect": "+30% Energy Recharge under 70% HP.",
+      "impact": "not-simulated",
+      "note": "HP is not simulated.",
+      "description": "When Bennett's HP falls below 70%, his Energy Recharge is increased by 30%."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Unstoppable Fervor",
+      "icon": "UI_Talent_U_Bennett_01",
+      "effect": "+3 E levels.",
+      "impact": "simulated",
+      "note": "Raises the E talent level.",
+      "description": "Increases the Level of Passion Overload by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Unexpected Odyssey",
+      "icon": "UI_Talent_S_Bennett_03",
+      "effect": "A Normal Attack right after a Charge Level 1 E: an extra hit (135%).",
+      "impact": "not-simulated",
+      "note": "gcsim's hold_c4 variant; not modeled.",
+      "description": "Using a Normal Attack as the second attack of Passion Overload's Charge Level 1 will perform a follow-up attack.\nThis additional attack does 135% of the second attack's DMG."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "True Explorer",
+      "icon": "UI_Talent_U_Bennett_02",
+      "effect": "+3 Q levels.",
+      "impact": "simulated",
+      "note": "Raises the Q talent level.",
+      "description": "Increases the Level of Fantastic Voyage by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Fire Ventures With Me",
+      "icon": "UI_Talent_S_Bennett_04",
+      "effect": "In the field: Sword, Claymore and Polearm Normal / Charged / Plunge hits become Pyro, and +15% Pyro DMG.",
+      "impact": "simulated",
+      "note": "His own and the active member's Physical Normal / Charged / Plunge hits (Sword, Claymore, Polearm) become Pyro while the field lasts.",
+      "description": "Sword, Claymore, or Polearm-wielding characters inside Fantastic Voyage's radius gain a 15% Pyro DMG Bonus and their weapons are infused with Pyro."
+    }
+  ],
+  "weapon": "aquila-favonia",
+  "artifactSet": "noblesse-oblige",
+  "defaults": {
+    "numbers": {
+      "atk": 1350,
+      "hp": 24125,
+      "def": 901,
+      "em": 203,
+      "cr": 23.7,
+      "cd": 85.0,
+      "energyRecharge": 252.3,
+      "elementalBonus": 46.6,
+      "bonus": 0,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 9,
+      "burstLevel": 10,
+      "aquilaFavoniaRefinement": 1,
+      "startingEnergy": 60,
+      "physicalBonus": 41.3
+    },
+    "flags": {
+      "c1": true,
+      "c2": true,
+      "c3": true,
+      "c4": true,
+      "c5": true,
+      "c6": false,
+      "aquilaFavonia": true,
+      "noblesseOblige2": true,
+      "noblesseOblige4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Fantastic Voyage)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    }
+  ],
+  "rotation": {
+    "automaticDescription": "Q when it is ready, then the E (press) when it is ready; Normal Attacks while they recharge."
+  },
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    }
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "E uses",
+      "value": "{uses:skill}"
+    },
+    {
+      "label": "Q uses",
+      "value": "{uses:burst}"
+    },
+    {
+      "label": "Q ATK for the active member",
+      "value": "+{buffValue:burst-atk|fixed1}, field up {uptime:bennettField|percent}"
+    },
+    {
+      "label": "Particles",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    }
+  ]
+}

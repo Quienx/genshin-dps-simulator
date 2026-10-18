@@ -104,11 +104,17 @@ export const validateReferences = (character: CharacterData) => {
   blocks.forEach((block) => {
     const where = `block "${block.id}"`;
     if (block.type === 'trigger') {
+      if ('statusStarts' in block.when) {
+        status(where, block.when.statusStarts);
+      }
       if ('statusEnds' in block.when) {
         status(where, block.when.statusEnds);
       }
       if ('resourceChanges' in block.when) {
-        resource(where, block.when.resourceChanges);
+        // "party:nightsoul": any member's; a resource of another kit.
+        if (!block.when.resourceChanges.startsWith('party:')) {
+          resource(where, block.when.resourceChanges);
+        }
       }
       condition(where, block.if);
       block.do.forEach((entry) => op(where, entry));
@@ -124,9 +130,7 @@ export const validateReferences = (character: CharacterData) => {
     if (block.type === 'bonus') {
       Object.keys(block.while ?? {}).forEach((id) => state(where, id));
       condition(where, block.if);
-      if (block.perStack) {
-        state(where, block.perStack.state);
-      }
+      block.perStack?.forEach((factor) => state(where, factor.state));
       if (block.addMultiplier) {
         resource(where, block.addMultiplier.perResource);
       }

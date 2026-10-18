@@ -981,20 +981,21 @@
   "artifactSet": "golden-troupe",
   "defaults": {
     "numbers": {
-      "atk": 2050,
-      "hp": 18700,
-      "cr": 68,
-      "cd": 160,
+      "atk": 2015,
+      "hp": 19089,
+      "cr": 74.0,
+      "cd": 201.6,
       "bonus": 0,
       "elementalBonus": 46.6,
       "em": 0,
       "duration": 60,
       "normalAttackLevel": 1,
       "skillLevel": 10,
-      "burstLevel": 10,
+      "burstLevel": 9,
       "symphonistRefinement": 1,
-      "energyRecharge": 125,
-      "startingEnergy": 60
+      "energyRecharge": 133.7,
+      "startingEnergy": 60,
+      "def": 733
     },
     "flags": {
       "c1": false,

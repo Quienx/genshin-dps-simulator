@@ -40,7 +40,7 @@
       "label": "4-piece",
       "value": "After the equipping character triggers a reaction related to their Elemental Type, all nearby party members gain a 12% Elemental DMG Bonus for the Elemental Types involved in the elemental reaction for 15s. If the equipping character is in the Nightsoul's Blessing state when triggering this effect, all nearby party members gain an additional 28% Elemental DMG Bonus for the Elemental Types involved in the elemental reaction for 20s. The equipping character can trigger this effect while off-field, and the DMG bonus from Artifact Sets with the same name do not stack.",
       "flag": "scroll4",
-      "note": "Simulated on her own Overloaded (Pyro and Electro DMG)."
+      "note": "Simulated on her own Overloaded (Pyro and Electro DMG) and Melt (Pyro and Cryo DMG). Not simulated: an Overloaded and a Melt buff on the same element do not stack in-game; here they would."
     }
   ],
   "blocks": [
@@ -112,6 +112,79 @@
       },
       "while": {
         "scrollNightsoul": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "everyone"
+    },
+    {
+      "id": "scrollMelt",
+      "type": "status",
+      "source": "artifact",
+      "label": "Scroll 4-piece: Melt buff",
+      "ifFlag": "scroll4",
+      "durationFrames": 900
+    },
+    {
+      "id": "scrollMeltNightsoul",
+      "type": "status",
+      "source": "artifact",
+      "label": "Scroll 4-piece: Melt Nightsoul buff",
+      "ifFlag": "scroll4",
+      "durationFrames": 1200
+    },
+    {
+      "id": "scroll-4pc-melt-trigger",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Melt: Pyro / Cryo DMG for the party",
+      "ifFlag": "scroll4",
+      "when": {
+        "hit": "reaction:Melt"
+      },
+      "do": [
+        {
+          "applyStatus": "scrollMelt"
+        },
+        {
+          "applyStatus": "scrollMeltNightsoul",
+          "if": {
+            "status": "nightsoulBlessing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scroll-4pc-melt",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Scroll 4-piece: +12% Pyro / Cryo DMG (Melt)",
+      "ifFlag": "scroll4",
+      "stat": "dmgBonus",
+      "value": 12,
+      "match": {
+        "elements": ["Pyro", "Cryo"]
+      },
+      "while": {
+        "scrollMelt": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "everyone"
+    },
+    {
+      "id": "scroll-4pc-melt-nightsoul",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Scroll 4-piece: +28% Pyro / Cryo DMG (Melt in Nightsoul's Blessing)",
+      "ifFlag": "scroll4",
+      "stat": "dmgBonus",
+      "value": 28,
+      "match": {
+        "elements": ["Pyro", "Cryo"]
+      },
+      "while": {
+        "scrollMeltNightsoul": {
           "gte": 1
         }
       },

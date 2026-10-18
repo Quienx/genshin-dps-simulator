@@ -15,5 +15,9 @@
   "escoffierSkill": {
     "resetFrames": 90,
     "sequence": [1, 0, 0, 0, 0, 0]
+  },
+  "citlaliFrostfallStorm": {
+    "resetFrames": 90,
+    "sequence": [1, 0]
   }
 }

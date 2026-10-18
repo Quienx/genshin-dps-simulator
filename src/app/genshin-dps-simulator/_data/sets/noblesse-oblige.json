@@ -1,0 +1,104 @@
+{
+  "id": "noblesse-oblige",
+  "name": "Noblesse Oblige",
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15007_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15007_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15007_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15007_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15007_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "Elemental Burst DMG +20%",
+      "flag": "noblesseOblige2"
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "Using an Elemental Burst increases all party members' ATK by 20% for 12s. This effect cannot stack.",
+      "flag": "noblesseOblige4",
+      "note": "The party's ATK, for 12 s after the wearer's Q (it does not stack: one window, refreshed by each Q)."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "noblesse-2pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Noblesse Oblige 2-piece: Burst DMG +20%",
+      "ifFlag": "noblesseOblige2",
+      "stat": "dmgBonus",
+      "value": 20,
+      "match": {
+        "categories": ["Burst"]
+      }
+    },
+    {
+      "id": "noblesseWindow",
+      "type": "status",
+      "source": "artifact",
+      "label": "Noblesse Oblige 4-piece",
+      "ifFlag": "noblesseOblige4",
+      "durationFrames": 720
+    },
+    {
+      "id": "noblesse-4pc-trigger",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Q: party ATK +20% for 12 s",
+      "ifFlag": "noblesseOblige4",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "applyStatus": "noblesseWindow"
+        }
+      ]
+    },
+    {
+      "id": "noblesse-4pc",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Noblesse Oblige 4-piece: ATK +20%",
+      "ifFlag": "noblesseOblige4",
+      "stat": "atkPercent",
+      "value": 20,
+      "teamBuff": "everyone",
+      "while": {
+        "noblesseWindow": {
+          "gte": 1
+        }
+      }
+    }
+  ],
+  "defaults": {
+    "flags": {
+      "noblesseOblige2": true,
+      "noblesseOblige4": true
+    }
+  }
+}

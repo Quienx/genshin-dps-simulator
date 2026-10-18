@@ -81,7 +81,13 @@ const PLACEHOLDER_PX = 36;
 
 // Where a dragged block would go, and the member's row it is over (a Dash
 // or Wait goes on theirs).
-type DropSlot = { time: number; actionId: string; rowMember: string | null };
+// `blockUids`: a dragged multi-selection (a ghost per block, in order).
+type DropSlot = {
+  time: number;
+  actionId: string;
+  rowMember: string | null;
+  blockUids?: string[];
+};
 // Labeled ticks at least this far apart; the step grows as the zoom
 // shrinks.
 const MAJOR_MIN_PX = 80;
@@ -129,11 +135,18 @@ type TimelineChartProps = {
   onZoom: (factor: number) => void;
   // The width the tracks have on screen (for Fit).
   onTrackWidthChange: (width: number) => void;
-  // Edit mode (when `onSelectBlock` is set): the block picked, picking one
-  // (a click on it; on the picked one, unpicking it), and a drop on the tracks: before that block (null: at
-  // the end).
-  selectedBlock?: string | null;
-  onSelectBlock?: (blockUid: string) => void;
+  // Edit mode (when `onSelectBlock` is set): the blocks picked, picking
+  // one (a click; Ctrl/Cmd: adds or removes it; Shift: the range from the
+  // last one picked), picking those a Shift + drag rectangle touches, the
+  // selection keys (Esc, Delete, Ctrl/Cmd + A), and a drop on the tracks:
+  // before that block (null: at the end).
+  selectedBlocks?: string[];
+  onSelectBlock?: (
+    blockUid: string,
+    modifiers: { range: boolean; toggle: boolean }
+  ) => void;
+  onSelectBlocks?: (blockUids: string[], additive: boolean) => void;
+  onSelectionKey?: (key: 'clear' | 'delete' | 'all') => void;
   onDropBlock?: (
     payload: DragPayload,
     beforeUid: string | null,
@@ -378,6 +391,7 @@ const PARTICLE_LINES: Record<string, string> = {
 
 // No runs given: one stable empty list (it is a memo dependency).
 const NO_MEMBER_RUNS: TeamMemberRun[] = [];
+const NO_BLOCKS: string[] = [];
 
 const buildGroups = (
   view: InspectorView,
@@ -385,7 +399,7 @@ const buildGroups = (
   members: TimelineMember[],
   actionsById: Map<string, RotationAction>,
   ruler: Ruler,
-  selectedBlock: string | null,
+  selected: Set<string>,
   editing: boolean,
   slot: DropSlot | null,
   memberRuns: TeamMemberRun[]
@@ -546,7 +560,7 @@ const buildGroups = (
             blockUid={action.blockUid}
             editing={editing}
             tipKey={`a:${action.key}`}
-            selected={action.blockUid === selectedBlock}
+            selected={selected.has(action.blockUid)}
             className={cn(
               'absolute top-1/2 flex h-6 -translate-y-1/2 items-center justify-center overflow-hidden rounded-md border shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] transition-colors hover:brightness-125',
               // The member's own color, in its shade for the action's kind.
@@ -555,7 +569,7 @@ const buildGroups = (
               // Not performed (on cooldown…): kept in its place, on top.
               skipped &&
                 'z-10 rounded-full border-dashed border-amber-400 bg-slate-900',
-              action.blockUid === selectedBlock &&
+              selected.has(action.blockUid) &&
                 'ring-2 ring-sky-400 ring-offset-1 ring-offset-slate-950'
             )}
             // The ruler leaves a gap before the next action; `from` is
@@ -597,9 +611,47 @@ const buildGroups = (
       }),
     };
   });
-  // Edit mode: where the block being dragged will land, as a ghost of it
-  // in its member's row (between the blocks it goes between).
-  if (slot) {
+  // Edit mode: where several picked blocks will land, one ghost per block
+  // in its member's row, back to back from the slot, each as long as it
+  // took (its wait included).
+  if (slot?.blockUids) {
+    const picked = new Set(slot.blockUids);
+    let at = slot.time;
+    [...chartActions]
+      .filter((action) => picked.has(action.blockUid))
+      .sort((first, second) => first.start - second.start)
+      .forEach((action) => {
+        const owner = splitTeamActionId(action.actionId).characterId;
+        const ghost = actionsById.get(action.actionId);
+        const row = actionRows.find((entry) => entry.id === `action-${owner}`);
+        const length = Math.max(0, action.end - (action.start - action.waited));
+        const left = ruler.toX(at);
+        const width = Math.max(PLACEHOLDER_PX, ruler.toX(at + length) - left);
+        at += length;
+        if (!row || !ghost) {
+          return;
+        }
+        row.content = (
+          <>
+            {row.content}
+            <span
+              aria-hidden
+              data-testid='timeline-drop-placeholder'
+              className='pointer-events-none absolute top-1/2 z-20 flex h-6 -translate-y-1/2 items-center justify-center rounded-md border-2 border-dashed border-sky-400 bg-sky-500/25 shadow-[0_0_8px_rgb(56_189_248/0.6)]'
+              style={{ left, width }}
+            >
+              <RotationActionIcon
+                action={ghost}
+                size={ICON_PX}
+                className='bg-transparent p-0 ring-0 opacity-80'
+              />
+            </span>
+          </>
+        );
+      });
+  } else if (slot) {
+    // Edit mode: where the block being dragged will land, as a ghost of it
+    // in its member's row (between the blocks it goes between).
     // A Dash or Wait goes where it is dropped: the row it is over.
     const owner =
       slot.rowMember && isFieldAction(slot.actionId)
@@ -1432,7 +1484,16 @@ const HoverTip = ({
 };
 
 type Gesture = {
-  mode: 'scrub' | 'pan';
+  // 'marquee': Shift + drag on empty tracks in edit mode, a selection
+  // rectangle (from startX / startY, client coordinates).
+  mode: 'scrub' | 'pan' | 'marquee';
+  // A marquee's corner and the pointer, in the tracks' own coordinates
+  // (they scroll with it, so the rectangle grows as it pans at the edges).
+  startY?: number;
+  originX?: number;
+  originY?: number;
+  tracks?: HTMLElement;
+  additive?: boolean;
   startX: number;
   startScroll: number;
   moved: boolean;
@@ -1456,8 +1517,10 @@ const TimelineChart = ({
   onTogglePlay,
   onZoom,
   onTrackWidthChange,
-  selectedBlock = null,
+  selectedBlocks = NO_BLOCKS,
   onSelectBlock,
+  onSelectBlocks,
+  onSelectionKey,
   onDropBlock,
   axisSeconds,
   onHoverChip,
@@ -1469,6 +1532,20 @@ const TimelineChart = ({
   // Edit mode: the slot a drag would drop in (its moment) and what is
   // dragged: the guide line and the placeholder go there.
   const [slot, setSlot] = useState<DropSlot | null>(null);
+  // The selection as a set, rebuilt only when it changes (not on each
+  // render of a new array with the same blocks).
+  const selectedKey = selectedBlocks.join(',');
+  const selected = useMemo(
+    () => new Set(selectedKey ? selectedKey.split(',') : []),
+    [selectedKey]
+  );
+  // A Shift + drag selection rectangle, relative to the tracks.
+  const [marquee, setMarquee] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const trackWidth = ruler.totalWidth;
   const ticks = useMemo(
     () => buildTicks(axisSeconds ?? view.duration, pxPerSecond),
@@ -1482,7 +1559,7 @@ const TimelineChart = ({
         members,
         actionsById,
         ruler,
-        selectedBlock,
+        selected,
         editing,
         slot,
         memberRuns
@@ -1493,7 +1570,7 @@ const TimelineChart = ({
       members,
       actionsById,
       ruler,
-      selectedBlock,
+      selected,
       editing,
       slot,
       memberRuns,
@@ -1745,7 +1822,8 @@ const TimelineChart = ({
   seekRef.current = onSeek;
   const panAtEdges = () => {
     const element = scrollRef.current;
-    if (!element || gesture.current?.mode !== 'scrub') {
+    const mode = gesture.current?.mode;
+    if (!element || (mode !== 'scrub' && mode !== 'marquee')) {
       return;
     }
     const x = viewX(pointerX.current);
@@ -1759,11 +1837,34 @@ const TimelineChart = ({
     if (into !== 0) {
       element.scrollLeft +=
         Math.sign(into) * Math.min(1, Math.abs(into)) ** 2 * EDGE_SPEED_PX;
-      seekRef.current(timeAtClient(pointerX.current));
+      if (mode === 'marquee') {
+        updateMarquee();
+      } else {
+        seekRef.current(timeAtClient(pointerX.current));
+      }
     }
     edgeFrame.current = requestAnimationFrame(panAtEdges);
   };
   useEffect(() => () => cancelAnimationFrame(edgeFrame.current), []);
+  // The marquee from its corner to the pointer, in the tracks' coordinates.
+  const pointerY = useRef(0);
+  const updateMarquee = () => {
+    const current = gesture.current;
+    if (current?.mode !== 'marquee' || !current.tracks) {
+      return;
+    }
+    const box = current.tracks.getBoundingClientRect();
+    const x = pointerX.current - box.left;
+    const y = pointerY.current - box.top;
+    const originX = current.originX ?? x;
+    const originY = current.originY ?? y;
+    setMarquee({
+      left: Math.min(originX, x),
+      top: Math.min(originY, y),
+      width: Math.abs(x - originX),
+      height: Math.abs(y - originY),
+    });
+  };
 
   // Where an action block starts: its wait for a cooldown included (the
   // block starts where it was put).
@@ -1806,14 +1907,31 @@ const TimelineChart = ({
           ?.actionId ?? null
       : null;
   const dragging = useRef(false);
+  // A picked block dragged with others: every picked block dims, as the
+  // dragged one does.
+  const [groupDragging, setGroupDragging] = useState(false);
   useDndMonitor({
-    onDragStart: () => {
+    onDragStart: (event) => {
       dragging.current = true;
       hideTip();
+      const payload = payloadOf(event);
+      setGroupDragging(
+        payload?.kind === 'move' &&
+          selected.size > 1 &&
+          selected.has(payload.blockUid)
+      );
     },
     onDragMove: (event) => {
       const at = event.over?.id === TRACKS_DROP_ID ? dropTimeOf() : null;
-      const actionId = draggedActionId(payloadOf(event));
+      const payload = payloadOf(event);
+      const actionId = draggedActionId(payload);
+      // A picked block dragged with others: the whole selection.
+      const group =
+        payload?.kind === 'move' &&
+        selected.size > 1 &&
+        selected.has(payload.blockUid)
+          ? Array.from(selected)
+          : undefined;
       const next =
         at === null || !actionId
           ? null
@@ -1821,22 +1939,26 @@ const TimelineChart = ({
               time: dropSlot(actions, at).time,
               actionId,
               rowMember: memberRowAtPointer(),
+              blockUids: group,
             };
       // Only when the slot changes: the rows redraw with it.
       setSlot((current) =>
         current?.time === next?.time &&
         current?.actionId === next?.actionId &&
-        current?.rowMember === next?.rowMember
+        current?.rowMember === next?.rowMember &&
+        current?.blockUids?.length === next?.blockUids?.length
           ? current
           : next
       );
     },
     onDragCancel: () => {
       dragging.current = false;
+      setGroupDragging(false);
       setSlot(null);
     },
     onDragEnd: (event) => {
       dragging.current = false;
+      setGroupDragging(false);
       setSlot(null);
       const payload = payloadOf(event);
       const time = dropTimeOf();
@@ -1891,6 +2013,21 @@ const TimelineChart = ({
               onZoom(1.25);
             } else if (event.key === '-') {
               onZoom(0.8);
+            } else if (editing && event.key === 'Escape') {
+              onSelectionKey?.('clear');
+            } else if (
+              editing &&
+              (event.key === 'Delete' || event.key === 'Backspace')
+            ) {
+              event.preventDefault();
+              onSelectionKey?.('delete');
+            } else if (
+              editing &&
+              (event.ctrlKey || event.metaKey) &&
+              event.key.toLowerCase() === 'a'
+            ) {
+              event.preventDefault();
+              onSelectionKey?.('all');
             }
           }}
         >
@@ -1900,7 +2037,8 @@ const TimelineChart = ({
             // buffs) the tracks still reach the bottom.
             className={cn(
               'relative flex min-h-full touch-none flex-col select-none [&_img]:pointer-events-none',
-              panning ? 'cursor-grabbing' : 'cursor-grab'
+              panning ? 'cursor-grabbing' : 'cursor-grab',
+              groupDragging && '[&_[data-selected]]:opacity-40'
             )}
             style={{ width: labelPx + trackWidth + 16 }}
             onDragStart={(event) => event.preventDefault()}
@@ -1910,7 +2048,12 @@ const TimelineChart = ({
                 event.target as HTMLElement
               ).closest<HTMLElement>('[data-block-uid]')?.dataset.blockUid;
               if (editing && blockUid) {
-                onSelectBlock?.(blockUid);
+                onSelectBlock?.(blockUid, {
+                  range: event.shiftKey,
+                  toggle: event.ctrlKey || event.metaKey,
+                });
+                // Picking several: the chart keeps the keys (Esc, Delete).
+                scrollRef.current?.focus({ preventScroll: true });
                 // Picked, the playhead goes to where it starts.
                 const start = blockStartOf(
                   (event.target as HTMLElement).closest<HTMLElement>(
@@ -1939,6 +2082,31 @@ const TimelineChart = ({
               const onRuler =
                 event.button === 0 &&
                 (event.target as HTMLElement).closest('[data-ruler]') !== null;
+              // Edit mode, Shift + drag on empty tracks: a selection
+              // rectangle instead of panning.
+              if (editing && event.shiftKey && !onRuler) {
+                const box = event.currentTarget.getBoundingClientRect();
+                gesture.current = {
+                  mode: 'marquee',
+                  startX: event.clientX,
+                  startY: event.clientY,
+                  originX: event.clientX - box.left,
+                  originY: event.clientY - box.top,
+                  tracks: event.currentTarget,
+                  startScroll: 0,
+                  moved: false,
+                  blockTip: null,
+                  additive: event.ctrlKey || event.metaKey,
+                };
+                pointerX.current = event.clientX;
+                pointerY.current = event.clientY;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                scrollRef.current?.focus({ preventScroll: true });
+                // Near an edge, the tracks pan and the rectangle follows.
+                cancelAnimationFrame(edgeFrame.current);
+                edgeFrame.current = requestAnimationFrame(panAtEdges);
+                return;
+              }
               gesture.current = {
                 mode: onRuler ? 'scrub' : 'pan',
                 startX: event.clientX,
@@ -1969,6 +2137,13 @@ const TimelineChart = ({
                 onSeek(timeAtClient(event.clientX));
                 return;
               }
+              if (current.mode === 'marquee') {
+                current.moved = true;
+                pointerX.current = event.clientX;
+                pointerY.current = event.clientY;
+                updateMarquee();
+                return;
+              }
               const delta = event.clientX - current.startX;
               if (!current.moved && Math.abs(delta) < DRAG_THRESHOLD_PX) {
                 return;
@@ -1979,13 +2154,64 @@ const TimelineChart = ({
               }
               element.scrollLeft = current.startScroll - delta;
             }}
-            onPointerUp={(event) => endGesture(event.clientX)}
+            onPointerUp={(event) => {
+              const current = gesture.current;
+              if (current?.mode === 'marquee') {
+                gesture.current = null;
+                cancelAnimationFrame(edgeFrame.current);
+                setMarquee(null);
+                // Every block the rectangle touches (in the tracks'
+                // coordinates: it may have panned since it started).
+                const box = event.currentTarget.getBoundingClientRect();
+                const x = event.clientX - box.left;
+                const y = event.clientY - box.top;
+                const originX = current.originX ?? x;
+                const originY = current.originY ?? y;
+                const left = Math.min(originX, x) + box.left;
+                const right = Math.max(originX, x) + box.left;
+                const top = Math.min(originY, y) + box.top;
+                const bottom = Math.max(originY, y) + box.top;
+                const uids = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLElement>(
+                    '[data-block-uid]'
+                  )
+                )
+                  .filter((element) => {
+                    const rect = element.getBoundingClientRect();
+                    return (
+                      rect.right >= left &&
+                      rect.left <= right &&
+                      rect.bottom >= top &&
+                      rect.top <= bottom
+                    );
+                  })
+                  .map((element) => element.dataset.blockUid ?? '')
+                  .filter(Boolean);
+                if (current.moved) {
+                  onSelectBlocks?.(
+                    Array.from(new Set(uids)),
+                    current.additive ?? false
+                  );
+                }
+                return;
+              }
+              endGesture(event.clientX);
+            }}
             onPointerCancel={() => {
+              setMarquee(null);
               gesture.current = null;
               cancelAnimationFrame(edgeFrame.current);
               setPanning(false);
             }}
           >
+            {marquee && (
+              <div
+                aria-hidden
+                data-testid='timeline-marquee'
+                className='pointer-events-none absolute z-40 rounded-sm border border-sky-400 bg-sky-400/15'
+                style={marquee}
+              />
+            )}
             {/* The playhead's head, on the ruler (it stays there while the
               tracks scroll), under the labels' corner. */}
             {headX >= scroll.left && (

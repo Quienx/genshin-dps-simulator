@@ -4,7 +4,11 @@ import { createEventQueue } from './queue';
 import { createRuntime, KitRuntime, PartyLink } from './runtime';
 import { BonusStat } from './schema';
 import { collectRunResult } from './simulateKit';
-import { getLoadedCharacter, LoadedCharacter } from '../characterData';
+import {
+  getLoadedCharacter,
+  getLoadedVariant,
+  LoadedCharacter,
+} from '../characterData';
 import { createDamageContext } from '../damageEngine';
 import { EffectData } from '../effects';
 import { FRAMES_PER_SECOND } from '../frames';
@@ -108,6 +112,7 @@ export const getTeamRotationActions = (
     return getRotationActions(rotation).map((action) => ({
       ...action,
       id: prefix(action.id),
+      hold: action.hold && prefix(action.hold),
       steps: action.steps?.map((step) =>
         typeof step === 'string'
           ? prefix(step)
@@ -223,9 +228,17 @@ export const simulateTeam = (
   if (new Set(ids).size !== ids.length) {
     throw new Error('A character can only be once in a team');
   }
-  const loadedOf = (characterId: string): LoadedCharacter =>
-    team.find((entry) => entry.characterId === characterId)?.loaded ??
-    getLoadedCharacter(characterId);
+  // Each member wears its build's gear (weapon and set).
+  const loadedOf = (characterId: string): LoadedCharacter => {
+    const entry = team.find((member) => member.characterId === characterId);
+    return (
+      entry?.loaded ??
+      getLoadedVariant(characterId, {
+        weapon: entry?.values.weapon,
+        artifactSet: entry?.values.artifactSet,
+      })
+    );
+  };
   const durationFrames =
     Math.max(1, readNumber(team[0].values, 'duration')) * FRAMES_PER_SECOND;
   const queue = createEventQueue();
@@ -373,6 +386,17 @@ export const simulateTeam = (
         ),
       ];
     },
+    receiveInfusion: (hit, weaponType) => {
+      const receiverActive = activeAt(hit.frame) === index;
+      return (
+        members
+          .filter((_, otherIndex) => otherIndex !== index)
+          .map((other) =>
+            other.runtime.getTeamInfusion(hit, receiverActive, weaponType)
+          )
+          .find((element) => element !== null) ?? null
+      );
+    },
     broadcastHit: (keys, frame) => {
       if (
         highVoltage &&
@@ -389,6 +413,10 @@ export const simulateTeam = (
     },
     broadcastUse: (keys, frame) =>
       members.forEach((member) => member.runtime.firePartyUse(keys, frame)),
+    broadcastResource: (id, change, frame) =>
+      members.forEach((member) =>
+        member.runtime.firePartyResource(id, change, frame)
+      ),
     shareParticles,
     applyElement: auras ? applyElement : undefined,
     performAs: (attackerId, hit, attackerElement) => {

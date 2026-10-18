@@ -55,6 +55,12 @@ export const getBlockTitle = (
   if (action.steps && action.hitsLabel) {
     return `${action.label} (${block.hits} ${action.hitsLabel})`;
   }
+  if (block.hold && action.hold) {
+    return `${action.label} (Hold)`;
+  }
+  if (action.count && block.hits > 1) {
+    return `${action.label} (${block.hits} ${action.count.label})`;
+  }
   if (action.kind !== 'normal' || (action.maxHits ?? 1) <= 1) {
     return action.label;
   }
@@ -81,7 +87,8 @@ const isSameDraft = (first: BlockDraft, second: BlockDraft): boolean =>
   first.action === second.action &&
   first.hits === second.hits &&
   first.seconds === second.seconds &&
-  first.dashCancel === second.dashCancel;
+  first.dashCancel === second.dashCancel &&
+  Boolean(first.hold) === Boolean(second.hold);
 
 // Same blocks in a row become one with a repeat; sequences stay one block
 // per play, so each Surging Bite is its own piece.
@@ -166,6 +173,20 @@ const traceToDrafts = (
       index += match.length - 1;
       continue;
     }
+    // A hold (a hold E) is its action's block with Hold on.
+    const holder = actions.find((other) => other.hold === entry.action);
+    if (holder) {
+      flushRun();
+      drafts.push({
+        action: holder.id,
+        hits: 1,
+        repeat: 1,
+        seconds: 1,
+        dashCancel: false,
+        hold: true,
+      });
+      continue;
+    }
     const action = findAction(actions, entry.action);
     if (!action) {
       continue;
@@ -240,11 +261,42 @@ export const removeBlock = (
   blocks: setting.blocks.filter((block) => block.uid !== uid),
 });
 
+// Several blocks at once (a multi-selection deleted).
+export const removeBlocks = (
+  setting: RotationSetting,
+  uids: string[]
+): RotationSetting => {
+  const gone = new Set(uids);
+  return {
+    ...setting,
+    blocks: setting.blocks.filter((block) => !gone.has(block.uid)),
+  };
+};
+
+// The blocks from one to another, both included, in rotation order
+// (Shift + click in edit mode). An unknown uid: just the other one.
+export const selectRange = (
+  setting: RotationSetting,
+  fromUid: string | null,
+  toUid: string
+): string[] => {
+  const uids = setting.blocks.map((block) => block.uid);
+  const to = uids.indexOf(toUid);
+  const from = fromUid === null ? -1 : uids.indexOf(fromUid);
+  if (to < 0) {
+    return [];
+  }
+  if (from < 0) {
+    return [toUid];
+  }
+  return uids.slice(Math.min(from, to), Math.max(from, to) + 1);
+};
+
 export const updateBlock = (
   setting: RotationSetting,
   uid: string,
   patch: Partial<
-    Pick<RotationBlock, 'hits' | 'repeat' | 'seconds' | 'dashCancel'>
+    Pick<RotationBlock, 'hits' | 'repeat' | 'seconds' | 'dashCancel' | 'hold'>
   >
 ): RotationSetting => ({
   ...setting,
@@ -302,7 +354,9 @@ const expandRepetition = (
     });
   }
   if (action.kind !== 'normal') {
-    return [toStep(block, action)];
+    const hold = block.hold && action.hold && findAction(actions, action.hold);
+    const step = toStep(block, hold || action);
+    return [action.count ? { ...step, count: Math.max(1, block.hits) } : step];
   }
   const presses = Array.from({ length: Math.max(1, block.hits) }, () =>
     toStep(block, action)

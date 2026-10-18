@@ -123,13 +123,29 @@ export const talentActionSchema = z.object({
         gauge: z.number().min(0).optional(),
         icd: z.string().optional(),
         icdGroup: z.string().optional(),
+        // Played once per `repeat` count (a spin of a held Charged Attack).
+        repeats: z.boolean().optional(),
       })
     )
+    .optional(),
+  // Held for a count the rotation block sets (Mavuika's Flamestrider
+  // Charged Attack: spins before the Final hit): its `repeats` hits play
+  // that many times, `everyFrames` apart, and every later hit, its end and
+  // its cancels come that much later. `max`: the most the block allows.
+  repeat: z
+    .object({
+      label: z.string(),
+      everyFrames: frameSchema.min(1),
+      max: z.number().int().min(1),
+    })
     .optional(),
   // Trigger and "uses" key it also counts as (Mualani's bite is Normal
   // Attack DMG: "normal").
   group: actionIdSchema.optional(),
   energyCost: z.number().positive().optional(),
+  // The hold of this action ("skill"): no palette item of its own, it is
+  // that action's block with Hold on.
+  holdOf: actionIdSchema.optional(),
 });
 
 const elementSchema = z.enum([
@@ -211,7 +227,12 @@ export type ActionHitData = {
   // Its elemental application ICD tag (none: it always applies) and group.
   icd?: string;
   icdGroup?: string;
+  // Played once per count of a held action (see `repeat`).
+  repeats?: boolean;
 };
+
+// A held action's count (see the talent action's `repeat`).
+export type RepeatData = { label: string; everyFrames: number; max: number };
 
 type ComboStepData = {
   hits: ActionHitData[];
@@ -254,6 +275,10 @@ export type ActionData = {
   replacements?: { action: string; while: Condition }[];
   // Only reached through another action's `replacement`.
   hidden?: boolean;
+  // The action whose block plays this one with Hold on (a hold E).
+  holdOf?: string;
+  // Held for a count the block sets (see the talent action's `repeat`).
+  repeat?: RepeatData;
 };
 
 type TalentWithTiming = {
@@ -494,6 +519,8 @@ const toExtraAction = (
     cancels: extra.cancels,
     cooldown: extra.cooldown,
     energyCost: extra.energyCost,
+    holdOf: extra.holdOf,
+    repeat: extra.repeat,
   };
 };
 
@@ -562,21 +589,48 @@ const toFormAction = (
     castDuringPrevious:
       !isCombo && sameAnimation ? target.castDuringPrevious : undefined,
     energyCost: form.energyCost ?? target.energyCost,
+    repeat: form.repeat ?? (sameAnimation ? target.repeat : undefined),
     hidden: true,
   };
+};
+
+// A block's count for a held action: its own `repeat`, or the largest of
+// the forms it turns into (the Charged Attack is a Flamestrider spin).
+const repeatOf = (
+  id: string,
+  actions: Record<string, ActionData>
+): { count?: { label: string; max: number } } => {
+  const repeats = [id, ...(actions[id].replacements ?? []).map((r) => r.action)]
+    .map((actionId) => actions[actionId]?.repeat)
+    .filter((repeat): repeat is RepeatData => Boolean(repeat));
+  if (repeats.length === 0) {
+    return {};
+  }
+  const widest = repeats.reduce((most, repeat) =>
+    repeat.max > most.max ? repeat : most
+  );
+  return { count: { label: widest.label, max: widest.max } };
 };
 
 // The rotation editor's palette comes straight from the actions.
 export const toRotationActions = (
   actions: Record<string, ActionData>
 ): RotationAction[] =>
-  Object.entries(actions).map(([id, action]) => ({
-    id,
-    kind: action.kind,
-    label: action.label,
-    shortLabel: action.shortLabel,
-    icon: action.icon,
-    description: action.description,
-    maxHits: action.combo?.length,
-    hidden: action.hidden,
-  }));
+  Object.entries(actions).map(([id, action]) => {
+    const hold = Object.entries(actions).find(
+      ([, other]) => other.holdOf === id
+    )?.[0];
+    return {
+      id,
+      kind: action.kind,
+      label: action.label,
+      shortLabel: action.shortLabel,
+      icon: action.icon,
+      description: action.description,
+      maxHits: action.combo?.length,
+      ...repeatOf(id, actions),
+      // A hold is played from its action's block.
+      hidden: action.hidden || Boolean(action.holdOf),
+      ...(hold ? { hold } : {}),
+    };
+  });

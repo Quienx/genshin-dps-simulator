@@ -127,6 +127,12 @@ const getBlockRows = (
       rows.push({ label: 'Then', value: 'Dash after each repeat' });
     }
   }
+  if (action.count) {
+    rows.push({ label: action.count.label, value: String(block.hits) });
+  }
+  if (block.hold && action.hold) {
+    rows.push({ label: 'Hold', value: 'Yes' });
+  }
   if (action.kind === 'wait') {
     rows.push({ label: 'Waits', value: seconds(block.seconds) });
   }

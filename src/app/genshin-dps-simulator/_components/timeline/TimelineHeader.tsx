@@ -7,8 +7,9 @@ import {
   SkipBack,
   SkipForward,
   Sparkles,
+  UserPlus,
 } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -22,10 +23,12 @@ import {
 } from '@/components/ui/select';
 
 import { getLoadedCharacter } from '../../_lib/characterData';
+import { CHARACTER_LIST } from '../../_lib/characters';
 import formatNumber from '../../_lib/formatNumber';
 import { iconUrl } from '../../_lib/genshinIcons';
 
 export const SPEEDS = [0.5, 1, 2, 4];
+const TEAM_MAX = 4;
 
 // A run the timeline can show (picked in the title bar): a team, or one
 // character alone; `avatars` are its members' ids.
@@ -85,6 +88,132 @@ type TimelineHeaderProps = {
   onScenarioChange: (id: string) => void;
   // Opens a member's build.
   onMemberClick: (characterId: string) => void;
+  // A party picked with the team button (its members' ids, in order).
+  onTeamChange: (ids: string[]) => void;
+};
+
+// Picks the party: up to four characters, in the order clicked; Apply
+// shows that team.
+const TeamPicker = ({
+  current,
+  onApply,
+}: {
+  current: string[];
+  onApply: (ids: string[]) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<string[]>(current);
+  const ref = useRef<HTMLDivElement>(null);
+  // A click outside closes it.
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    const close = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const toggle = (id: string) =>
+    setPicked((ids) =>
+      ids.includes(id)
+        ? ids.filter((entry) => entry !== id)
+        : ids.length < TEAM_MAX
+        ? [...ids, id]
+        : ids
+    );
+  return (
+    <div ref={ref} className='relative'>
+      <button
+        type='button'
+        data-testid='timeline-team-picker'
+        title='Pick the team'
+        aria-expanded={open}
+        onClick={() => {
+          setPicked(current);
+          setOpen(!open);
+        }}
+        className='flex h-9 items-center gap-1 rounded-md border border-dashed border-slate-600 bg-slate-800/40 px-2 text-[11px] text-slate-300 transition hover:border-sky-500/60 hover:bg-slate-700/60 hover:text-slate-100'
+      >
+        <UserPlus className='size-4' aria-hidden />
+        Team
+      </button>
+      {open && (
+        <div
+          data-testid='timeline-team-picker-panel'
+          className='absolute top-full left-0 z-50 mt-1 w-72 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl'
+        >
+          <p className='mb-1.5 text-[10px] text-slate-400'>
+            Up to {TEAM_MAX} characters, in the order you pick them. One alone
+            plays its own rotation.
+          </p>
+          <div className='grid grid-cols-2 gap-1'>
+            {CHARACTER_LIST.map((character) => {
+              const order = picked.indexOf(character.id);
+              const full = order < 0 && picked.length >= TEAM_MAX;
+              return (
+                <button
+                  type='button'
+                  key={character.id}
+                  data-testid={`timeline-team-pick-${character.id}`}
+                  aria-pressed={order >= 0}
+                  disabled={full}
+                  onClick={() => toggle(character.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-md border px-1.5 py-1 text-left text-[11px] disabled:opacity-40',
+                    order >= 0
+                      ? 'border-sky-500/70 bg-sky-500/15 text-slate-50'
+                      : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/60'
+                  )}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={iconUrl(
+                      getLoadedCharacter(character.id).character.icons.avatar
+                    )}
+                    alt=''
+                    width={22}
+                    height={22}
+                    className='size-5.5 rounded bg-slate-800'
+                  />
+                  <span className='flex-1 truncate'>{character.name}</span>
+                  {order >= 0 && (
+                    <span className='text-[10px] text-sky-300'>
+                      {order + 1}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className='mt-2 flex justify-end gap-1.5'>
+            <button
+              type='button'
+              onClick={() => setOpen(false)}
+              className='h-7 rounded-md border border-slate-700/60 px-3 text-[11px] text-slate-300 hover:bg-slate-800'
+            >
+              Cancel
+            </button>
+            <button
+              type='button'
+              data-testid='timeline-team-apply'
+              disabled={picked.length === 0}
+              onClick={() => {
+                setOpen(false);
+                onApply(picked);
+              }}
+              className='h-7 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white hover:bg-sky-500 disabled:opacity-40'
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const IconButton = ({
@@ -125,6 +254,7 @@ const TimelineHeader = ({
   scenario,
   onScenarioChange,
   onMemberClick,
+  onTeamChange,
 }: TimelineHeaderProps) => (
   <header className='flex shrink-0 flex-col gap-2'>
     <div className='flex items-center gap-2'>
@@ -182,6 +312,10 @@ const TimelineHeader = ({
       className='flex flex-wrap items-center gap-2.5 rounded-xl border border-slate-700/60 bg-slate-900/70 px-2 py-1.5'
     >
       <div className='flex flex-wrap gap-1.5'>
+        <TeamPicker
+          current={members.map((member) => member.characterId)}
+          onApply={onTeamChange}
+        />
         {members.map((member) => (
           <button
             type='button'

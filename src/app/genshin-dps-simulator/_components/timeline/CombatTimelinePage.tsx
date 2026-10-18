@@ -35,24 +35,33 @@ import { applyDrop, DragPayload, groupNormalCombos } from './timelineData';
 import TimelineHeader, { TimelineScenario } from './TimelineHeader';
 import usePlayback from './usePlayback';
 import RotationActionIcon from '../rotation/RotationActionIcon';
-import { getLoadedCharacter } from '../../_lib/characterData';
+import {
+  getLoadedCharacter,
+  getLoadedVariant,
+  showBuilds,
+} from '../../_lib/characterData';
 import { CHARACTER_LIST } from '../../_lib/characters';
 import { iconUrl } from '../../_lib/genshinIcons';
 import { buildInspectorView } from '../../_lib/inspector';
 import { readNumber } from '../../_lib/readValue';
+import { removeBlocks, selectRange } from '../../_lib/rotation/blocks';
 import { RotationSetting } from '../../_lib/rotation/types';
 import { parseValues } from '../../_lib/simulationValues';
 import {
   buildDefaultTeam,
   buildMemberValues,
+  buildPresetRotation,
+  buildPresetTeam,
   buildRotationFromRun,
   DEFAULT_SWAP_DELAY_FRAMES,
   getTeamActions,
   INSPECTOR_TEST_IDS,
+  MAVUIKA_PRESETS,
   runInspectorTest,
   runOwnRotation,
   runSolo,
   runTeam,
+  TEAM_PRESET_ROTATION,
   TeamRun,
   TeamState,
 } from '../../_lib/team';
@@ -113,6 +122,18 @@ const SCENARIOS: Scenario[] = [
     run: (members) => runTeam({ ...buildDefaultTeam(), members }, 'random'),
     setup: TEAM_SETUP,
   },
+  ...MAVUIKA_PRESETS.map(
+    (preset): Scenario => ({
+      id: preset.id,
+      label: preset.label,
+      group: 'team',
+      avatars: preset.members,
+      defaults: () => buildPresetTeam(preset).members,
+      run: (members) =>
+        runTeam({ ...buildPresetTeam(preset), members }, 'random'),
+      setup: TEAM_SETUP,
+    })
+  ),
   {
     id: 'inspector',
     label: 'Chevreuse + Iansan test',
@@ -136,8 +157,88 @@ const SCENARIOS: Scenario[] = [
   ),
 ];
 
-const scenarioOf = (id: string) =>
-  SCENARIOS.find((entry) => entry.id === id) ?? SCENARIOS[0];
+// A team of one's own, picked in the header (`custom:mavuika,iansan`): the
+// preset rotation when every member has steps in it (part of Varesa's
+// team), else the first member's automatic list; edit mode writes the rest.
+const CUSTOM_PREFIX = 'custom:';
+const CUSTOM_TEAM_MAX = 4;
+const parseCustomTeam = (id: string): string[] | null => {
+  if (!id.startsWith(CUSTOM_PREFIX)) {
+    return null;
+  }
+  const ids = id.slice(CUSTOM_PREFIX.length).split(',');
+  const known = new Set(CHARACTER_LIST.map((character) => character.id));
+  return ids.length >= 1 &&
+    ids.length <= CUSTOM_TEAM_MAX &&
+    new Set(ids).size === ids.length &&
+    ids.every((characterId) => known.has(characterId as never))
+    ? ids
+    : null;
+};
+const customScenario = (ids: string[]): Scenario => ({
+  id: `${CUSTOM_PREFIX}${ids.join(',')}`,
+  label: ids.map((id) => getLoadedCharacter(id).character.name).join(' + '),
+  group: 'team',
+  avatars: ids,
+  defaults: () => ids.map(buildMemberValues),
+  run: (members) => {
+    const inPreset = ids.every((id) =>
+      TEAM_PRESET_ROTATION.some(([characterId]) => characterId === id)
+    );
+    return runTeam(
+      {
+        members,
+        rotation: inPreset ? buildPresetRotation(ids) : null,
+        ...TEAM_SETUP,
+      },
+      'random'
+    );
+  },
+  setup: TEAM_SETUP,
+});
+// The scenario for these members: one that has exactly them, else a team
+// of one's own (a single character is its solo screen).
+const scenarioIdFor = (ids: string[]): string =>
+  ids.length === 1
+    ? `solo:${ids[0]}`
+    : SCENARIOS.find(
+        (entry) =>
+          entry.group === 'team' &&
+          entry.avatars.length === ids.length &&
+          entry.avatars.every((id, index) => id === ids[index])
+      )?.id ?? `${CUSTOM_PREFIX}${ids.join(',')}`;
+
+const scenarioOf = (id: string): Scenario => {
+  const custom = parseCustomTeam(id);
+  if (custom) {
+    return customScenario(custom);
+  }
+  return SCENARIOS.find((entry) => entry.id === id) ?? SCENARIOS[0];
+};
+
+// The dropdown: every preset, and the team of one's own being shown.
+const scenariosFor = (id: string): Scenario[] =>
+  parseCustomTeam(id) ? [...SCENARIOS, scenarioOf(id)] : SCENARIOS;
+
+// The scenario picked is kept in the URL (?team=solo:mavuika), so a reload
+// or a shared link opens it again.
+const SCENARIO_PARAM = 'team';
+const readUrlScenario = (): string => {
+  const id = new URLSearchParams(window.location.search).get(SCENARIO_PARAM);
+  return id &&
+    (SCENARIOS.some((entry) => entry.id === id) || parseCustomTeam(id))
+    ? id
+    : SCENARIOS[0].id;
+};
+const writeUrlScenario = (id: string) => {
+  const url = new URL(window.location.href);
+  if (id === SCENARIOS[0].id) {
+    url.searchParams.delete(SCENARIO_PARAM);
+  } else {
+    url.searchParams.set(SCENARIO_PARAM, id);
+  }
+  window.history.replaceState(window.history.state, '', url);
+};
 
 // The actions a scenario's members have now (a saved rotation is checked
 // against them).
@@ -169,6 +270,8 @@ const CombatTimelinePage = () => {
       ownSetup: OwnSetup | null = null
     ) => {
       const builds = members ?? scenarioOf(id).defaults();
+      // What the inspector and team snapshots read: each build's gear.
+      showBuilds(builds);
       version.current += 1;
       setState({
         members: builds,
@@ -190,13 +293,16 @@ const CombatTimelinePage = () => {
   };
   useEffect(() => {
     saved.current = loadSavedRotations(scenarioActions);
-    const restored = saved.current[SCENARIOS[0].id] ?? null;
+    const initial = readUrlScenario();
+    const restored = saved.current[initial] ?? null;
+    setScenario(initial);
     setOwn(restored);
-    simulate(SCENARIOS[0].id, undefined, restored);
+    simulate(initial, undefined, restored);
   }, [simulate]);
   const handleScenarioChange = useCallback(
     (id: string) => {
       const restored = saved.current[id] ?? null;
+      writeUrlScenario(id);
       setScenario(id);
       setEditing(false);
       setOwn(restored);
@@ -226,6 +332,7 @@ const CombatTimelinePage = () => {
       run={state.run}
       scenario={scenario}
       onScenarioChange={handleScenarioChange}
+      onTeamChange={(ids) => handleScenarioChange(scenarioIdFor(ids))}
       version={state.version}
       edit={
         editing && own
@@ -280,6 +387,7 @@ const CombatTimeline = ({
   run,
   scenario,
   onScenarioChange,
+  onTeamChange,
   onSimulate,
   version,
   onSaveBuild,
@@ -292,6 +400,8 @@ const CombatTimeline = ({
   run: TeamRun;
   scenario: string;
   onScenarioChange: (id: string) => void;
+  // A party picked in the header (its members' ids, in order).
+  onTeamChange: (ids: string[]) => void;
   onSimulate: () => void;
   version: number;
   onSaveBuild: (build: SimulationValues) => void;
@@ -304,22 +414,24 @@ const CombatTimeline = ({
   onEditToggle: () => void;
   onResetRotation?: () => void;
 }) => {
-  const view = useMemo(
-    () =>
-      buildInspectorView(
-        run,
-        Object.fromEntries(
-          builds.map((values) => [
-            values.character,
-            getWeaponRefinement(
-              getLoadedCharacter(values.character).character.weapon,
-              parseValues(values)
-            ),
-          ])
-        )
-      ),
-    [run, builds]
-  );
+  const view = useMemo(() => {
+    showBuilds(builds);
+    return buildInspectorView(
+      run,
+      Object.fromEntries(
+        builds.map((values) => [
+          values.character,
+          getWeaponRefinement(
+            getLoadedVariant(values.character, {
+              weapon: values.weapon,
+              artifactSet: values.artifactSet,
+            }).character.weapon,
+            parseValues(values)
+          ),
+        ])
+      )
+    );
+  }, [run, builds]);
   const actionsById = useMemo(
     () =>
       new Map(
@@ -400,22 +512,74 @@ const CombatTimeline = ({
   // The axis: the run (to its last block, past the counted 60 s if the
   // blocks go on), plus room to drop new blocks after them in edit mode.
   const axisSeconds = view.duration + (edit ? EDIT_ROOM_SECONDS : 0);
-  // Edit mode: the block picked on the chart, and what is being dragged.
-  const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+  // Edit mode: the blocks picked on the chart (the last one picked is the
+  // one the edit bar and the Event panel show), and what is being dragged.
+  const [picked, setPicked] = useState<string[]>([]);
+  // Blocks that are gone (removed, a run rebuilt) drop out of it.
+  const selection = useMemo(() => {
+    const uids = new Set(edit?.rotation.blocks.map((block) => block.uid));
+    return picked.filter((uid) => uids.has(uid));
+  }, [picked, edit?.rotation.blocks]);
+  const selectedBlock = selection[selection.length - 1] ?? null;
+  const setSelectedBlock = (uid: string | null) => setPicked(uid ? [uid] : []);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   // The buff or debuff bar hovered on the chart (lit in the Event panel).
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   // A click right after a drag ends (the browser's, on release) is not a
   // pick: it would unpick the block just dropped.
   const dragEndedAt = useRef(0);
-  // A click on a block picks it; on the picked one, unpicks it (the Event
-  // panel follows the playhead again).
-  const pickBlock = (blockUid: string) => {
-    if (performance.now() - dragEndedAt.current < 250) {
+  // A click on a block picks only it; on the only one picked, unpicks it
+  // (the Event panel follows the playhead again). Ctrl/Cmd adds or removes
+  // it; Shift picks the range from the last one picked.
+  const pickBlock = (
+    blockUid: string,
+    { range, toggle }: { range: boolean; toggle: boolean }
+  ) => {
+    if (performance.now() - dragEndedAt.current < 250 || !edit) {
       return;
     }
-    setSelectedBlock((current) => (current === blockUid ? null : blockUid));
+    if (range) {
+      setPicked(selectRange(edit.rotation, selectedBlock, blockUid));
+    } else if (toggle) {
+      setPicked(
+        selection.includes(blockUid)
+          ? selection.filter((uid) => uid !== blockUid)
+          : [...selection, blockUid]
+      );
+    } else {
+      setPicked(
+        selection.length === 1 && selection[0] === blockUid ? [] : [blockUid]
+      );
+    }
   };
+  // A Shift + drag rectangle: the blocks it touches (with Ctrl/Cmd, added).
+  const pickBlocks = (blockUids: string[], additive: boolean) =>
+    setPicked(
+      additive
+        ? [...selection, ...blockUids.filter((uid) => !selection.includes(uid))]
+        : blockUids
+    );
+  // Esc, Delete and Ctrl/Cmd + A on the chart.
+  const selectionKey = (key: 'clear' | 'delete' | 'all') => {
+    if (!edit) {
+      return;
+    }
+    if (key === 'clear') {
+      setPicked([]);
+    } else if (key === 'all') {
+      setPicked(edit.rotation.blocks.map((block) => block.uid));
+    } else if (selection.length > 0) {
+      edit.onChange(removeBlocks(edit.rotation, selection));
+      setPicked([]);
+    }
+  };
+  // A dragged block that is picked with others moves them all.
+  const withSelection = (payload: DragPayload): DragPayload =>
+    payload.kind === 'move' &&
+    selection.length > 1 &&
+    selection.includes(payload.blockUid)
+      ? { ...payload, blockUids: selection }
+      : payload;
   // A drag starts past 5 px, so a click still picks a block or adds one.
   const dragSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -485,9 +649,10 @@ const CombatTimeline = ({
           }
           onFit={() => setPxPerSecond(fitted)}
           onSimulate={onSimulate}
-          scenarios={SCENARIOS}
+          scenarios={scenariosFor(scenario)}
           scenario={scenario}
           onScenarioChange={onScenarioChange}
+          onTeamChange={onTeamChange}
           onMemberClick={setOpenMember}
         />
         <div
@@ -554,7 +719,10 @@ const CombatTimeline = ({
               <DndContext
                 sensors={dragSensors}
                 collisionDetection={pointerWithin}
-                onDragStart={(event) => setDragging(payloadOf(event))}
+                onDragStart={(event) => {
+                  const payload = payloadOf(event);
+                  setDragging(payload && withSelection(payload));
+                }}
                 onDragEnd={() => {
                   dragEndedAt.current = performance.now();
                   setDragging(null);
@@ -570,8 +738,10 @@ const CombatTimeline = ({
                     actions={Array.from(actionsById.values())}
                     rotation={edit.rotation}
                     selected={selectedBlock}
+                    selection={selection}
                     onChange={edit.onChange}
                     onSelect={setSelectedBlock}
+                    onClearSelection={() => setPicked([])}
                   />
                 )}
                 {!panels.chart && (
@@ -588,23 +758,38 @@ const CombatTimeline = ({
                       onTogglePlay={playback.togglePlay}
                       onZoom={zoomBy}
                       onTrackWidthChange={handleTrackWidth}
-                      selectedBlock={edit ? selectedBlock : null}
+                      selectedBlocks={edit ? selection : undefined}
                       onSelectBlock={edit ? pickBlock : undefined}
+                      onSelectBlocks={edit ? pickBlocks : undefined}
+                      onSelectionKey={edit ? selectionKey : undefined}
                       axisSeconds={axisSeconds}
                       onHoverChip={setHoveredChip}
                       memberRuns={run.members}
                       onDropBlock={
                         edit
                           ? (payload, beforeUid, rowMember) => {
+                              const moved = withSelection(payload);
                               const result = applyDrop(
                                 edit.rotation,
                                 Array.from(actionsById.values()),
-                                payload,
+                                moved,
                                 beforeUid,
                                 rowMember
                               );
                               edit.onChange(result.rotation);
-                              setSelectedBlock(result.selected);
+                              // A group stays picked, the dragged one last.
+                              setPicked(
+                                moved.kind === 'move' && moved.blockUids
+                                  ? [
+                                      ...moved.blockUids.filter(
+                                        (uid) => uid !== moved.blockUid
+                                      ),
+                                      moved.blockUid,
+                                    ]
+                                  : result.selected
+                                  ? [result.selected]
+                                  : []
+                              );
                             }
                           : undefined
                       }
@@ -625,6 +810,15 @@ const CombatTimeline = ({
                         className='bg-transparent p-0 ring-0'
                       />
                       {draggedAction.shortLabel}
+                      {dragging?.kind === 'move' &&
+                        (dragging.blockUids?.length ?? 0) > 1 && (
+                          <span
+                            data-testid='timeline-drag-count'
+                            className='ml-0.5 rounded bg-sky-600 px-1 text-[10px] font-semibold text-white'
+                          >
+                            +{(dragging.blockUids?.length ?? 1) - 1}
+                          </span>
+                        )}
                     </span>
                   )}
                 </DragOverlay>

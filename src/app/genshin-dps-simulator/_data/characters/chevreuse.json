@@ -246,7 +246,8 @@
             "frames": 900,
             "delayFrames": 13
           },
-          "note": "The quickest hold (gcsim hold=1). With an Overcharged Ball it fires the ball."
+          "note": "The quickest hold (gcsim hold=1). With an Overcharged Ball it fires the ball.",
+          "holdOf": "skill"
         }
       ],
       "forms": [

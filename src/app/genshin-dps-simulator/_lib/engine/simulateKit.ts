@@ -1,7 +1,7 @@
 import { renderDetails } from './details';
 import { createKitAdapter, KitAction } from './kitAdapter';
 import { createRuntime, KitRuntime } from './runtime';
-import { getLoadedCharacter, LoadedCharacter } from '../characterData';
+import { getLoadedVariant, LoadedCharacter } from '../characterData';
 import { FRAMES_PER_SECOND } from '../frames';
 import { readNumber } from '../readValue';
 import { getRotationActions } from '../rotation/blocks';
@@ -82,4 +82,11 @@ export const collectRunResult = (
 export const createKitSimulator =
   (characterId: string): CharacterDefinition['simulate'] =>
   (context, values) =>
-    simulateLoadedCharacter(getLoadedCharacter(characterId), context, values);
+    simulateLoadedCharacter(
+      getLoadedVariant(characterId, {
+        weapon: values.weapon,
+        artifactSet: values.artifactSet,
+      }),
+      context,
+      values
+    );

@@ -31,16 +31,28 @@ import {
 } from './types';
 
 // The team the screen starts with, and the rotation it starts from: the
-// user's opening (Varesa enters Fiery Passion, the supports buff her, then
-// three rounds of E special → jump → plunge → Q special), then a refresh of
-// the supports and two rounds of Varesa's each time they are back, to the
-// end of a 60 s run. Chevreuse uses her Hold E twice (after her Q, and once
-// it is back at ~18 s); each Q only where its Energy is there.
+// user's own (saved from the editor, 2026-10-18). Varesa opens with E →
+// jump → plunge; the supports buff her (Chevreuse's Q, Hold E and E,
+// Iansan's E and Q); then rounds of E → jump → plunge (with a Q, Kablam,
+// every other round). The supports come back around 20 s and 38 s, and
+// once more at the end. A third value is a Wait's seconds.
 export const DEFAULT_TEAM = ['varesa', 'iansan', 'chevreuse', 'nicole'];
 
-// One round of Varesa's: E → jump (Follow-Up) → plunge, into Fiery Passion
-// with her free E → Fiery jump → Fiery plunge → Kablam.
-const VARESA_ROUND: [string, string][] = [
+export const TEAM_PRESET_ROTATION: [string, string, number?][] = [
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['nicole', 'skill'],
+  ['chevreuse', 'burst'],
+  ['chevreuse', 'skillHold'],
+  ['chevreuse', 'skill'],
+  ['iansan', 'skill'],
+  ['iansan', 'burst'],
+  ['iansan', 'wait', 0.5],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'burst'],
   ['varesa', 'skill'],
   ['varesa', 'charged'],
   ['varesa', 'plunge'],
@@ -48,42 +60,167 @@ const VARESA_ROUND: [string, string][] = [
   ['varesa', 'charged'],
   ['varesa', 'plunge'],
   ['varesa', 'burst'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'burst'],
+  ['nicole', 'swap'],
+  ['nicole', 'burst'],
+  ['nicole', 'skill'],
+  ['nicole', 'wait', 0.9],
+  ['chevreuse', 'swap'],
+  ['chevreuse', 'burst'],
+  ['chevreuse', 'skill'],
+  ['iansan', 'skill'],
+  ['iansan', 'burst'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'burst'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'burst'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['nicole', 'burst'],
+  ['nicole', 'skill'],
+  ['chevreuse', 'swap'],
+  ['chevreuse', 'skill'],
+  ['iansan', 'skill'],
+  ['iansan', 'burst'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'burst'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'burst'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['varesa', 'skill'],
+  ['varesa', 'charged'],
+  ['varesa', 'plunge'],
+  ['nicole', 'skill'],
+  ['iansan', 'skill'],
+  ['iansan', 'burst'],
+  ['nicole', 'swap'],
 ];
 
-export const TEAM_PRESET_ROTATION: [string, string][] = [
-  // 0–16 s: the opening.
-  ['varesa', 'skill'],
-  ['varesa', 'charged'],
-  ['varesa', 'plunge'],
-  ['nicole', 'skill'],
-  ['chevreuse', 'burst'],
-  ['chevreuse', 'skillHold'],
-  ['iansan', 'skill'],
-  ['iansan', 'burst'],
-  ['varesa', 'skill'],
-  ['varesa', 'charged'],
-  ['varesa', 'plunge'],
-  ['varesa', 'burst'],
-  ...VARESA_ROUND,
-  ...VARESA_ROUND,
-  // ~18 s: Chevreuse's second Hold E (her Q has no Energy yet).
-  ['nicole', 'skill'],
-  ['chevreuse', 'skillHold'],
-  ['iansan', 'skill'],
-  ['iansan', 'burst'],
-  ...VARESA_ROUND,
-  ...VARESA_ROUND,
-  // ~34 s: Chevreuse's Q again (Iansan's Q waits for Energy).
-  ['nicole', 'skill'],
-  ['chevreuse', 'burst'],
-  ['iansan', 'skill'],
-  ...VARESA_ROUND,
-  ...VARESA_ROUND,
-  // ~50 s: Iansan's Q, and a last round to the end.
-  ['nicole', 'skill'],
-  ['iansan', 'skill'],
-  ['iansan', 'burst'],
-  ...VARESA_ROUND,
+// Mavuika's teams. Each cycle is about 21 s, three of them to the end of a
+// 60 s run; a Hold E is the E's block with Hold on ('skillHold' here).
+// `energyRecharge`: the supports' ER for that rotation, so each Q fires
+// every cycle with margin for random particles (checked over rolled runs).
+// Rotations follow KQM's Mavuika guide
+// (https://keqingmains.com/q/mavuika-quickguide/): the Melt combo
+// "Q C4 J C4" is two Flamestrider Charged Attacks of 4 spins with a Dash
+// where the guide jumps (there is no jump); the party's Nightsoul points
+// (Citlali's Opal Fire, Xilonen's) refill her Fighting Spirit.
+type PresetStep = [string, string, number?];
+export type PresetTeam = {
+  id: string;
+  label: string;
+  members: string[];
+  cycle: PresetStep[];
+  energyRecharge: Record<string, number>;
+};
+
+const MELT_COMBO: PresetStep[] = [
+  ['mavuika', 'charged', 4],
+  ['mavuika', 'dodge'],
+  ['mavuika', 'charged', 4],
+];
+
+export const MAVUIKA_PRESETS: PresetTeam[] = [
+  {
+    // Citlali and Escoffier keep Cryo on the enemy (Citlali's A1 lowers its
+    // Pyro RES), Bennett buffs her ATK; a second Bennett E for his next Q.
+    id: 'mavuika',
+    label: 'Mavuika Melt team',
+    members: ['mavuika', 'citlali', 'escoffier', 'bennett'],
+    cycle: [
+      ['citlali', 'skill'],
+      ['escoffier', 'skill'],
+      ['bennett', 'skill'],
+      ['citlali', 'burst'],
+      ['escoffier', 'burst'],
+      ['bennett', 'burst'],
+      ['mavuika', 'skillHold'],
+      ['mavuika', 'burst'],
+      ...MELT_COMBO,
+      ['bennett', 'skill'],
+    ],
+    // Bennett, with Aquila Favonia, has no Favonius particles.
+    energyRecharge: { citlali: 300, escoffier: 320, bennett: 480 },
+  },
+  {
+    // KQM's Xilonen variant: Mavuika tE > Xilonen E N2 > Bennett EQ >
+    // Citlali EQ (N1) > Mavuika Q, Melt combo, and a Normal combo to fill
+    // her Q's cooldown (the guide's "1-2 s outside the Burst").
+    id: 'mavuika-xilonen-bennett',
+    label: 'Mavuika, Citlali, Xilonen, Bennett',
+    members: ['mavuika', 'citlali', 'xilonen', 'bennett'],
+    cycle: [
+      ['mavuika', 'skill'],
+      ['xilonen', 'skill'],
+      ['xilonen', 'normal', 2],
+      ['bennett', 'skill'],
+      ['bennett', 'burst'],
+      ['citlali', 'skill'],
+      ['citlali', 'burst'],
+      ['citlali', 'normal', 1],
+      ['mavuika', 'burst'],
+      ...MELT_COMBO,
+      ['mavuika', 'normal', 5],
+    ],
+    energyRecharge: { citlali: 300, xilonen: 220, bennett: 480 },
+  },
+  {
+    // KQM's Iansan variant with Xilonen instead of Bennett: Mavuika tE >
+    // Xilonen E N2 > Iansan E N1 Q > Citlali EQ (N1) > Mavuika Q, Melt
+    // combo, a Normal combo.
+    id: 'mavuika-xilonen-iansan',
+    label: 'Mavuika, Citlali, Xilonen, Iansan',
+    members: ['mavuika', 'citlali', 'xilonen', 'iansan'],
+    cycle: [
+      ['mavuika', 'skill'],
+      ['xilonen', 'skill'],
+      ['xilonen', 'normal', 2],
+      ['iansan', 'skill'],
+      ['iansan', 'normal', 1],
+      ['iansan', 'burst'],
+      ['citlali', 'skill'],
+      ['citlali', 'burst'],
+      ['citlali', 'normal', 1],
+      ['mavuika', 'burst'],
+      ...MELT_COMBO,
+      ['mavuika', 'normal', 5],
+    ],
+    energyRecharge: { citlali: 320, xilonen: 220, iansan: 260 },
+  },
 ];
 
 export const TEAM_SIZE = 4;
@@ -104,7 +241,11 @@ export type TeamState = {
 export const DEFAULT_SWAP_DELAY_FRAMES = 12;
 
 let nextUid = 0;
-export const createTeamBlock = (actionId: string, hits = 1): RotationBlock => {
+export const createTeamBlock = (
+  actionId: string,
+  hits = 1,
+  hold = false
+): RotationBlock => {
   nextUid += 1;
   return {
     uid: `team-${nextUid}`,
@@ -113,6 +254,7 @@ export const createTeamBlock = (actionId: string, hits = 1): RotationBlock => {
     repeat: 1,
     seconds: 1,
     dashCancel: false,
+    ...(hold ? { hold: true } : {}),
   };
 };
 
@@ -124,8 +266,13 @@ export const buildPresetRotation = (
   loop: false,
   blocks: TEAM_PRESET_ROTATION.filter(([characterId]) =>
     characterIds.includes(characterId)
-  ).map(([characterId, action]) =>
-    createTeamBlock(toTeamActionId(characterId, action))
+  ).map(([characterId, action, seconds]) =>
+    action === 'skillHold'
+      ? createTeamBlock(toTeamActionId(characterId, 'skill'), 1, true)
+      : {
+          ...createTeamBlock(toTeamActionId(characterId, action)),
+          ...(seconds === undefined ? {} : { seconds }),
+        }
   ),
 });
 
@@ -179,6 +326,40 @@ export const buildDefaultTeam = (): TeamState => {
     swapDelayFrames: DEFAULT_SWAP_DELAY_FRAMES,
   };
 };
+
+// A preset team: its members (with the rotation's ER) and three cycles.
+export const buildPresetTeam = (preset: PresetTeam): TeamState => ({
+  members: preset.members.map((characterId) => {
+    const values = buildMemberValues(characterId);
+    const energyRecharge = preset.energyRecharge[characterId];
+    return energyRecharge
+      ? {
+          ...values,
+          numbers: {
+            ...values.numbers,
+            energyRecharge: String(energyRecharge),
+          },
+        }
+      : values;
+  }),
+  rotation: {
+    loop: false,
+    blocks: [1, 2, 3].flatMap(() =>
+      preset.cycle.map(([characterId, action, hits]) =>
+        action === 'skillHold'
+          ? createTeamBlock(toTeamActionId(characterId, 'skill'), 1, true)
+          : createTeamBlock(toTeamActionId(characterId, action), hits)
+      )
+    ),
+  },
+  fillWhileWaiting: false,
+  swapDelayFrames: DEFAULT_SWAP_DELAY_FRAMES,
+});
+
+// The Mavuika Melt team (Citlali, Escoffier, Bennett).
+export const MAVUIKA_TEAM = MAVUIKA_PRESETS[0].members;
+export const buildMavuikaTeam = (): TeamState =>
+  buildPresetTeam(MAVUIKA_PRESETS[0]);
 
 // Varesa's approximations of her teammates, for her solo screen: in a team
 // the real teammates give those buffs.
@@ -1176,7 +1357,7 @@ const getTimingStatuses = (characterId: string, blockId: string): string[] => {
         (bounds.gt !== undefined && bounds.gt >= 0)
     )
     .map(([id]) => id);
-  return [...needsUp, ...(block.perStack ? [block.perStack.state] : [])];
+  return [...needsUp, ...(block.perStack ?? []).map(({ state }) => state)];
 };
 
 // How long the statuses that time a bonus still last at `time` (s), just

@@ -21,6 +21,7 @@ const blockSchema = z.object({
   repeat: z.number().int().min(1),
   seconds: z.number().min(0),
   dashCancel: z.boolean(),
+  hold: z.boolean().optional(),
 });
 
 const savedSchema = z.object({

@@ -1,0 +1,195 @@
+{
+  "id": "a-thousand-blazing-suns",
+  "name": "A Thousand Blazing Suns",
+  "icon": "UI_EquipIcon_Claymore_RadianceSword",
+  "type": "Claymore",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "thousandBlazingSuns",
+  "refinementField": "thousandBlazingSunsRefinement",
+  "baseAtk": 741,
+  "substat": {
+    "stat": "critRate",
+    "value": 11
+  },
+  "rows": [
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Sunset Reignites the Dawn",
+      "status": "toggle",
+      "template": "Scorching Brilliance for 6 s after an E or Q on the field (once every 10 s): +{param:critDamage}% CRIT DMG and +{param:atk}% ATK, 75% more in Nightsoul's Blessing. Elemental Normal or Charged hits add 2 s (once a second, 3 times)",
+      "params": {
+        "critDamage": [20, 25, 30, 35, 40],
+        "atk": [28, 35, 42, 49, 56]
+      },
+      "note": "Not simulated: the duration does not count down off the field during Nightsoul's Blessing."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "suns-cd",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Scorching Brilliance CRIT DMG",
+      "ifFlag": "thousandBlazingSuns",
+      "stat": "critDamage",
+      "value": [20, 25, 30, 35, 40],
+      "scaleBy": { "field": "thousandBlazingSunsRefinement" },
+      "while": { "scorchingBrilliance": { "gte": 1 } }
+    },
+    {
+      "id": "suns-atk",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Scorching Brilliance ATK",
+      "ifFlag": "thousandBlazingSuns",
+      "stat": "atkPercent",
+      "value": [28, 35, 42, 49, 56],
+      "scaleBy": { "field": "thousandBlazingSunsRefinement" },
+      "while": { "scorchingBrilliance": { "gte": 1 } }
+    },
+    {
+      "id": "suns-cd-nightsoul",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Scorching Brilliance CRIT DMG (Nightsoul's Blessing +75%)",
+      "ifFlag": "thousandBlazingSuns",
+      "stat": "critDamage",
+      "value": [15, 18.75, 22.5, 26.25, 30],
+      "scaleBy": { "field": "thousandBlazingSunsRefinement" },
+      "while": {
+        "scorchingBrilliance": { "gte": 1 },
+        "nightsoulBlessing": { "gte": 1 }
+      }
+    },
+    {
+      "id": "suns-atk-nightsoul",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Scorching Brilliance ATK (Nightsoul's Blessing +75%)",
+      "ifFlag": "thousandBlazingSuns",
+      "stat": "atkPercent",
+      "value": [21, 26.25, 31.5, 36.75, 42],
+      "scaleBy": { "field": "thousandBlazingSunsRefinement" },
+      "while": {
+        "scorchingBrilliance": { "gte": 1 },
+        "nightsoulBlessing": { "gte": 1 }
+      }
+    },
+    {
+      "id": "scorchingBrilliance",
+      "type": "status",
+      "source": "weapon",
+      "label": "Scorching Brilliance",
+      "ifFlag": "thousandBlazingSuns",
+      "durationFrames": 360
+    },
+    {
+      "id": "sunsCooldown",
+      "type": "status",
+      "source": "weapon",
+      "label": "Scorching Brilliance cooldown",
+      "ifFlag": "thousandBlazingSuns",
+      "durationFrames": 600
+    },
+    {
+      "id": "sunsExtendCooldown",
+      "type": "status",
+      "source": "weapon",
+      "label": "Scorching Brilliance extension cooldown",
+      "ifFlag": "thousandBlazingSuns",
+      "durationFrames": 60
+    },
+    {
+      "id": "sunsExtends",
+      "type": "resource",
+      "source": "weapon",
+      "label": "Scorching Brilliance extensions",
+      "ifFlag": "thousandBlazingSuns",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "suns-on-skill",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "E: Scorching Brilliance",
+      "ifFlag": "thousandBlazingSuns",
+      "when": { "use": "skill" },
+      "if": {
+        "all": [{ "onField": true }, { "not": { "status": "sunsCooldown" } }]
+      },
+      "do": [
+        { "setResource": "sunsExtends", "value": 0 },
+        { "applyStatus": "scorchingBrilliance" },
+        { "applyStatus": "sunsCooldown" }
+      ]
+    },
+    {
+      "id": "suns-on-burst",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Q: Scorching Brilliance",
+      "ifFlag": "thousandBlazingSuns",
+      "when": { "use": "burst" },
+      "if": {
+        "all": [{ "onField": true }, { "not": { "status": "sunsCooldown" } }]
+      },
+      "do": [
+        { "setResource": "sunsExtends", "value": 0 },
+        { "applyStatus": "scorchingBrilliance" },
+        { "applyStatus": "sunsCooldown" }
+      ]
+    },
+    {
+      "id": "suns-extend-normal",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Elemental Normal Attack: +2 s",
+      "ifFlag": "thousandBlazingSuns",
+      "when": { "hit": "category:Normal:elemental" },
+      "if": {
+        "all": [
+          { "onField": true },
+          { "status": "scorchingBrilliance" },
+          { "not": { "status": "sunsExtendCooldown" } },
+          { "resource": "sunsExtends", "lt": 3 }
+        ]
+      },
+      "do": [
+        { "extendStatus": "scorchingBrilliance", "frames": 120 },
+        { "addResource": "sunsExtends", "amount": 1 },
+        { "applyStatus": "sunsExtendCooldown" }
+      ]
+    },
+    {
+      "id": "suns-extend-charged",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Elemental Charged Attack: +2 s",
+      "ifFlag": "thousandBlazingSuns",
+      "when": { "hit": "category:Charged:elemental" },
+      "if": {
+        "all": [
+          { "onField": true },
+          { "status": "scorchingBrilliance" },
+          { "not": { "status": "sunsExtendCooldown" } },
+          { "resource": "sunsExtends", "lt": 3 }
+        ]
+      },
+      "do": [
+        { "extendStatus": "scorchingBrilliance", "frames": 120 },
+        { "addResource": "sunsExtends", "amount": 1 },
+        { "applyStatus": "sunsExtendCooldown" }
+      ]
+    }
+  ],
+  "defaults": {
+    "numbers": {
+      "thousandBlazingSunsRefinement": 1
+    },
+    "flags": {
+      "thousandBlazingSuns": true
+    }
+  }
+}

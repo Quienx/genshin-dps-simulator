@@ -7,15 +7,23 @@ import celestialGiftSet from '../_data/sets/celestial-gift.json';
 import fragmentOfHarmonicWhimsySet from '../_data/sets/fragment-of-harmonic-whimsy.json';
 import goldenTroupeSet from '../_data/sets/golden-troupe.json';
 import longNightsOathSet from '../_data/sets/long-nights-oath.json';
+import noblesseObligeSet from '../_data/sets/noblesse-oblige.json';
 import obsidianCodexSet from '../_data/sets/obsidian-codex.json';
 import scrollOfTheHeroOfCinderCitySet from '../_data/sets/scroll-of-the-hero-of-cinder-city.json';
 import songOfDaysPastSet from '../_data/sets/song-of-days-past.json';
+import viridescentVenererSet from '../_data/sets/viridescent-venerer.json';
+import aThousandBlazingSunsWeapon from '../_data/weapons/a-thousand-blazing-suns.json';
 import angelosHeptadesWeapon from '../_data/weapons/angelos-heptades.json';
+import aquilaFavoniaWeapon from '../_data/weapons/aquila-favonia.json';
 import crimsonMoonsSemblanceWeapon from '../_data/weapons/crimson-moons-semblance.json';
 import favoniusLanceWeapon from '../_data/weapons/favonius-lance.json';
+import favoniusSwordWeapon from '../_data/weapons/favonius-sword.json';
 import lostPrayerToTheSacredWindsWeapon from '../_data/weapons/lost-prayer-to-the-sacred-winds.json';
+import starcallersWatchWeapon from '../_data/weapons/starcallers-watch.json';
 import surfsUpWeapon from '../_data/weapons/surfs-up.json';
 import symphonistOfScentsWeapon from '../_data/weapons/symphonist-of-scents.json';
+import thrillingTalesOfDragonSlayersWeapon from '../_data/weapons/thrilling-tales-of-dragon-slayers.json';
+import wolfsGravestoneWeapon from '../_data/weapons/wolfs-gravestone.json';
 
 type Entry = { id: string; defaults?: Defaults } & Record<string, unknown>;
 type Defaults = {
@@ -27,25 +35,66 @@ const byId = (files: unknown[]): Map<string, Entry> =>
   new Map((files as Entry[]).map((file) => [file.id, file]));
 
 const WEAPONS = byId([
+  aThousandBlazingSunsWeapon,
   angelosHeptadesWeapon,
+  aquilaFavoniaWeapon,
   crimsonMoonsSemblanceWeapon,
   favoniusLanceWeapon,
+  favoniusSwordWeapon,
   lostPrayerToTheSacredWindsWeapon,
+  starcallersWatchWeapon,
   surfsUpWeapon,
   symphonistOfScentsWeapon,
+  thrillingTalesOfDragonSlayersWeapon,
+  wolfsGravestoneWeapon,
 ]);
 const SETS = byId([
   celestialGiftSet,
   fragmentOfHarmonicWhimsySet,
   goldenTroupeSet,
   longNightsOathSet,
+  noblesseObligeSet,
   obsidianCodexSet,
   scrollOfTheHeroOfCinderCitySet,
   songOfDaysPastSet,
+  viridescentVenererSet,
 ]);
 
 export const WEAPON_IDS = Array.from(WEAPONS.keys());
 export const SET_IDS = Array.from(SETS.keys());
+
+// What a picker shows for each entry.
+export type CatalogOption = {
+  id: string;
+  name: string;
+  icon: string;
+  rarity?: number;
+  // Weapons only: the type a character must use.
+  type?: string;
+};
+
+export const WEAPON_OPTIONS: CatalogOption[] = Array.from(WEAPONS.values()).map(
+  (entry) => ({
+    id: entry.id,
+    name: String(entry.name),
+    icon: String(entry.icon),
+    rarity: Number(entry.rarity),
+    type: String(entry.type),
+  })
+);
+
+export const SET_OPTIONS: CatalogOption[] = Array.from(SETS.values()).map(
+  (entry) => ({
+    id: entry.id,
+    name: String(entry.name),
+    icon: String(
+      (entry.pieces as { icon: string }[] | undefined)?.[0]?.icon ?? ''
+    ),
+  })
+);
+
+export const isWeaponId = (id: string): boolean => WEAPONS.has(id);
+export const isSetId = (id: string): boolean => SETS.has(id);
 
 const lookup = (
   catalog: Map<string, Entry>,

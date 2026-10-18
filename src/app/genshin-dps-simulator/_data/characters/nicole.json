@@ -574,7 +574,8 @@
       "burstLevel": 8,
       "angelosRefinement": 1,
       "energyRecharge": 156.3,
-      "startingEnergy": 60
+      "startingEnergy": 60,
+      "def": 602
     },
     "flags": {
       "c1": false,

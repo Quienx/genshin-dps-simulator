@@ -1,0 +1,134 @@
+{
+  "id": "starcallers-watch",
+  "name": "Starcaller's Watch",
+  "icon": "UI_EquipIcon_Catalyst_Figurines",
+  "type": "Catalyst",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "starcallersWatch",
+  "refinementField": "starcallersWatchRefinement",
+  "baseAtk": 542,
+  "substat": {
+    "stat": "elementalMastery",
+    "value": 264.6
+  },
+  "rows": [
+    {
+      "id": "weapon-em",
+      "label": "R{refinement} passive: Elemental Mastery",
+      "status": "included",
+      "template": "+{param:em} Elemental Mastery",
+      "params": {
+        "em": [100, 125, 150, 175, 200]
+      },
+      "screenStat": {
+        "stat": "elementalMastery",
+        "param": "em"
+      }
+    },
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Offering Unto Wind and Sun",
+      "status": "toggle",
+      "template": "When the wielder makes a shield on the field (once every 14 s): the active member deals {param:dmg}% more DMG for 15 s",
+      "params": {
+        "dmg": [28, 35, 42, 49, 56]
+      },
+      "note": "A shield is the status \"shield\" of the wielder's kit (Citlali's E)."
+    }
+  ],
+  "defaults": {
+    "numbers": {
+      "starcallersWatchRefinement": 1
+    },
+    "flags": {
+      "starcallersWatch": true
+    }
+  },
+  "blocks": [
+    {
+      "id": "starcaller-window",
+      "type": "status",
+      "source": "weapon",
+      "label": "Starcaller's Watch: Offering Unto Wind and Sun",
+      "ifFlag": "starcallersWatch",
+      "durationFrames": 900
+    },
+    {
+      "id": "starcaller-cooldown",
+      "type": "status",
+      "source": "weapon",
+      "label": "Starcaller's Watch cooldown",
+      "ifFlag": "starcallersWatch",
+      "durationFrames": 840
+    },
+    {
+      "id": "starcaller-on-shield",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "A shield on the field: DMG for the active member",
+      "ifFlag": "starcallersWatch",
+      "when": {
+        "statusStarts": "shield"
+      },
+      "if": {
+        "all": [
+          {
+            "onField": true
+          },
+          {
+            "not": {
+              "status": "starcaller-cooldown"
+            }
+          }
+        ]
+      },
+      "do": [
+        {
+          "applyStatus": "starcaller-window"
+        },
+        {
+          "applyStatus": "starcaller-cooldown"
+        }
+      ]
+    },
+    {
+      "id": "starcaller-dmg-self",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Starcaller's Watch DMG",
+      "ifFlag": "starcallersWatch",
+      "stat": "dmgBonus",
+      "value": [28, 35, 42, 49, 56],
+      "scaleBy": {
+        "field": "starcallersWatchRefinement"
+      },
+      "if": {
+        "onField": true
+      },
+      "while": {
+        "starcaller-window": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "starcaller-dmg-party",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Starcaller's Watch DMG (active member)",
+      "ifFlag": "starcallersWatch",
+      "stat": "dmgBonus",
+      "value": [28, 35, 42, 49, 56],
+      "scaleBy": {
+        "field": "starcallersWatchRefinement"
+      },
+      "teamBuff": "active",
+      "while": {
+        "starcaller-window": {
+          "gte": 1
+        }
+      }
+    }
+  ]
+}

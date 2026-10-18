@@ -4,6 +4,13 @@ import { ReactNode, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -13,13 +20,24 @@ import {
 
 import StatIcon from './StatIcon';
 import TalentLevelSelect from '../TalentLevelSelect';
-import { getLoadedCharacter } from '../../_lib/characterData';
+import { CatalogOption } from '../../_lib/catalog';
+import {
+  getFileGear,
+  getGearOptions,
+  getLoadedVariant,
+} from '../../_lib/characterData';
 import { CHARACTERS } from '../../_lib/characters';
 import formatNumber from '../../_lib/formatNumber';
 import { elementIconUrl, iconUrl, relicIconUrl } from '../../_lib/genshinIcons';
 import { readFlag, readNumber } from '../../_lib/readValue';
 import { getFieldsBySection } from '../../_lib/simulationFields';
-import { parseValues, withFlag, withNumber } from '../../_lib/simulationValues';
+import {
+  parseValues,
+  withFlag,
+  withGear,
+  withNumber,
+  withRefinement,
+} from '../../_lib/simulationValues';
 import {
   clampBaseTalentLevel,
   MAX_BASE_TALENT_LEVEL,
@@ -163,6 +181,54 @@ const Stars = ({ count }: { count: number }) => (
   </span>
 );
 
+// Picks a catalog weapon or set for the build.
+const GearSelect = ({
+  label,
+  testId,
+  value,
+  options,
+  iconOf,
+  onChange,
+}: {
+  label: string;
+  testId: string;
+  value: string;
+  options: CatalogOption[];
+  iconOf: (icon: string) => string;
+  onChange: (id: string) => void;
+}) => (
+  <Select value={value} onValueChange={onChange}>
+    <SelectTrigger
+      aria-label={label}
+      data-testid={testId}
+      size='sm'
+      className='mb-2 w-full border-slate-700/60 bg-slate-900/70 text-[11px] text-slate-100 dark:bg-slate-900/70'
+    >
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent className='border-slate-700 bg-slate-900 text-slate-100'>
+      {options.map((option) => (
+        <SelectItem
+          key={option.id}
+          value={option.id}
+          data-testid={`${testId}-${option.id}`}
+          className='text-[11px] focus:bg-slate-800 focus:text-slate-50'
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={iconOf(option.icon)}
+            alt=''
+            width={18}
+            height={18}
+            className='size-[18px] rounded bg-slate-800'
+          />
+          {option.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
+
 type CharacterSheetProps = {
   // The member's build; null closes the sheet.
   build: SimulationValues | null;
@@ -176,7 +242,15 @@ type CharacterSheetProps = {
 // Edits are a draft until "Save & simulate".
 const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
   const [draft, setDraft] = useState<SimulationValues | null>(build);
-  const loaded = draft ? getLoadedCharacter(draft.character) : null;
+  // The draft's gear: another catalog weapon or set than the file's.
+  const loaded = draft
+    ? getLoadedVariant(draft.character, {
+        weapon: draft.weapon,
+        artifactSet: draft.artifactSet,
+      })
+    : null;
+  const fileGear = draft ? getFileGear(draft.character) : null;
+  const gearOptions = draft ? getGearOptions(draft.character) : null;
   const character = loaded?.character;
   const values = draft ? parseValues(draft) : null;
   const dirty =
@@ -385,6 +459,20 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
               </Section>
 
               <Section title='Weapon'>
+                {gearOptions && gearOptions.weapons.length > 1 && (
+                  <GearSelect
+                    label='Weapon'
+                    testId='timeline-weapon-select'
+                    value={draft.weapon ?? fileGear?.weapon ?? ''}
+                    options={gearOptions.weapons}
+                    iconOf={iconUrl}
+                    onChange={(weapon) =>
+                      setDraft(
+                        (current) => current && withGear(current, { weapon })
+                      )
+                    }
+                  />
+                )}
                 <div className='mb-2 flex items-center gap-2.5'>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -420,7 +508,9 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                       max={MAX_REFINEMENT}
                       step={1}
                       onChange={(value) =>
-                        setNumber(character.weapon.refinementField, value)
+                        setDraft(
+                          (current) => current && withRefinement(current, value)
+                        )
                       }
                     />
                   }
@@ -465,6 +555,21 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
               </Section>
 
               <Section title='Artifacts'>
+                {gearOptions && gearOptions.sets.length > 1 && (
+                  <GearSelect
+                    label='Artifact set'
+                    testId='timeline-set-select'
+                    value={draft.artifactSet ?? fileGear?.artifactSet ?? ''}
+                    options={gearOptions.sets}
+                    iconOf={relicIconUrl}
+                    onChange={(artifactSet) =>
+                      setDraft(
+                        (current) =>
+                          current && withGear(current, { artifactSet })
+                      )
+                    }
+                  />
+                )}
                 <div className='mb-2 flex items-center gap-2'>
                   {character.artifactSet.pieces.slice(0, 1).map((piece) => (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -482,17 +587,31 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                   </p>
                 </div>
                 {character.artifactSet.rows.map((row) => {
-                  const on = !row.flag || readFlag(values, row.flag);
+                  const { flag } = row;
+                  const on = !flag || readFlag(values, flag);
                   return (
                     <div key={row.label} className='py-1 text-xs'>
-                      <p
+                      {/* A set bonus with a flag turns on and off. */}
+                      <button
+                        type='button'
+                        disabled={!flag}
+                        aria-pressed={on}
+                        data-testid={
+                          flag ? `timeline-set-flag-${flag}` : undefined
+                        }
+                        onClick={() =>
+                          flag &&
+                          setDraft(
+                            (current) => current && withFlag(current, flag, !on)
+                          )
+                        }
                         className={cn(
-                          'font-medium',
+                          'font-medium enabled:hover:underline',
                           on ? 'text-emerald-300' : 'text-slate-500'
                         )}
                       >
                         {row.label} {on ? '' : '(off)'}
-                      </p>
+                      </button>
                       <p className='text-[11px] leading-relaxed text-slate-400'>
                         {row.value}
                       </p>

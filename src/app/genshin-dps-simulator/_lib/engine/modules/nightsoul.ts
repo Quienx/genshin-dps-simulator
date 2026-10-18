@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { Block, blockSchema, frames, opSchema } from '../schema';
+import {
+  Block,
+  blockSchema,
+  flagNumberSchema,
+  frames,
+  opSchema,
+} from '../schema';
 
 // Nightsoul (Natlan): points, the Nightsoul's Blessing state and the
 // party's Nightsoul Burst. Shared by every Natlan character; the kit's own
@@ -10,7 +16,8 @@ import { Block, blockSchema, frames, opSchema } from '../schema';
 // "nightsoulBlessing" and the counter "nightsoulBursts".
 const paramsSchema = z
   .object({
-    maxPoints: z.number().positive(),
+    // A number, or one by a flag (Mavuika's C1: 120 instead of 80).
+    maxPoints: flagNumberSchema,
     label: z.string().default('Nightsoul points'),
     icon: z.string().optional(),
     blessing: z
@@ -48,7 +55,12 @@ const paramsSchema = z
       })
       .optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (params) =>
+      !params.blessing.enterAtMax || typeof params.maxPoints === 'number',
+    { message: '"enterAtMax" needs a number "maxPoints"' }
+  );
 
 export const NIGHTSOUL_ID = 'nightsoul';
 export const NIGHTSOUL_BLESSING_ID = 'nightsoulBlessing';
@@ -87,7 +99,7 @@ export const expandNightsoul = (params: unknown): Block[] => {
       },
     },
   ];
-  if (blessing.enterAtMax) {
+  if (blessing.enterAtMax && typeof maxPoints === 'number') {
     blocks.push({
       id: 'nightsoul-enter-blessing',
       type: 'trigger',

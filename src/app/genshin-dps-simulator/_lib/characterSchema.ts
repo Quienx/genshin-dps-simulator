@@ -212,6 +212,8 @@ const weaponSchema = z.object({
       'hpPercent',
       'energyRecharge',
       'elementalMastery',
+      // Not a screen stat here: the `physicalBonus` value (Aquila Favonia).
+      'physicalDmg',
     ]),
     value: z.number(),
   }),

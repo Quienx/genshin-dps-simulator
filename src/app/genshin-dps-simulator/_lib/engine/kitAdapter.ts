@@ -20,7 +20,8 @@ export type KitAction =
   // Any other action of the talents: E, Q, a hold E, a plunge…
   // `stepId`: the action the step asked for, when it turned into this one
   // (a Normal Attack performed as a bite).
-  | { kind: 'cast'; id: string; stepId?: string }
+  // `count`: a held action's count (spins of a Charged Attack).
+  | { kind: 'cast'; id: string; stepId?: string; count?: number }
   | { kind: 'dodge' }
   | { kind: 'wait'; frames: number }
   // A step that cannot be performed now (e.g. not enough Energy): it takes
@@ -79,6 +80,54 @@ export const createKitAdapter = ({
     rotationActions.find((action) => action.kind === 'dodge')?.recoveryFrames ??
     DEFAULT_DODGE_RECOVERY_FRAMES;
 
+  // A cast's timing, held for its count (see `repeat`): its repeated hits
+  // play that many times and everything after them comes later.
+  const heldCasts = new Map<string, ActionData>();
+  const castOf = (action: { id: string; count?: number }): ActionData => {
+    const cast = actions[action.id];
+    const { repeat } = cast ?? {};
+    const count = Math.min(repeat?.max ?? 1, Math.max(1, action.count ?? 1));
+    if (!repeat || count === 1) {
+      return cast;
+    }
+    const key = `${action.id}#${count}`;
+    const known = heldCasts.get(key);
+    if (known) {
+      return known;
+    }
+    const hits = cast.hits ?? [];
+    const lastRepeated = Math.max(
+      ...hits.filter((hit) => hit.repeats).map((hit) => hit.frame)
+    );
+    const extra = (count - 1) * repeat.everyFrames;
+    const later = (frame: number) =>
+      frame > lastRepeated ? frame + extra : frame;
+    const held: ActionData = {
+      ...cast,
+      hits: hits
+        .flatMap((hit) =>
+          hit.repeats
+            ? Array.from({ length: count }, (_, index) => ({
+                ...hit,
+                frame: hit.frame + index * repeat.everyFrames,
+              }))
+            : [{ ...hit, frame: later(hit.frame) }]
+        )
+        .sort((first, second) => first.frame - second.frame),
+      end: cast.end === undefined ? undefined : cast.end + extra,
+      cancels:
+        cast.cancels &&
+        Object.fromEntries(
+          Object.entries(cast.cancels).map(([key, frame]) => [
+            key,
+            frame + extra,
+          ])
+        ),
+    };
+    heldCasts.set(key, held);
+    return held;
+  };
+
   // Animations are not cancelled: the next action starts when this one ends.
   const getEnd = (action: KitAction): number => {
     switch (action.kind) {
@@ -87,7 +136,7 @@ export const createKitAdapter = ({
       case 'charged':
         return (charged?.end ?? 0) - action.windup;
       case 'cast':
-        return actions[action.id]?.end ?? 0;
+        return castOf(action)?.end ?? 0;
       case 'dodge':
         return dodgeRecovery;
       case 'wait':
@@ -111,7 +160,8 @@ export const createKitAdapter = ({
   const toAction = (
     id: string,
     previous: KitAction,
-    seconds = 0
+    seconds = 0,
+    count?: number
   ): KitAction | null => {
     if (combos[id]) {
       return {
@@ -139,7 +189,9 @@ export const createKitAdapter = ({
     if (id === 'swap') {
       return { kind: 'wait', frames: 0 };
     }
-    return actions[id] ? { kind: 'cast', id } : null;
+    return actions[id]
+      ? { kind: 'cast', id, ...(count === undefined ? {} : { count }) }
+      : null;
   };
 
   const getEnergyShortfall = (id: string): string | null => {
@@ -189,7 +241,7 @@ export const createKitAdapter = ({
       case 'charged':
         return Math.max(0, (charged?.hits?.[0]?.frame ?? 0) - action.windup);
       case 'cast':
-        return actions[action.id]?.hits?.[0]?.frame ?? 0;
+        return castOf(action)?.hits?.[0]?.frame ?? 0;
       default:
         return 0;
     }
@@ -209,7 +261,7 @@ export const createKitAdapter = ({
       case 'charged':
         return charged?.cancels;
       case 'cast':
-        return actions[action.id]?.cancels;
+        return castOf(action)?.cancels;
       default:
         return undefined;
     }
@@ -301,10 +353,11 @@ export const createKitAdapter = ({
     id: string,
     previous: KitAction,
     previousStart: number,
-    seconds = 0
+    seconds = 0,
+    count?: number
   ): KitAction | null => {
     const replacements = actions[id]?.replacements ?? [];
-    const base = toAction(id, previous, seconds);
+    const base = toAction(id, previous, seconds, count);
     if (replacements.length > 0 && base) {
       const frame = getEarliestFrame(base, previous, previousStart);
       settle(frame);
@@ -314,7 +367,7 @@ export const createKitAdapter = ({
         })
       );
       if (replacement) {
-        const action = toAction(replacement.action, previous, seconds);
+        const action = toAction(replacement.action, previous, seconds, count);
         return action?.kind === 'cast' ? { ...action, stepId: id } : action;
       }
     }
@@ -379,7 +432,8 @@ export const createKitAdapter = ({
       step.action,
       previous,
       previousStart,
-      step.seconds
+      step.seconds,
+      step.count
     );
     if (!action) {
       return null;
@@ -398,7 +452,13 @@ export const createKitAdapter = ({
     settle(energyAt);
     // Waits for the cooldown; the wait shows up as a warning.
     const ready = waitForReady(action, id, energyAt, () =>
-      toResolvedAction(step.action, previous, previousStart, step.seconds)
+      toResolvedAction(
+        step.action,
+        previous,
+        previousStart,
+        step.seconds,
+        step.count
+      )
     );
     const { startFrame } = ready;
     if (startFrame >= durationFrames) {
@@ -724,7 +784,7 @@ export const createKitAdapter = ({
       );
     }
     if (action.kind === 'cast') {
-      const cast = actions[action.id];
+      const cast = castOf(action);
       // A hold E also counts (and triggers) as an E.
       const keys = Array.from(new Set([action.id, cast.group]));
       keys.forEach((key) => runtime.count(`uses:${key}`));
