@@ -14,10 +14,11 @@ export type RotationBlock = {
   hold?: boolean;
   // A held action with a hold time (its count's `hold`: Mavuika's
   // Flamestrider Charged Attack): how long it is held, in seconds (none:
-  // its count's spins), and whether its Final hit always comes, even with
-  // a Dash next (else the Dash cancels it: `cancelledBy`).
+  // its count's spins), and whether its Final hit is off (the hold is
+  // cancelled at the release). Dropping a block it is `cancelledBy` (a
+  // Dash) right after turns it off; the user can turn it back on.
   heldSeconds?: number;
-  keepFinal?: boolean;
+  noFinal?: boolean;
 };
 
 // null in SimulationValues means "automatic": the character's built-in
@@ -39,7 +40,7 @@ export type RotationStep = {
   count?: number;
   // A held action with a hold time: for how many frames, and whether the
   // next step cancels it at the release (a Dash: no Final hit).
-  held?: { frames: number; cancel?: boolean; keepFinal?: boolean };
+  held?: { frames: number; cancel?: boolean };
 };
 
 export type RotationTraceEntry = {

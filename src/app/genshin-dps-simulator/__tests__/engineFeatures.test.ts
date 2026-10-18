@@ -2156,8 +2156,9 @@ describe('held actions with a hold time', () => {
 });
 
 describe('a Dash after a held action', () => {
-  // Mavuika on the Flamestrider: Hold E, a Charged Attack held 1.3 s, a Dash.
-  const dashRun = (keepFinal: boolean) =>
+  // Mavuika on the Flamestrider: Hold E, a Charged Attack held 1.3 s (its
+  // Final on or off), a Dash.
+  const dashRun = (noFinal: boolean) =>
     runTeam(
       {
         members: [buildMemberValues('mavuika')],
@@ -2168,7 +2169,7 @@ describe('a Dash after a held action', () => {
             {
               ...createTeamBlock('mavuika:charged'),
               heldSeconds: 1.3,
-              keepFinal,
+              noFinal,
             },
             createTeamBlock('mavuika:dodge'),
           ],
@@ -2191,17 +2192,16 @@ describe('a Dash after a held action', () => {
     expect(dash.performedAction).toBe('mavuika:flamestriderSprint');
   });
 
-  it('cancels it at the release (cancelledBy): no Final hit, with a warning', () => {
-    const run = dashRun(false);
+  it('with the Final off, the hold is cancelled at the release, with a warning', () => {
+    const run = dashRun(true);
     const ca = run.trace.find((entry) => entry.action === 'mavuika:charged')!;
-    // Two spin hits, no Final.
     expect(caHits(run)).toBe(2);
     expect(Math.round((ca.endTime - ca.startTime) * 60)).toBe(78);
     expect(ca.warning).toMatch(/no Final hit/);
   });
 
-  it('keeps the Final hit when the block asks for it', () => {
-    const run = dashRun(true);
+  it('with the Final on, the Dash waits for it', () => {
+    const run = dashRun(false);
     expect(caHits(run)).toBe(3);
     expect(
       run.trace.find((entry) => entry.action === 'mavuika:charged')!.warning

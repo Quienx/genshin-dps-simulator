@@ -17,6 +17,7 @@ import { FRAMES_PER_SECOND } from './frames';
 import { iconUrl } from './genshinIcons';
 import { readNumber } from './readValue';
 import { BlockDamage } from './rotation/automaticRotation';
+import { cancelHoldsBefore } from './rotation/blocks';
 import { RotationAction } from './rotation/rotationSchema';
 import {
   RotationBlock,
@@ -343,16 +344,21 @@ export const buildPresetTeam = (preset: PresetTeam): TeamState => ({
         }
       : values;
   }),
-  rotation: {
-    loop: false,
-    blocks: [1, 2, 3].flatMap(() =>
-      preset.cycle.map(([characterId, action, hits]) =>
-        action === 'skillHold'
-          ? createTeamBlock(toTeamActionId(characterId, 'skill'), 1, true)
-          : createTeamBlock(toTeamActionId(characterId, action), hits)
-      )
-    ),
-  },
+  // A spin with a Dash right after loses its Final, as when one is dropped
+  // there (the Melt combo's "C4 J C4").
+  rotation: cancelHoldsBefore(
+    {
+      loop: false,
+      blocks: [1, 2, 3].flatMap(() =>
+        preset.cycle.map(([characterId, action, hits]) =>
+          action === 'skillHold'
+            ? createTeamBlock(toTeamActionId(characterId, 'skill'), 1, true)
+            : createTeamBlock(toTeamActionId(characterId, action), hits)
+        )
+      ),
+    },
+    getTeamActions(preset.members)
+  ),
   fillWhileWaiting: false,
   swapDelayFrames: DEFAULT_SWAP_DELAY_FRAMES,
 });

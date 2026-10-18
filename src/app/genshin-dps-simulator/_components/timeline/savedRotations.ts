@@ -23,7 +23,7 @@ const blockSchema = z.object({
   dashCancel: z.boolean(),
   hold: z.boolean().optional(),
   heldSeconds: z.number().positive().optional(),
-  keepFinal: z.boolean().optional(),
+  noFinal: z.boolean().optional(),
 });
 
 const savedSchema = z.object({

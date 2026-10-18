@@ -8,6 +8,7 @@ import {
   InspectorView,
 } from '../../_lib/inspector';
 import {
+  cancelHoldsBefore,
   insertBlock,
   removeBlock,
   removeBlocks,
@@ -130,13 +131,23 @@ export const blockFor = (action: RotationAction): RotationBlock => ({
 });
 
 // After a drop: a dropped Dash or Wait is named after its row's member,
-// else the member on the field there. There are no Swap blocks: the engine
-// swaps by itself to the block of a member off the field.
+// else the member on the field there, and a held block right before what
+// was dropped loses its Final hit when that cancels it (a Dash after
+// Mavuika's spin; the user can turn it back on). There are no Swap blocks:
+// the engine swaps by itself to the block of a member off the field.
 const settle = (
   rotation: RotationSetting,
-  uid: string | null = null,
+  actions: RotationAction[],
+  uids: string[],
   rowMember: string | null = null
-) => (uid === null ? rotation : nameFieldAction(rotation, uid, rowMember));
+) =>
+  cancelHoldsBefore(
+    uids.length === 1
+      ? nameFieldAction(rotation, uids[0], rowMember)
+      : rotation,
+    actions,
+    uids
+  );
 
 // A drop before `beforeUid` (null: at the end): a palette action becomes a
 // new block there (picked), or a block moves there. Dropped on its own
@@ -153,6 +164,7 @@ export const applyDrop = (
   if (payload.kind === 'move' && (payload.blockUids?.length ?? 0) > 1) {
     return applyGroupDrop(
       rotation,
+      actions,
       payload.blockUid,
       payload.blockUids ?? [],
       beforeUid
@@ -167,7 +179,8 @@ export const applyDrop = (
     return {
       rotation: settle(
         insertBlock(rotation, block, beforeUid),
-        block.uid,
+        actions,
+        [block.uid],
         rowMember
       ),
       selected: block.uid,
@@ -185,7 +198,7 @@ export const applyDrop = (
   if (beforeUid === payload.blockUid || beforeUid === next) {
     return {
       rotation: rowMember
-        ? settle(rotation, payload.blockUid, rowMember)
+        ? nameFieldAction(rotation, payload.blockUid, rowMember)
         : rotation,
       selected: payload.blockUid,
     };
@@ -197,7 +210,8 @@ export const applyDrop = (
         rotation.blocks[index],
         beforeUid === payload.blockUid ? next : beforeUid
       ),
-      payload.blockUid,
+      actions,
+      [payload.blockUid],
       rowMember
     ),
     selected: payload.blockUid,
@@ -210,6 +224,7 @@ export const applyDrop = (
 // nothing changes.
 const applyGroupDrop = (
   rotation: RotationSetting,
+  actions: RotationAction[],
   dragged: string,
   uids: string[],
   beforeUid: string | null
@@ -240,7 +255,14 @@ const applyGroupDrop = (
     (setting, block) => insertBlock(setting, block, target),
     removeBlocks(rotation, uids)
   );
-  return { rotation: settle(placed), selected: dragged };
+  return {
+    rotation: settle(
+      placed,
+      actions,
+      moved.slice(0, 1).map((b) => b.uid)
+    ),
+    selected: dragged,
+  };
 };
 
 // The Selected Event at the playhead: the action playing, else the

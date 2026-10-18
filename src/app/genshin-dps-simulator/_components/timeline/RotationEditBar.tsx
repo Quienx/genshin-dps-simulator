@@ -215,12 +215,12 @@ const HoldControls = ({
       <button
         type='button'
         data-testid='timeline-block-keep-final'
-        aria-pressed={block.keepFinal === true}
-        title='Always release for the Final hit, even with a Dash next (else the Dash cancels the spin)'
-        onClick={() => onChange({ keepFinal: !block.keepFinal })}
+        aria-pressed={block.noFinal !== true}
+        title='The Final hit after the spin (off: the spin is cancelled at the release, as a Dash right after does)'
+        onClick={() => onChange({ noFinal: !block.noFinal })}
         className={cn(
           'ml-2 rounded border px-2 py-0.5',
-          block.keepFinal
+          block.noFinal !== true
             ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
             : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
         )}

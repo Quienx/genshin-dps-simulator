@@ -545,8 +545,10 @@
           "group": "skillRecast",
           "label": "Recast E (to the Ring)",
           "shortLabel": "Recast",
-          "icon": "Skill_S_Mavuika_01",
-          "cooldown": "none",
+          "icon": "Skill_S_Mavuika_03",
+          "cooldown": {
+            "frames": 60
+          },
           "end": 38,
           "cancels": {
             "normal": 27,
@@ -555,7 +557,8 @@
             "skill": 28,
             "swap": 24
           },
-          "note": "The E while it recharges in Nightsoul's Blessing, on the Flamestrider: back to the Ring of Searing Radiance. No hit; once a second."
+          "note": "The E while it recharges in Nightsoul's Blessing, on the Flamestrider: back to the Ring of Searing Radiance. No hit; once a second.",
+          "cooldownId": "skillRecast"
         },
         {
           "id": "recastToBike",
@@ -576,7 +579,9 @@
           "label": "Recast E (to the Flamestrider)",
           "shortLabel": "Recast",
           "icon": "Skill_S_Mavuika_02",
-          "cooldown": "none",
+          "cooldown": {
+            "frames": 60
+          },
           "end": 24,
           "cancels": {
             "normal": 13,
@@ -585,7 +590,46 @@
             "skill": 13,
             "dodge": 12
           },
-          "note": "The E while it recharges in Nightsoul's Blessing, with the Ring: onto the Flamestrider. No hit; once a second."
+          "note": "The E while it recharges in Nightsoul's Blessing, with the Ring: onto the Flamestrider. No hit; once a second.",
+          "cooldownId": "skillRecast"
+        },
+        {
+          "id": "recastToBikeHold",
+          "replaces": "skillHold",
+          "while": {
+            "all": [
+              {
+                "status": "nightsoulBlessing"
+              },
+              {
+                "not": {
+                  "ready": "skill"
+                }
+              },
+              {
+                "not": {
+                  "status": "flamestrider"
+                }
+              }
+            ]
+          },
+          "group": "recastToBike",
+          "label": "Recast E (to the Flamestrider)",
+          "shortLabel": "Recast",
+          "icon": "Skill_S_Mavuika_02",
+          "cooldown": {
+            "frames": 60
+          },
+          "end": 24,
+          "cancels": {
+            "normal": 13,
+            "charged": 13,
+            "burst": 13,
+            "skill": 13,
+            "dodge": 12
+          },
+          "note": "A Hold E while the E recharges in Nightsoul's Blessing, with the Ring: the recast onto the Flamestrider, as a tap E there. No hit; once a second.",
+          "cooldownId": "skillRecast"
         },
         {
           "id": "flamestriderRefresh",
@@ -806,14 +850,6 @@
       }
     },
     {
-      "id": "skillRecastLock",
-      "type": "status",
-      "source": "talent",
-      "label": "E recast cooldown",
-      "icon": "Skill_S_Mavuika_01",
-      "durationFrames": 60
-    },
-    {
       "id": "mavuikaBurst",
       "type": "status",
       "source": "talent",
@@ -911,7 +947,7 @@
       },
       "do": [
         {
-          "applyStatus": "skillRecastLock"
+          "startCooldown": "skillRecast"
         }
       ]
     },
@@ -941,7 +977,7 @@
           "ifFlag": "c6"
         },
         {
-          "applyStatus": "skillRecastLock",
+          "startCooldown": "skillRecast",
           "delayFrames": 24
         }
       ]
@@ -985,9 +1021,6 @@
         {
           "applyStatus": "c6Ring",
           "ifFlag": "c6"
-        },
-        {
-          "applyStatus": "skillRecastLock"
         }
       ]
     },
@@ -1006,9 +1039,6 @@
         },
         {
           "applyStatus": "ring"
-        },
-        {
-          "applyStatus": "skillRecastLock"
         }
       ]
     },
@@ -1875,24 +1905,6 @@
         "gte": 100
       },
       "message": "The Q needs 100 Fighting Spirit"
-    },
-    {
-      "action": "recastToBike",
-      "requires": {
-        "not": {
-          "status": "skillRecastLock"
-        }
-      },
-      "message": "A recast needs 1 s since the last E"
-    },
-    {
-      "action": "recastToRing",
-      "requires": {
-        "not": {
-          "status": "skillRecastLock"
-        }
-      },
-      "message": "A recast needs 1 s since the last E"
     },
     {
       "action": "flamestriderSprint",
