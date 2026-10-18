@@ -90,6 +90,56 @@ const buildCommonFields = (
   },
 ];
 
+// Why a number field's text is not a valid value (null: it is): empty,
+// not a number, out of its range, or not whole when it steps by whole
+// numbers (a refinement, Energy).
+export const numberFieldError = (
+  value: string,
+  { min, max, step }: { min?: number; max?: number; step?: number }
+): string | null => {
+  const text = value.trim();
+  if (text === '') {
+    return 'Enter a number';
+  }
+  const number = Number(text);
+  if (!Number.isFinite(number)) {
+    return 'Not a number';
+  }
+  if (min !== undefined && number < min) {
+    return `At least ${min}`;
+  }
+  if (max !== undefined && number > max) {
+    return `At most ${max}`;
+  }
+  if (
+    step !== undefined &&
+    Number.isInteger(step) &&
+    !Number.isInteger(number)
+  ) {
+    return 'A whole number';
+  }
+  return null;
+};
+
+// The nearest valid value (in range, whole when it steps by whole numbers);
+// the text unchanged when it is not a number at all.
+export const clampNumberField = (
+  value: string,
+  { min, max, step }: { min?: number; max?: number; step?: number }
+): string => {
+  const number = Number(value.trim());
+  if (value.trim() === '' || !Number.isFinite(number)) {
+    return value;
+  }
+  const whole =
+    step !== undefined && Number.isInteger(step) ? Math.round(number) : number;
+  const clamped = Math.min(
+    max ?? Number.POSITIVE_INFINITY,
+    Math.max(min ?? Number.NEGATIVE_INFINITY, whole)
+  );
+  return String(clamped);
+};
+
 const getCommonFields = (
   character: CharacterDefinition
 ): NumberFieldDefinition[] => buildCommonFields(character);

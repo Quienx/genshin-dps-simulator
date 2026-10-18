@@ -485,17 +485,20 @@ const StateLine = ({
 // stacks; always the same lines. Its mechanic has a card of its own.
 // An E or Q button as in-game, with what it is called now: a form's name
 // while one replaces it (Varesa's Fiery Passion Rush). Two fixed lines
-// under it, so nothing moves when the form or the Energy changes.
+// under it, so nothing moves when the form or the Energy changes. The
+// Q's second line is a bar of what fills it (Energy, Fighting Spirit).
 const TalentHud = ({
   button,
   kind,
   element,
   energy,
+  bar,
 }: {
   button: TalentButton;
   kind: 'E' | 'Q';
   element: string;
   energy?: StateRow | null;
+  bar?: string;
 }) => (
   <div className='flex min-w-0 flex-1 items-center gap-2'>
     <SkillCooldownIcon
@@ -504,8 +507,8 @@ const TalentHud = ({
       cooldown={button.cooldown}
       element={element}
       energy={
-        energy && energy.value !== null && energy.max
-          ? { value: energy.value, max: energy.max }
+        energy && energy.value !== null && (energy.needed ?? energy.max)
+          ? { value: energy.value, max: energy.needed ?? energy.max ?? 0 }
           : kind === 'Q'
           ? null
           : undefined
@@ -522,15 +525,40 @@ const TalentHud = ({
       >
         {button.form ?? button.label}
       </span>
-      <span className='block truncate text-[10px] text-slate-500 tabular-nums'>
-        {kind === 'Q' && energy?.value !== null && energy?.value !== undefined
-          ? `Energy ${Math.floor(energy.value)}/${energy.max ?? '—'}`
-          : button.cooldown.charges > 1
-          ? `${button.cooldown.ready}/${button.cooldown.charges} charges`
-          : button.cooldown.remaining > 0
-          ? `${short(button.cooldown.remaining)}s`
-          : 'ready'}
-      </span>
+      {kind === 'Q' && energy?.value !== null && energy?.value !== undefined ? (
+        <span
+          data-testid='timeline-burst-charge'
+          title={`${energy.label} ${Math.floor(energy.value)}/${
+            energy.needed ?? energy.max ?? '—'
+          }`}
+          className='mt-1 flex items-center gap-1.5'
+        >
+          <span className='block h-1 w-14 overflow-hidden rounded-full bg-slate-700/70'>
+            <span
+              className={cn('block h-full rounded-full', bar)}
+              style={{
+                width: `${Math.min(
+                  100,
+                  (energy.value /
+                    Math.max(1, energy.needed ?? energy.max ?? 1)) *
+                    100
+                )}%`,
+              }}
+            />
+          </span>
+          <span className='text-[10px] text-slate-500 tabular-nums'>
+            {Math.floor(energy.value)}
+          </span>
+        </span>
+      ) : (
+        <span className='block truncate text-[10px] text-slate-500 tabular-nums'>
+          {button.cooldown.charges > 1
+            ? `${button.cooldown.ready}/${button.cooldown.charges} charges`
+            : button.cooldown.remaining > 0
+            ? `${short(button.cooldown.remaining)}s`
+            : 'ready'}
+        </span>
+      )}
     </span>
   </div>
 );
@@ -553,6 +581,7 @@ const CharacterStateRows = ({
         kind='Q'
         element={element}
         energy={state.energy}
+        bar={ownerBar}
       />
     </div>
     <StateLine row={state.weapon} placeholder='Weapon' bar={ownerBar} />

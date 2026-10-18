@@ -1,4 +1,5 @@
 import { getBlockIconUrl } from './activitySources';
+import { getBurstCharge } from './burstCharge';
 import { getLoadedCharacter } from './characterData';
 import { isCharacterId } from './characters';
 import { SimEvent } from './engine/eventLog';
@@ -1011,6 +1012,9 @@ export type StateRow = {
   format?: 'percent';
   // A status' seconds left (a weapon's buff), when one times it.
   remaining?: number | null;
+  // What fills the Q: how much it needs (Mavuika's 100 of 200 Fighting
+  // Spirit).
+  needed?: number;
 };
 
 // A character's own state at a moment, for the Event panel: always the
@@ -1019,6 +1023,8 @@ export type StateRow = {
 // with its stacks.
 export type CharacterState = {
   mechanic: StateRow | null;
+  // What fills the Q: its Energy, or what it needs instead (Mavuika's
+  // Fighting Spirit).
   energy: StateRow | null;
   weapon: StateRow;
   // The E and the Q buttons, as in-game.
@@ -1137,6 +1143,7 @@ export const getCharacterState = (
   since: number | null
 ): CharacterState => {
   const { character } = getLoadedCharacter(member.characterId);
+  const charge = getBurstCharge(character);
   const activity = member.activity;
   const frame = Math.round(time * FRAMES_PER_SECOND);
   const weaponRow: StateRow = {
@@ -1176,6 +1183,7 @@ export const getCharacterState = (
           : getResourceAt(log, Math.round(since * FRAMES_PER_SECOND)),
       max: id === 'energy' ? member.burstCost : block.max ?? null,
       ...(block.format ? { format: block.format } : {}),
+      ...(id === charge?.resource ? { needed: charge.needed } : {}),
     };
   };
   const mechanic =
@@ -1223,7 +1231,7 @@ export const getCharacterState = (
   }
   return {
     mechanic,
-    energy: resourceRow('energy'),
+    energy: charge && resourceRow(charge.resource),
     weapon,
     skill: talentButton(member, 'skill', time, activity),
     burst: talentButton(member, 'burst', time, activity),

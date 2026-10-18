@@ -267,6 +267,19 @@ export const SECTION_HELP = {
     summary: 'The Normal Attack, E and Q levels.',
     note: 'Enter the level before constellations: C3 and C5 add 3 to the talent they boost (the game shows the boosted one).',
   },
+  runOptions: {
+    title: 'Run options',
+    summary: 'How this member starts the run.',
+    shows: [
+      '`Starting Energy`: the Energy at the start, from 0 to the Q’s cost. Lower it to see whether the rotation still gets its Q in time.',
+      '`Starting Fighting Spirit` (Mavuika): her Q runs on it instead of Energy; it needs 100.',
+      'The Q’s icon fills its ring with that value, as in the game: full (and glowing) when the Q can be used.',
+    ],
+    use: [
+      'Change it and press `Save & simulate`: the run starts again with it.',
+    ],
+    note: 'What the rotation does (whether to use the Q…) is the timeline’s: edit its blocks. The Natlan party members are counted from the team.',
+  },
   constellations: {
     title: 'Constellations',
     summary: 'How many constellations are unlocked.',

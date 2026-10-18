@@ -22,6 +22,8 @@ import SectionHelp from './SectionHelp';
 import { SectionHelpKey } from './sectionHelp';
 import StatIcon from './StatIcon';
 import TalentLevelSelect from '../TalentLevelSelect';
+import SkillCooldownIcon from '../team/SkillCooldownIcon';
+import { getBurstCharge, getRunOptionFields } from '../../_lib/burstCharge';
 import { CatalogOption } from '../../_lib/catalog';
 import {
   getFileGear,
@@ -32,7 +34,11 @@ import { CHARACTERS } from '../../_lib/characters';
 import formatNumber from '../../_lib/formatNumber';
 import { elementIconUrl, iconUrl, relicIconUrl } from '../../_lib/genshinIcons';
 import { readFlag, readNumber } from '../../_lib/readValue';
-import { getFieldsBySection } from '../../_lib/simulationFields';
+import {
+  clampNumberField,
+  getFieldsBySection,
+  numberFieldError,
+} from '../../_lib/simulationFields';
 import {
   parseValues,
   withFlag,
@@ -44,6 +50,7 @@ import {
   clampBaseTalentLevel,
   MAX_BASE_TALENT_LEVEL,
 } from '../../_lib/talents';
+import { CooldownState } from '../../_lib/team';
 import {
   CharacterId,
   NumberFieldDefinition,
@@ -147,6 +154,8 @@ const Row = ({
 );
 
 // A small number box for the sheet's rows.
+// A number field: red with the reason while its value is not valid (out
+// of range, not a number); leaving it snaps it to the nearest valid value.
 const NumberBox = ({
   label,
   value,
@@ -163,21 +172,47 @@ const NumberBox = ({
   step?: number;
   disabled?: boolean;
   onChange: (value: string) => void;
-}) => (
-  <input
-    type='number'
-    aria-label={label}
-    value={value}
-    min={min}
-    max={max}
-    step={step ?? 'any'}
-    disabled={disabled}
-    onChange={(event) => onChange(event.target.value)}
-    // Looks like plain text: no box, no spinner; a faint line on hover and
-    // a blue one while editing tell it can be changed.
-    className='h-5 w-20 [appearance:textfield] border-0 border-b border-transparent bg-transparent p-0 text-right text-xs font-medium text-slate-100 tabular-nums transition-colors hover:border-slate-600 focus:border-sky-500 focus:ring-0 focus:outline-none disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-  />
-);
+}) => {
+  const error = disabled ? null : numberFieldError(value, { min, max, step });
+  return (
+    <span className='flex flex-col items-end'>
+      <input
+        type='number'
+        aria-label={label}
+        aria-invalid={error !== null || undefined}
+        title={error ?? undefined}
+        value={value}
+        min={min}
+        max={max}
+        step={step ?? 'any'}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={() => {
+          const valid = clampNumberField(value, { min, max, step });
+          if (valid !== value) {
+            onChange(valid);
+          }
+        }}
+        // Looks like plain text: no box, no spinner; a faint line on hover
+        // and a blue one while editing tell it can be changed.
+        className={cn(
+          'h-5 w-20 [appearance:textfield] border-0 border-b border-transparent bg-transparent p-0 text-right text-xs font-medium text-slate-100 tabular-nums transition-colors hover:border-slate-600 focus:border-sky-500 focus:ring-0 focus:outline-none disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+          error &&
+            'border-rose-500 text-rose-300 hover:border-rose-500 focus:border-rose-500'
+        )}
+      />
+      {error && (
+        <span
+          role='alert'
+          data-testid='timeline-field-error'
+          className='mt-0.5 text-[10px] leading-none whitespace-nowrap text-rose-300'
+        >
+          {error}
+        </span>
+      )}
+    </span>
+  );
+};
 
 const Stars = ({ count }: { count: number }) => (
   <span className='flex' aria-label={`${count} stars`}>
@@ -235,6 +270,15 @@ const GearSelect = ({
   </Select>
 );
 
+// The Q's icon in the run options: never on cooldown there.
+const READY: CooldownState = {
+  ready: 1,
+  charges: 1,
+  remaining: 0,
+  recharging: 0,
+  max: 0,
+};
+
 type CharacterSheetProps = {
   // The member's build; null closes the sheet.
   build: SimulationValues | null;
@@ -271,6 +315,17 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
         'stats'
       ).filter((field) => field.kind === 'number') as NumberFieldDefinition[])
     : [];
+  // How the run starts: for now only what the Q starts with.
+  const runFields =
+    draft && character
+      ? getRunOptionFields(
+          CHARACTERS[draft.character as CharacterId],
+          character
+        )
+      : [];
+  const burstCharge = character ? getBurstCharge(character) : null;
+  const burstIcon =
+    character?.talents.find((talent) => talent.kind === 'burst')?.icon ?? null;
   const setNumber = (name: string, value: string) =>
     setDraft((current) => current && withNumber(current, name, value));
   // Constellations go in order: picking Cn turns on C1 to Cn and off
@@ -292,12 +347,39 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
     });
   const refinement =
     character && values ? getWeaponRefinement(character.weapon, values) : 1;
+  // A field in red (out of range, not a number) blocks saving.
+  const invalid =
+    (draft !== null &&
+      [
+        ...(computed ? [] : statFields),
+        ...runFields.filter(
+          (field): field is NumberFieldDefinition => field.kind === 'number'
+        ),
+      ].some(
+        (field) =>
+          numberFieldError(draft.numbers[field.name] ?? '', field) !== null
+      )) ||
+    (draft !== null &&
+      character !== undefined &&
+      numberFieldError(draft.numbers[character.weapon.refinementField] ?? '', {
+        min: 1,
+        max: MAX_REFINEMENT,
+        step: 1,
+      }) !== null);
 
   return (
     <Sheet open={build !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         data-testid='timeline-character-sheet'
         className='w-full gap-0 overflow-y-auto border-slate-700 bg-slate-900 text-slate-100 sm:max-w-sm'
+        // Opening focuses the close button, not the first section's help
+        // (a focused help opens its tooltip and keeps it open).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement)
+            .querySelector<HTMLElement>('[data-testid="sheet-close"]')
+            ?.focus();
+        }}
       >
         {character && values && draft && (
           <>
@@ -428,6 +510,69 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                 })}
               </Section>
 
+              {runFields.length > 0 && (
+                <Section title='Run options' help='runOptions'>
+                  {runFields.map((field) =>
+                    field.kind === 'number' ? (
+                      <Row
+                        key={field.name}
+                        label={
+                          <>
+                            <SkillCooldownIcon
+                              icon={burstIcon}
+                              label='Q'
+                              cooldown={READY}
+                              element={character.element}
+                              // Its ring fills with what is typed in, up to
+                              // what the Q needs (Energy, Fighting Spirit).
+                              energy={{
+                                value: Number(draft.numbers[field.name] ?? 0),
+                                max: burstCharge?.needed ?? field.max ?? 0,
+                              }}
+                              size={24}
+                            />
+                            <span className='truncate'>{field.label}</span>
+                          </>
+                        }
+                        value={
+                          <NumberBox
+                            label={field.label}
+                            value={draft.numbers[field.name] ?? ''}
+                            min={field.min}
+                            max={field.max}
+                            step={field.step}
+                            onChange={(value) => setNumber(field.name, value)}
+                          />
+                        }
+                      />
+                    ) : (
+                      <label
+                        key={field.name}
+                        data-testid={`timeline-sheet-option-${field.name}`}
+                        className='flex cursor-pointer items-start gap-2 py-1 text-xs text-slate-300'
+                      >
+                        <input
+                          type='checkbox'
+                          checked={readFlag(values, field.name)}
+                          onChange={(event) =>
+                            setDraft(
+                              (current) =>
+                                current &&
+                                withFlag(
+                                  current,
+                                  field.name,
+                                  event.target.checked
+                                )
+                            )
+                          }
+                          className='mt-0.5 size-3.5 shrink-0 accent-sky-500'
+                        />
+                        {field.label}
+                      </label>
+                    )
+                  )}
+                </Section>
+              )}
               <Section title='Constellations' help='constellations'>
                 <div className='grid grid-cols-6 gap-1.5'>
                   {character.constellations.map((entry) => {
@@ -641,7 +786,8 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
               <button
                 type='button'
                 data-testid='timeline-character-save'
-                disabled={!dirty}
+                disabled={!dirty || invalid}
+                title={invalid ? 'Fix the fields in red first' : undefined}
                 onClick={() => onSave(draft)}
                 className='ml-auto flex h-8 items-center gap-1.5 rounded-md bg-sky-600 px-3 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-40'
               >
