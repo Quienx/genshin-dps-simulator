@@ -142,9 +142,41 @@ export type PresetTeam = {
   id: string;
   label: string;
   members: string[];
+  // Its steps, played three times (none with `blocks`).
   cycle: PresetStep[];
+  // Or its rotation as edited, block by block (hold times, Final hits,
+  // CDCs, Waits), played once as it is.
+  blocks?: Omit<RotationBlock, 'uid'>[];
   energyRecharge: Record<string, number>;
 };
+
+// A block of a preset's rotation as edited: its action and only what it
+// changes from a new block's.
+const presetBlock = (
+  action: string,
+  changes: Partial<Omit<RotationBlock, 'uid' | 'action'>> = {}
+): Omit<RotationBlock, 'uid'> => ({
+  action,
+  hits: 1,
+  repeat: 1,
+  seconds: 1,
+  dashCancel: false,
+  ...changes,
+});
+
+// Mavuika's Q, a CDC chain of four spins and her E: the Melt part of a
+// cycle in the Citlali, Iansan, Bennett team.
+const MAVUIKA_CDC_CHAIN = [
+  presetBlock('mavuika:burst'),
+  presetBlock('mavuika:wait', { seconds: 0.8 }),
+  presetBlock('mavuika:charged', { heldSeconds: 0.75, noFinal: true }),
+  presetBlock('mavuika:dodge', { quickCancel: true }),
+  presetBlock('mavuika:charged', { heldSeconds: 0.68 }),
+  presetBlock('mavuika:dodge', { quickCancel: true }),
+  presetBlock('mavuika:charged', { heldSeconds: 0.8 }),
+  presetBlock('mavuika:dodge', { quickCancel: true }),
+  presetBlock('mavuika:charged', { heldSeconds: 0.85 }),
+];
 
 const MELT_COMBO: PresetStep[] = [
   ['mavuika', 'charged', 4],
@@ -153,6 +185,42 @@ const MELT_COMBO: PresetStep[] = [
 ];
 
 export const MAVUIKA_PRESETS: PresetTeam[] = [
+  {
+    // The user's own rotation (default builds): Mavuika E, Iansan E N1 Q,
+    // Bennett QE, Citlali EQ, then Mavuika Q and a CDC chain; the second
+    // cycle fills the cooldowns with Normal Attacks.
+    id: 'mavuika-iansan-bennett',
+    label: 'Mavuika, Citlali, Iansan, Bennett',
+    members: ['mavuika', 'citlali', 'iansan', 'bennett'],
+    cycle: [],
+    blocks: [
+      presetBlock('mavuika:skill'),
+      presetBlock('iansan:skill'),
+      presetBlock('iansan:normal'),
+      presetBlock('iansan:burst'),
+      presetBlock('bennett:burst'),
+      presetBlock('bennett:skill'),
+      presetBlock('citlali:skill'),
+      presetBlock('citlali:burst'),
+      ...MAVUIKA_CDC_CHAIN,
+      presetBlock('mavuika:skill'),
+      presetBlock('mavuika:charged', { heldSeconds: 0.58, noFinal: true }),
+      presetBlock('iansan:skill'),
+      presetBlock('iansan:normal'),
+      presetBlock('iansan:normal', { hits: 3 }),
+      presetBlock('iansan:burst'),
+      presetBlock('bennett:skill'),
+      presetBlock('bennett:normal', { hits: 5 }),
+      presetBlock('bennett:normal'),
+      presetBlock('bennett:skill'),
+      presetBlock('bennett:burst'),
+      presetBlock('citlali:skill'),
+      presetBlock('citlali:normal', { hits: 3 }),
+      presetBlock('citlali:burst'),
+      ...MAVUIKA_CDC_CHAIN,
+    ],
+    energyRecharge: {},
+  },
   {
     // Citlali and Escoffier keep Cryo on the enemy (Citlali's A1 lowers its
     // Pyro RES), Bennett buffs her ATK; a second Bennett E for his next Q.
@@ -374,26 +442,35 @@ export const buildPresetTeam = (preset: PresetTeam): TeamState => ({
         }
       : values;
   }),
-  // A spin with a Dash right after loses its Final, as when one is dropped
-  // there (the Melt combo's "C4 J C4").
-  rotation: cancelHoldsBefore(
-    {
-      loop: false,
-      blocks: [1, 2, 3].flatMap(() =>
-        preset.cycle.map(([characterId, action, hits]) =>
-          action === 'skillHold'
-            ? createTeamBlock(toTeamActionId(characterId, 'skill'), 1, true)
-            : createTeamBlock(toTeamActionId(characterId, action), hits)
-        )
+  // As edited, block by block; else the cycle three times, where a spin
+  // with a Dash right after loses its Final, as when one is dropped there
+  // (the Melt combo's "C4 J C4").
+  rotation: preset.blocks
+    ? {
+        loop: false,
+        blocks: preset.blocks.map((block) => ({
+          ...block,
+          uid: createTeamBlock(block.action).uid,
+        })),
+      }
+    : cancelHoldsBefore(
+        {
+          loop: false,
+          blocks: [1, 2, 3].flatMap(() =>
+            preset.cycle.map(([characterId, action, hits]) =>
+              action === 'skillHold'
+                ? createTeamBlock(toTeamActionId(characterId, 'skill'), 1, true)
+                : createTeamBlock(toTeamActionId(characterId, action), hits)
+            )
+          ),
+        },
+        getTeamActions(preset.members)
       ),
-    },
-    getTeamActions(preset.members)
-  ),
   fillWhileWaiting: false,
   swapDelayFrames: DEFAULT_SWAP_DELAY_FRAMES,
 });
 
-// The Mavuika Melt team (Citlali, Escoffier, Bennett).
+// The first Mavuika team (Citlali, Iansan, Bennett).
 export const MAVUIKA_TEAM = MAVUIKA_PRESETS[0].members;
 export const buildMavuikaTeam = (): TeamState =>
   buildPresetTeam(MAVUIKA_PRESETS[0]);
