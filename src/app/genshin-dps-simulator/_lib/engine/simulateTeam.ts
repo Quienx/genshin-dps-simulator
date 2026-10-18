@@ -156,6 +156,8 @@ export type TeamSimulationResult = {
   members: TeamMemberResult[];
   // Every step, with its member in `action` ("iansan:burst").
   rotationTrace: RotationTraceEntry[];
+  // The run's duration ended before its rotation did (steps left).
+  rotationCutShort: boolean;
   // Who came on the field, and when (the first member at frame 0).
   swaps: TeamSwap[];
   totalDamage: number;
@@ -790,10 +792,14 @@ export const simulateTeam = (
       member >= 0 && (members[member].adapter.isOverlapping?.(action) ?? false),
   };
 
+  let rotationCutShort = false;
   const rotationTrace = playRotation(adapter, {
     rotation,
     actions: getTeamRotationActions(ids, loadedOf),
     durationFrames,
+    onCutShort: () => {
+      rotationCutShort = true;
+    },
   });
   queue.runUntil(Number.POSITIVE_INFINITY, durationFrames);
 
@@ -810,6 +816,7 @@ export const simulateTeam = (
   return {
     members: results,
     rotationTrace,
+    rotationCutShort,
     swaps: swaps.map(({ frame, member }) => ({
       frame,
       characterId: ids[member],

@@ -70,6 +70,9 @@ type PlayOptions = {
   rotation: RotationSetting | null;
   actions: RotationAction[];
   durationFrames: number;
+  // Told when the run ended before the rotation did (a step left that
+  // would start past the duration).
+  onCutShort?: () => void;
 };
 
 const toSeconds = (frames: number): number => frames / FRAMES_PER_SECOND;
@@ -78,7 +81,7 @@ const MIN_STALL_ALLOWANCE = 8;
 
 export const playRotation = <A>(
   adapter: RotationAdapter<A>,
-  { rotation, actions, durationFrames }: PlayOptions
+  { rotation, actions, durationFrames, onCutShort }: PlayOptions
 ): RotationTraceEntry[] => {
   const trace: RotationTraceEntry[] = [];
   const steps = rotation ? expandBlocks(rotation, actions) : [];
@@ -183,6 +186,9 @@ export const playRotation = <A>(
   for (;;) {
     const next = planNext();
     if (!next || next.planned.startFrame >= durationFrames) {
+      if (next) {
+        onCutShort?.();
+      }
       break;
     }
     const { step, planned } = next;

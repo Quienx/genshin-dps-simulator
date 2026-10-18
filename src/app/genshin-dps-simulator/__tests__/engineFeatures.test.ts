@@ -7,7 +7,8 @@ import {
   findTalent,
   simulateFile,
 } from './fixtures';
-import { loadCharacterFile } from '../_lib/characterData';
+import { getLoadedCharacter, loadCharacterFile } from '../_lib/characterData';
+import { expandSystems } from '../_lib/engine/modules';
 import { simulateTeam, toTeamActionId } from '../_lib/engine/simulateTeam';
 import formatNumber from '../_lib/formatNumber';
 import { buildDefaultValues, parseValues } from '../_lib/simulationValues';
@@ -2051,7 +2052,6 @@ describe('a bonus for everyone (teamBuff "everyone")', () => {
 describe('default values of a file not registered', () => {
   it('are those of the registered character for its own file', async () => {
     const { buildDefaultValuesFor } = await import('../_lib/simulationValues');
-    const { getLoadedCharacter } = await import('../_lib/characterData');
     expect(
       buildDefaultValuesFor(getLoadedCharacter('escoffier').character)
     ).toEqual(buildDefaultValues('escoffier'));
@@ -2493,5 +2493,17 @@ describe("a Dash played as a kit dash (Mavuika's Sprint)", () => {
     expect(Math.round(spin.startTime * 60) + 60 + 45).toBe(
       Math.round(dash.startTime * 60)
     );
+  });
+});
+
+describe('system blocks (expandSystems)', () => {
+  it('are expanded once per character, then reused', () => {
+    const mavuika = getLoadedCharacter('mavuika').character;
+    const citlali = getLoadedCharacter('citlali').character;
+    expect(expandSystems(mavuika)).toBe(expandSystems(mavuika));
+    expect(expandSystems(mavuika)).not.toBe(expandSystems(citlali));
+    expect(
+      expandSystems(mavuika).some((block) => block.id === 'nightsoulBlessing')
+    ).toBe(true);
   });
 });

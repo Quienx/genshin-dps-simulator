@@ -575,6 +575,8 @@ export type TeamRun = {
   // The part of it that counts (s): the build's duration, 60 by default.
   countedDuration: number;
   trace: RotationTraceEntry[];
+  // Its duration ended before its rotation did (steps left unplayed).
+  rotationCutShort: boolean;
   // Every member's cooldowns, ids prefixed like its actions.
   cooldowns: CooldownTrack[];
   damageByBlock: Record<string, BlockDamage>;
@@ -725,6 +727,7 @@ export const runTeam = (
     duration: played,
     countedDuration: duration,
     trace: result.rotationTrace,
+    rotationCutShort: result.rotationCutShort,
     cooldowns: result.members.flatMap((member) =>
       (member.cooldowns ?? []).map((track) => ({
         ...track,
@@ -778,6 +781,8 @@ export const runTeam = (
 // A cooldown at a moment: charges ready, and the wait for the next one.
 // The longest a rotation of one's own can run (10 minutes).
 const MAX_OWN_SECONDS = 600;
+// The length a team's own rotation had last (s), tried first next time.
+const ownSeconds = new Map<string, number>();
 
 // A rotation of one's own (edit mode): it plays every block, so the run
 // lasts past its duration when the blocks need it (to the second after
@@ -795,13 +800,34 @@ export const runOwnRotation = (team: TeamState, critMode: CritMode) => {
     return runTeam(team, critMode);
   }
   const base = readNumber(parseValues(team.members[0]), 'duration');
-  const probe = runTeam(withSeconds(MAX_OWN_SECONDS), 'expected');
-  const lastEnd = Math.max(0, ...probe.trace.map((entry) => entry.endTime));
-  const seconds = Math.min(MAX_OWN_SECONDS, Math.max(base, Math.ceil(lastEnd)));
-  return runTeam(
-    seconds === base ? team : { ...withSeconds(seconds), countedSeconds: base },
-    critMode
-  );
+  const play = (seconds: number) =>
+    runTeam(
+      seconds === base
+        ? team
+        : { ...withSeconds(seconds), countedSeconds: base },
+      critMode
+    );
+  // As long as its blocks need: to the second after the last one ends.
+  const lengthOf = (run: TeamRun) =>
+    Math.min(
+      MAX_OWN_SECONDS,
+      Math.max(
+        base,
+        Math.ceil(Math.max(0, ...run.trace.map((entry) => entry.endTime)))
+      )
+    );
+  // Played once at the length it had last time (or its duration). Every
+  // block played: its length is known, and it is the run when it is that
+  // one (else played again at it). Cut short: its length is found playing
+  // it to the longest one first.
+  const key = team.members.map((values) => values.character).join(',');
+  const guess = ownSeconds.get(key) ?? base;
+  const first = play(guess);
+  const seconds = first.rotationCutShort
+    ? lengthOf(runTeam(withSeconds(MAX_OWN_SECONDS), 'expected'))
+    : lengthOf(first);
+  ownSeconds.set(key, seconds);
+  return seconds === guess && !first.rotationCutShort ? first : play(seconds);
 };
 
 export type CooldownState = {

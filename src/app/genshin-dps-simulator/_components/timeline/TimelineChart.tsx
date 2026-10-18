@@ -228,7 +228,13 @@ const RowIcon = ({ src, size = 18 }: { src: string | null; size?: number }) =>
 // The timeline has one tooltip for every block: a block only names its
 // tip (`data-tip`), and the chart shows that tip's card where the pointer
 // is (see HoverTip). Hundreds of tooltips would each cost a component.
-type Tips = Map<string, ReactNode>;
+// Each tooltip, by key. An action's is made when it is hovered (a thunk):
+// it reads the character's state then, too slow to do for every block on
+// every render.
+type Tips = Map<string, ReactNode | (() => ReactNode)>;
+
+const tipOf = (tip: ReactNode | (() => ReactNode) | undefined): ReactNode =>
+  typeof tip === 'function' ? tip() : tip ?? null;
 
 const KIND_LABELS: Record<string, string> = {
   normal: 'Normal Attack',
@@ -561,7 +567,7 @@ const buildGroups = (
       ),
       content: actions.map((action) => {
         const rotationAction = displayAction(action, actionsById);
-        tips.set(`a:${action.key}`, actionTip(action));
+        tips.set(`a:${action.key}`, () => actionTip(action));
         const skipped = action.parts.every((part) => part.skipped);
         // A block starts where it was put: its wait for a cooldown first
         // (dead time, grey), then the action. A skipped one takes no time:
@@ -2440,7 +2446,7 @@ const TimelineChart = ({
       </div>
       <HoverTip
         hover={hover}
-        content={hover ? tips.get(hover.key) ?? null : null}
+        content={hover ? tipOf(tips.get(hover.key)) : null}
         onEnter={keepTip}
         onLeave={hideTipSoon}
       />

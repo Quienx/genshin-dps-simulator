@@ -19,9 +19,14 @@ import {
 } from '../_lib/simulationValues';
 import {
   buildMemberValues,
+  createTeamBlock,
   getTeamActions,
   getTeamPaletteGroups,
+  runOwnRotation,
   runSolo,
+  runTeam,
+  TeamRun,
+  TeamState,
 } from '../_lib/team';
 
 const member = (
@@ -606,5 +611,70 @@ describe("Chevreuse's C6 stacks", () => {
   it('gives a stack to the member healed while on the field', () => {
     const hits = varesaSkillHits();
     expect(hasC6(hits[hits.length - 1])).toBe(true);
+  });
+});
+
+describe('a rotation of one’s own, played once when it can', () => {
+  // As it was played before: to the longest length first, to find its
+  // length, then at it.
+  const twoPasses = (team: TeamState) => {
+    const withSeconds = (seconds: number): TeamState => ({
+      ...team,
+      members: team.members.map((values) => ({
+        ...values,
+        numbers: { ...values.numbers, duration: String(seconds) },
+      })),
+    });
+    const base = 60;
+    const probe = runTeam(withSeconds(600), 'expected');
+    const lastEnd = Math.max(0, ...probe.trace.map((entry) => entry.endTime));
+    const seconds = Math.min(600, Math.max(base, Math.ceil(lastEnd)));
+    return runTeam(
+      seconds === base
+        ? team
+        : { ...withSeconds(seconds), countedSeconds: base },
+      'expected'
+    );
+  };
+  const teamWith = (blocks: RotationBlock[]): TeamState => ({
+    members: ['mavuika', 'citlali'].map(buildMemberValues),
+    rotation: { loop: false, blocks },
+    fillWhileWaiting: false,
+    swapDelayFrames: 12,
+  });
+  const short = teamWith(
+    ['citlali:skill', 'citlali:burst', 'mavuika:burst'].map((id) =>
+      createTeamBlock(id)
+    )
+  );
+  // Past the 60 s duration: Waits of 30 s each.
+  const long = teamWith([
+    createTeamBlock('citlali:skill'),
+    { ...createTeamBlock('mavuika:wait'), seconds: 30 },
+    { ...createTeamBlock('mavuika:wait'), seconds: 30 },
+    { ...createTeamBlock('mavuika:wait'), seconds: 20 },
+    createTeamBlock('mavuika:skill'),
+  ]);
+  const same = (first: TeamRun, second: TeamRun) => {
+    expect(first.duration).toBe(second.duration);
+    expect(first.countedDuration).toBe(second.countedDuration);
+    expect(first.totalDamage).toBeCloseTo(second.totalDamage, 6);
+    expect(first.trace.map((entry) => entry.startTime)).toEqual(
+      second.trace.map((entry) => entry.startTime)
+    );
+  };
+
+  it('gives the run it gave in two passes', () => {
+    same(runOwnRotation(short, 'expected'), twoPasses(short));
+    same(runOwnRotation(long, 'expected'), twoPasses(long));
+    // Shorter again after a long one (its length remembered).
+    same(runOwnRotation(short, 'expected'), twoPasses(short));
+    expect(runOwnRotation(long, 'expected').duration).toBeGreaterThan(80);
+  });
+
+  it('knows when a run ended before its rotation did', () => {
+    const cut = runTeam(long, 'expected');
+    expect(cut.rotationCutShort).toBe(true);
+    expect(runTeam(short, 'expected').rotationCutShort).toBe(false);
   });
 });
