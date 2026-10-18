@@ -1391,7 +1391,8 @@ export const buildInspectorView = (
             interval.start <= startFrame && startFrame < interval.end
         );
         const endsAt = span ? toSeconds(span.end) : null;
-        const after =
+        // Its hits, in order: which come before it ends and which after.
+        const hits =
           endsAt !== null && endsAt < action.end
             ? run.members
                 .find((entry) => entry.characterId === action.characterId)
@@ -1399,16 +1400,20 @@ export const buildInspectorView = (
                   (hit) =>
                     hit.blockUid === action.blockUid &&
                     hit.actionId === formId &&
-                    hit.time >= endsAt &&
+                    hit.time >= action.start &&
                     hit.time <= action.end
-                ).length ?? 0
-            : 0;
-        if (endsAt !== null && after > 0) {
-          const warning = `${status.label} ends ${(
-            endsAt - action.start
-          ).toFixed(1)} s into it: ${after} ${
-            after === 1 ? 'hit' : 'hits'
-          } after that`;
+                ) ?? []
+            : [];
+        const within = hits.filter(
+          (hit) => endsAt !== null && hit.time < endsAt
+        ).length;
+        if (endsAt !== null && within < hits.length) {
+          const total = hits.length;
+          const range = (from: number, to: number) =>
+            from === to ? `hit ${from}` : `hits ${from}–${to}`;
+          const warning = `${status.label} ends at ${endsAt.toFixed(2)} s: ${
+            within > 0 ? `${range(1, within)} of ${total} on it, ` : ''
+          }${range(within + 1, total)} after it`;
           action.warning = action.warning
             ? `${action.warning} · ${warning}`
             : warning;

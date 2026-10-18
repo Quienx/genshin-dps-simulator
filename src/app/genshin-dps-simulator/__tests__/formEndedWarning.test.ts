@@ -70,7 +70,7 @@ describe('a form whose status ended', () => {
     ]);
     expect(pieces[0].warning).toBeNull();
     expect(pieces[1].warning).toMatch(
-      /^Flamestrider ends \d+\.\d s into it: \d+ hits after that$/
+      /^Flamestrider ends at \d+\.\d\d s: hits 1–\d+ of \d+ on it, hits? \d+(–\d+)? after it$/
     );
   });
 });
