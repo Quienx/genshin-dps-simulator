@@ -51,6 +51,7 @@ import {
 
 // Blocks copied in edit mode (Ctrl/Cmd + C), for pasting in any team.
 let copiedBlocks: RotationBlock[] = [];
+import { runInBackground } from './simulationClient';
 import TimelineHeader, {
   TeamActions,
   TimelineScenario,
@@ -69,6 +70,7 @@ import { buildInspectorView } from '../../_lib/inspector';
 import { readNumber } from '../../_lib/readValue';
 import { removeBlocks, selectRange } from '../../_lib/rotation/blocks';
 import { RotationBlock, RotationSetting } from '../../_lib/rotation/types';
+import { executeRun, RunRequest } from '../../_lib/runRequest';
 import { parseValues } from '../../_lib/simulationValues';
 import {
   buildDefaultTeam,
@@ -83,10 +85,6 @@ import {
   isSwapAction,
   MAVUIKA_PRESETS,
   NEFER_PRESETS,
-  runInspectorTest,
-  runOwnRotation,
-  runSolo,
-  runTeam,
   TEAM_PRESET_ROTATION,
   TeamRun,
   TeamState,
@@ -111,9 +109,10 @@ type ScenarioRun = {
 };
 
 type Scenario = TimelineScenario & {
-  // Its members' default builds, and its run with any builds.
+  // Its members' default builds, and its run with any builds (as a request
+  // the simulation worker plays: see runRequest).
   defaults: () => SimulationValues[];
-  run: (members: SimulationValues[]) => TeamRun;
+  request: (members: SimulationValues[]) => RunRequest;
   // How its run plays, for a rotation of one's own (edit mode).
   setup: Pick<TeamState, 'fillWhileWaiting' | 'swapDelayFrames' | 'auras'>;
 };
@@ -145,7 +144,11 @@ const SCENARIOS: Scenario[] = [
     group: 'team',
     avatars: buildDefaultTeam().members.map((values) => values.character),
     defaults: () => buildDefaultTeam().members,
-    run: (members) => runTeam({ ...buildDefaultTeam(), members }, 'random'),
+    request: (members) => ({
+      kind: 'team',
+      team: { ...buildDefaultTeam(), members },
+      critMode: 'random',
+    }),
     setup: TEAM_SETUP,
   },
   ...[...MAVUIKA_PRESETS, ...NEFER_PRESETS].map(
@@ -155,8 +158,11 @@ const SCENARIOS: Scenario[] = [
       group: 'team',
       avatars: preset.members,
       defaults: () => buildPresetTeam(preset).members,
-      run: (members) =>
-        runTeam({ ...buildPresetTeam(preset), members }, 'random'),
+      request: (members) => ({
+        kind: 'team',
+        team: { ...buildPresetTeam(preset), members },
+        critMode: 'random',
+      }),
       setup: TEAM_SETUP,
     })
   ),
@@ -166,7 +172,7 @@ const SCENARIOS: Scenario[] = [
     group: 'team',
     avatars: INSPECTOR_TEST_IDS,
     defaults: () => INSPECTOR_TEST_IDS.map(buildMemberValues),
-    run: runInspectorTest,
+    request: (members) => ({ kind: 'inspector', members }),
     setup: TEAM_SETUP,
   },
   ...CHARACTER_LIST.map(
@@ -176,7 +182,7 @@ const SCENARIOS: Scenario[] = [
       group: 'solo',
       avatars: [character.id],
       defaults: () => [buildMemberValues(character.id)],
-      run: ([values]) => runSolo(values, 'random'),
+      request: ([values]) => ({ kind: 'solo', values, critMode: 'random' }),
       // As runSolo plays it.
       setup: { fillWhileWaiting: false, swapDelayFrames: 0, auras: false },
     })
@@ -228,18 +234,19 @@ const customScenario = (ids: string[]): Scenario => ({
   group: 'team',
   avatars: ids,
   defaults: () => ids.map(buildMemberValues),
-  run: (members) => {
+  request: (members) => {
     const inPreset = ids.every((id) =>
       TEAM_PRESET_ROTATION.some(([characterId]) => characterId === id)
     );
-    return runTeam(
-      {
+    return {
+      kind: 'team',
+      team: {
         members,
         rotation: inPreset ? buildPresetRotation(ids) : null,
         ...TEAM_SETUP,
       },
-      'random'
-    );
+      critMode: 'random',
+    };
   },
   setup: TEAM_SETUP,
 });
@@ -393,6 +400,9 @@ const CombatTimelinePage = () => {
   // Each run rolls the CRITs again; without builds, with the defaults.
   // (Run outside the state update, so it runs once.)
   const version = useRef(0);
+  // Played in the simulation worker: the page stays responsive meanwhile
+  // (it shows the last run), and a run asked for after another one wins.
+  const [simulating, setSimulating] = useState(false);
   const simulate = useCallback(
     (
       id: string,
@@ -400,15 +410,25 @@ const CombatTimelinePage = () => {
       ownSetup: OwnSetup | null = null
     ) => {
       const builds = members ?? scenarioOf(id).defaults();
-      // What the inspector and team snapshots read: each build's gear.
-      showBuilds(builds);
       version.current += 1;
-      setState({
-        members: builds,
-        run: ownSetup
-          ? runOwnRotation({ ...ownSetup, members: builds }, 'random')
-          : scenarioOf(id).run(builds),
-        version: version.current,
+      const asked = version.current;
+      setSimulating(true);
+      runInBackground(
+        ownSetup
+          ? {
+              kind: 'own',
+              team: { ...ownSetup, members: builds },
+              critMode: 'random',
+            }
+          : scenarioOf(id).request(builds)
+      ).then((run) => {
+        if (asked !== version.current) {
+          return;
+        }
+        // What the inspector and team snapshots read: each build's gear.
+        showBuilds(builds);
+        setState({ members: builds, run, version: asked });
+        setSimulating(false);
       });
     },
     []
@@ -516,7 +536,8 @@ const CombatTimelinePage = () => {
     const blocks =
       carried.length > 0
         ? carried
-        : buildRotationFromRun(scenarioOf(id).run(builds)).blocks;
+        : buildRotationFromRun(executeRun(scenarioOf(id).request(builds)))
+            .blocks;
     const next: OwnSetup = {
       ...scenarioOf(id).setup,
       rotation: { ...source, blocks },
@@ -670,6 +691,7 @@ const CombatTimelinePage = () => {
         }}
         // Again with the same builds (edited ones stay).
         onSimulate={() => simulate(scenario, state.members, own)}
+        simulating={simulating}
         onSaveBuild={(build) =>
           simulate(
             scenario,
@@ -808,6 +830,7 @@ const CombatTimeline = ({
   onTeamChange,
   teamActions,
   onSimulate,
+  simulating,
   version,
   onSaveBuild,
   share,
@@ -825,6 +848,8 @@ const CombatTimeline = ({
   onTeamChange: (ids: string[]) => void;
   teamActions: TeamActions | null;
   onSimulate: () => void;
+  // A run is being played in the worker (the last one is shown meanwhile).
+  simulating: boolean;
   version: number;
   onSaveBuild: (build: SimulationValues) => void;
   // Import / Export: what is on screen, and loading a friend's.
@@ -1322,6 +1347,7 @@ const CombatTimeline = ({
           }
           onFit={() => setPxPerSecond(fitted)}
           onSimulate={onSimulate}
+          simulating={simulating}
           scenarios={scenarios}
           scenario={scenario}
           onScenarioChange={onScenarioChange}

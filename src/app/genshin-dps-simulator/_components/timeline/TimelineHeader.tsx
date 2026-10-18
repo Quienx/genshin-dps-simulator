@@ -90,6 +90,8 @@ type TimelineHeaderProps = {
   onFit: () => void;
   // Runs the simulation again (new CRIT rolls).
   onSimulate: () => void;
+  // A run is being played (the button says so).
+  simulating?: boolean;
   scenarios: TimelineScenario[];
   scenario: string;
   onScenarioChange: (id: string) => void;
@@ -548,6 +550,7 @@ const TimelineHeader = ({
   onZoom,
   onFit,
   onSimulate,
+  simulating = false,
   scenarios,
   scenario,
   onScenarioChange,
@@ -657,11 +660,15 @@ const TimelineHeader = ({
         <button
           type='button'
           data-testid='timeline-simulate'
+          aria-busy={simulating}
           onClick={onSimulate}
           className='flex h-7 items-center gap-1.5 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white shadow hover:bg-sky-500'
         >
-          <Dices className='size-3.5' aria-hidden />
-          Simulate again
+          <Dices
+            className={cn('size-3.5', simulating && 'animate-spin')}
+            aria-hidden
+          />
+          {simulating ? 'Simulating…' : 'Simulate again'}
         </button>
       </div>
     </div>
