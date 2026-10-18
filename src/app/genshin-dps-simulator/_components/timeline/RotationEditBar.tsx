@@ -13,6 +13,13 @@ import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 import { payloadOf, TRASH_DROP_ID } from './rotationDnd';
 import SectionHelp from './SectionHelp';
 import { TimelineMember } from './TimelineChart';
@@ -223,26 +230,43 @@ const HoldControls = ({
           </Menu.Content>
         </Menu.Portal>
       </Menu.Root>
-      <button
-        type='button'
-        data-testid='timeline-block-keep-final'
-        aria-pressed={block.noFinal !== true}
-        disabled={!canCancel}
-        title={
-          canCancel
-            ? 'The Final hit after the spin (off: the spin is cancelled at the release, as a Dash right after does)'
-            : 'The Final hit always lands: nothing right after cancels the spin (put a Dash after it)'
-        }
-        onClick={() => onChange({ noFinal: !block.noFinal })}
-        className={cn(
-          'ml-2 rounded border px-2 py-0.5 disabled:cursor-not-allowed disabled:opacity-60',
-          block.noFinal !== true
-            ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
-            : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
-        )}
-      >
-        Final hit
-      </button>
+      {/* A disabled button gets no hover: the tooltip sits on a wrapper,
+          so it says why the Final cannot be turned off. */}
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              data-testid='timeline-block-keep-final-tip'
+              tabIndex={canCancel ? undefined : 0}
+              className='ml-2 inline-flex'
+            >
+              <button
+                type='button'
+                data-testid='timeline-block-keep-final'
+                aria-pressed={block.noFinal !== true}
+                disabled={!canCancel}
+                onClick={() => onChange({ noFinal: !block.noFinal })}
+                className={cn(
+                  'rounded border px-2 py-0.5 disabled:pointer-events-none disabled:opacity-60',
+                  block.noFinal !== true
+                    ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
+                    : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
+                )}
+              >
+                Final hit
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent
+            side='top'
+            className='max-w-64 border-slate-700 bg-slate-900 text-[11px] text-slate-200'
+          >
+            {canCancel
+              ? 'The Final hit after the spin. Off: the Dash right after cancels the spin at the release, with no Final, and it can be let go from 0.1 s.'
+              : 'Always on: nothing right after this Charged Attack cancels the spin, so the game plays its Final hit (after a 0.83 s spin at least). Put a Dash right after it to turn it off.'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </span>
   );
 };
