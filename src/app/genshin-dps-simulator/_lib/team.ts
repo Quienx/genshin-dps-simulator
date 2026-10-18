@@ -221,6 +221,36 @@ export const MAVUIKA_PRESETS: PresetTeam[] = [
   },
 ];
 
+// Nefer's Lunar-Bloom: Columbina's Gravity Ripple keeps Hydro on the
+// enemy, Nefer's Dendro hits make Lunar-Bloom, the party gathers Verdant Dew
+// (and Moonridge Dew in the Lunar Domain) and Nefer spends it on Phantasm
+// Performance (3 per E, both E charges per cycle). About 20 s per cycle.
+export const NEFER_PRESETS: PresetTeam[] = [
+  {
+    id: 'nefer-columbina',
+    label: 'Nefer + Columbina (Lunar-Bloom)',
+    members: ['nefer', 'columbina'],
+    cycle: [
+      ['columbina', 'skill'],
+      ['columbina', 'burst'],
+      ['nefer', 'skill'],
+      ...[1, 2, 3].flatMap((): PresetStep[] => [
+        ['nefer', 'normal', 2],
+        ['nefer', 'charged'],
+      ]),
+      ['nefer', 'burst'],
+      ['nefer', 'skill'],
+      ...[1, 2, 3].flatMap((): PresetStep[] => [
+        ['nefer', 'normal', 2],
+        ['nefer', 'charged'],
+      ]),
+    ],
+    // Two members only: few particles, so both need a lot of ER for a Q
+    // every cycle (checked over rolled runs).
+    energyRecharge: { nefer: 250, columbina: 300 },
+  },
+];
+
 export const TEAM_SIZE = 4;
 
 export type TeamState = {
@@ -1010,7 +1040,8 @@ const holdsAt = (
   return false;
 };
 
-const MECHANIC_IDS = ['nightsoul', 'bondOfLife'];
+// Verdant Dew: the party's, shown on each member that uses it.
+const MECHANIC_IDS = ['nightsoul', 'bondOfLife', 'verdantDew'];
 
 // The track only knows the charges it has seen used: the talent says how
 // many there are (Varesa's E has 2 before her first use).

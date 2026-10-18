@@ -316,6 +316,105 @@ const recordHit = (
   });
 };
 
+// A Lunar hit (gcsim's direct Lunar attack, a hit of a Lunar category):
+// the talent's base DMG (`statDamage`, every stat part) × (1 + Base DMG
+// bonus), × the reaction's multiplier and its (1 + EM bonus + Lunar DMG
+// bonus), plus flat DMG; it ignores DEF and DMG Bonus, then RES,
+// × (1 + Elevation) and CRIT. In the log, `baseDamage` × `reactionMultiplier`
+// (the Lunar and Elevation factors) is that DMG before RES and CRIT.
+export const addLunarHit = (
+  context: DamageContext,
+  {
+    time = 0,
+    category,
+    element,
+    stat,
+    multiplier,
+    statDamage,
+    flatDamage = 0,
+    baseBonus = 0,
+    lunarMultiplier,
+    elevation = 0,
+    extraCrit = 0,
+    extraCritDamage = 0,
+    resShred = 0,
+    notes = '',
+    actionId,
+    sourceId,
+    effectIds,
+    blockUid,
+  }: {
+    time?: number;
+    category: string;
+    element: DamageElement;
+    // The main stat's total and the talent % (for the log).
+    stat: number;
+    multiplier: number;
+    statDamage: number;
+    flatDamage?: number;
+    // Fractions.
+    baseBonus?: number;
+    lunarMultiplier: number;
+    elevation?: number;
+    extraCrit?: number;
+    extraCritDamage?: number;
+    resShred?: number;
+    notes?: string;
+  } & HitOrigin
+) => {
+  const { values } = context;
+  const baseDamage =
+    Math.max(0, statDamage) * Math.max(0, 1 + baseBonus) +
+    flatDamage / lunarMultiplier;
+  const reactionMultiplier = lunarMultiplier * Math.max(0, 1 + elevation);
+  const critRate = clamp(readNumber(values, 'cr') / 100 + extraCrit, 0, 1);
+  const critDamage = Math.max(
+    0,
+    readNumber(values, 'cd') / 100 + extraCritDamage
+  );
+  const isCrit = rollCrit(context.critMode, critRate);
+  const resistance =
+    resShred === 0
+      ? context.resistanceByElement[element]
+      : getEnemyResistanceMultiplier(values, element, resShred);
+  const critMultiplier = getAppliedCritMultiplier(
+    context.critMode,
+    isCrit,
+    critRate,
+    critDamage
+  );
+  const damage = baseDamage * reactionMultiplier * resistance * critMultiplier;
+  recordHit(context, {
+    time,
+    category,
+    element,
+    multiplier,
+    stacks: null,
+    baseDamage,
+    totalBonus: 0,
+    extraBonus: 0,
+    critRate,
+    critDamage,
+    extraCrit: extraCrit * 100,
+    isCrit,
+    stat,
+    // A hit of its own action, not a reaction's explosion.
+    reaction: 'None',
+    reactionMultiplier,
+    flatDamage,
+    critMultiplier,
+    defMultiplier: 1,
+    resMultiplier: resistance,
+    notes,
+    damage,
+    maxDamage: baseDamage * reactionMultiplier * resistance * (1 + critDamage),
+    actionId,
+    sourceId,
+    effectIds,
+    blockUid,
+  });
+};
+
 // A transformative reaction's hit (Overloaded): its own base DMG, reduced
 // only by the enemy's RES to its element. It never CRITs.
 export const addTransformativeHit = (

@@ -185,7 +185,7 @@ export const computeScreenStats = (
     hp: character.baseStats.hp * (1 + sum('hpPercent') / 100) + sum('flatHp'),
     def:
       character.baseStats.def * (1 + sum('defPercent') / 100) + sum('flatDef'),
-    em: sum('elementalMastery'),
+    em: character.baseStats.em + sum('elementalMastery'),
     cr: sum('critRate'),
     cd: sum('critDamage'),
     energyRecharge: sum('energyRecharge'),

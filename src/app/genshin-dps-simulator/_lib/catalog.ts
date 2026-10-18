@@ -7,9 +7,11 @@ import celestialGiftSet from '../_data/sets/celestial-gift.json';
 import fragmentOfHarmonicWhimsySet from '../_data/sets/fragment-of-harmonic-whimsy.json';
 import goldenTroupeSet from '../_data/sets/golden-troupe.json';
 import longNightsOathSet from '../_data/sets/long-nights-oath.json';
+import nightOfTheSkysUnveilingSet from '../_data/sets/night-of-the-skys-unveiling.json';
 import noblesseObligeSet from '../_data/sets/noblesse-oblige.json';
 import obsidianCodexSet from '../_data/sets/obsidian-codex.json';
 import scrollOfTheHeroOfCinderCitySet from '../_data/sets/scroll-of-the-hero-of-cinder-city.json';
+import silkenMoonsSerenadeSet from '../_data/sets/silken-moons-serenade.json';
 import songOfDaysPastSet from '../_data/sets/song-of-days-past.json';
 import viridescentVenererSet from '../_data/sets/viridescent-venerer.json';
 import aThousandBlazingSunsWeapon from '../_data/weapons/a-thousand-blazing-suns.json';
@@ -19,6 +21,8 @@ import crimsonMoonsSemblanceWeapon from '../_data/weapons/crimson-moons-semblanc
 import favoniusLanceWeapon from '../_data/weapons/favonius-lance.json';
 import favoniusSwordWeapon from '../_data/weapons/favonius-sword.json';
 import lostPrayerToTheSacredWindsWeapon from '../_data/weapons/lost-prayer-to-the-sacred-winds.json';
+import nocturnesCurtainCallWeapon from '../_data/weapons/nocturnes-curtain-call.json';
+import reliquaryOfTruthWeapon from '../_data/weapons/reliquary-of-truth.json';
 import starcallersWatchWeapon from '../_data/weapons/starcallers-watch.json';
 import surfsUpWeapon from '../_data/weapons/surfs-up.json';
 import symphonistOfScentsWeapon from '../_data/weapons/symphonist-of-scents.json';
@@ -42,6 +46,8 @@ const WEAPONS = byId([
   favoniusLanceWeapon,
   favoniusSwordWeapon,
   lostPrayerToTheSacredWindsWeapon,
+  nocturnesCurtainCallWeapon,
+  reliquaryOfTruthWeapon,
   starcallersWatchWeapon,
   surfsUpWeapon,
   symphonistOfScentsWeapon,
@@ -53,9 +59,11 @@ const SETS = byId([
   fragmentOfHarmonicWhimsySet,
   goldenTroupeSet,
   longNightsOathSet,
+  nightOfTheSkysUnveilingSet,
   noblesseObligeSet,
   obsidianCodexSet,
   scrollOfTheHeroOfCinderCitySet,
+  silkenMoonsSerenadeSet,
   songOfDaysPastSet,
   viridescentVenererSet,
 ]);

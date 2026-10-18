@@ -253,9 +253,16 @@ export const characterSchema = z.object({
     hp: z.number().positive(),
     atk: z.number().positive(),
     def: z.number().positive(),
+    // Innate Elemental Mastery (gcsim's ElementMastery: Nefer's 100).
+    em: z.number().min(0).default(0),
   }),
   // The level 90 ascension bonus (Project Amber's specialProp).
   ascensionStat: z.object({ stat: screenStatSchema, value: z.number() }),
+  // Nod-Krai: what this character adds to the party's Moonsign (gcsim's
+  // `Moonsign`), and the reactions it turns Lunar for the whole party
+  // ("Lunar-Bloom": Bloom becomes Lunar-Bloom).
+  moonsign: z.number().int().min(0).default(0),
+  lunarReactions: z.array(z.enum(['Lunar-Bloom'])).default([]),
   icons: z.object({ avatar: z.string() }),
   talents: z.array(talentSchema).min(1),
   // Kit pieces from talents, passives and constellations; the weapon and

@@ -1,0 +1,189 @@
+{
+  "id": "reliquary-of-truth",
+  "name": "Reliquary of Truth",
+  "icon": "UI_EquipIcon_Catalyst_Sistrum",
+  "type": "Catalyst",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "reliquaryOfTruth",
+  "refinementField": "reliquaryOfTruthRefinement",
+  "baseAtk": 542,
+  "substat": {
+    "stat": "critDamage",
+    "value": 88.2
+  },
+  "rows": [
+    {
+      "id": "weapon-cr",
+      "label": "R{refinement} passive: CRIT Rate",
+      "status": "included",
+      "template": "+{param:cr}% CRIT Rate",
+      "params": {
+        "cr": [8, 10, 12, 14, 16]
+      },
+      "screenStat": {
+        "stat": "critRate",
+        "param": "cr"
+      }
+    },
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive: Essence of Falsity",
+      "status": "toggle",
+      "template": "Secret of Lies: +{param:em} EM for 12 s after the E (on the field). Moon of Truth: +{param:cd}% CRIT DMG for 4 s after dealing Lunar-Bloom DMG. Both at once: each 50% more.",
+      "params": {
+        "em": [80, 100, 120, 140, 160],
+        "cd": [24, 30, 36, 42, 48]
+      }
+    }
+  ],
+  "passive": {
+    "name": "Essence of Falsity",
+    "descriptions": [
+      "CRIT Rate is increased by 8%. When the equipping character unleashes an Elemental Skill, they gain the Secret of Lies effect: Elemental Mastery is increased by 80 for 12s. When the equipping character deals Lunar-Bloom DMG to an opponent, they gain the Moon of Truth effect: CRIT DMG is increased by 24% for 4s. When both the Secret of Lies and Moon of Truth effects are active at the same time, the results of both effects will be increased by 50%.",
+      "CRIT Rate is increased by 10%. When the equipping character unleashes an Elemental Skill, they gain the Secret of Lies effect: Elemental Mastery is increased by 100 for 12s. When the equipping character deals Lunar-Bloom DMG to an opponent, they gain the Moon of Truth effect: CRIT DMG is increased by 30% for 4s. When both the Secret of Lies and Moon of Truth effects are active at the same time, the results of both effects will be increased by 50%.",
+      "CRIT Rate is increased by 12%. When the equipping character unleashes an Elemental Skill, they gain the Secret of Lies effect: Elemental Mastery is increased by 120 for 12s. When the equipping character deals Lunar-Bloom DMG to an opponent, they gain the Moon of Truth effect: CRIT DMG is increased by 36% for 4s. When both the Secret of Lies and Moon of Truth effects are active at the same time, the results of both effects will be increased by 50%.",
+      "CRIT Rate is increased by 14%. When the equipping character unleashes an Elemental Skill, they gain the Secret of Lies effect: Elemental Mastery is increased by 140 for 12s. When the equipping character deals Lunar-Bloom DMG to an opponent, they gain the Moon of Truth effect: CRIT DMG is increased by 42% for 4s. When both the Secret of Lies and Moon of Truth effects are active at the same time, the results of both effects will be increased by 50%.",
+      "CRIT Rate is increased by 16%. When the equipping character unleashes an Elemental Skill, they gain the Secret of Lies effect: Elemental Mastery is increased by 160 for 12s. When the equipping character deals Lunar-Bloom DMG to an opponent, they gain the Moon of Truth effect: CRIT DMG is increased by 48% for 4s. When both the Secret of Lies and Moon of Truth effects are active at the same time, the results of both effects will be increased by 50%."
+    ]
+  },
+  "blocks": [
+    {
+      "id": "secretOfLies",
+      "type": "status",
+      "source": "weapon",
+      "label": "Reliquary of Truth: Secret of Lies",
+      "ifFlag": "reliquaryOfTruth",
+      "durationFrames": 720
+    },
+    {
+      "id": "moonOfTruth",
+      "type": "status",
+      "source": "weapon",
+      "label": "Reliquary of Truth: Moon of Truth",
+      "ifFlag": "reliquaryOfTruth",
+      "durationFrames": 240
+    },
+    {
+      "id": "reliquary-secret-trigger",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "E on the field: Secret of Lies",
+      "ifFlag": "reliquaryOfTruth",
+      "when": {
+        "use": "skill"
+      },
+      "if": {
+        "onField": true
+      },
+      "do": [
+        {
+          "applyStatus": "secretOfLies"
+        }
+      ]
+    },
+    {
+      "id": "reliquary-moon-trigger",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Lunar-Bloom DMG: Moon of Truth",
+      "ifFlag": "reliquaryOfTruth",
+      "when": {
+        "hit": "category:Lunar-Bloom"
+      },
+      "do": [
+        {
+          "applyStatus": "moonOfTruth"
+        }
+      ]
+    },
+    {
+      "id": "reliquary-em",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Reliquary of Truth: Secret of Lies EM",
+      "ifFlag": "reliquaryOfTruth",
+      "stat": "elementalMastery",
+      "value": [80, 100, 120, 140, 160],
+      "scaleBy": {
+        "field": "reliquaryOfTruthRefinement"
+      },
+      "while": {
+        "secretOfLies": {
+          "gte": 1
+        },
+        "moonOfTruth": {
+          "lt": 1
+        }
+      }
+    },
+    {
+      "id": "reliquary-em-both",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Reliquary of Truth: Secret of Lies EM (both)",
+      "ifFlag": "reliquaryOfTruth",
+      "stat": "elementalMastery",
+      "value": [120, 150, 180, 210, 240],
+      "scaleBy": {
+        "field": "reliquaryOfTruthRefinement"
+      },
+      "while": {
+        "secretOfLies": {
+          "gte": 1
+        },
+        "moonOfTruth": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "reliquary-cd",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Reliquary of Truth: Moon of Truth CRIT DMG",
+      "ifFlag": "reliquaryOfTruth",
+      "stat": "critDamage",
+      "value": [24, 30, 36, 42, 48],
+      "scaleBy": {
+        "field": "reliquaryOfTruthRefinement"
+      },
+      "while": {
+        "moonOfTruth": {
+          "gte": 1
+        },
+        "secretOfLies": {
+          "lt": 1
+        }
+      }
+    },
+    {
+      "id": "reliquary-cd-both",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Reliquary of Truth: Moon of Truth CRIT DMG (both)",
+      "ifFlag": "reliquaryOfTruth",
+      "stat": "critDamage",
+      "value": [36, 45, 54, 63, 72],
+      "scaleBy": {
+        "field": "reliquaryOfTruthRefinement"
+      },
+      "while": {
+        "moonOfTruth": {
+          "gte": 1
+        },
+        "secretOfLies": {
+          "gte": 1
+        }
+      }
+    }
+  ],
+  "defaults": {
+    "numbers": {
+      "reliquaryOfTruthRefinement": 1
+    },
+    "flags": {
+      "reliquaryOfTruth": true
+    }
+  }
+}

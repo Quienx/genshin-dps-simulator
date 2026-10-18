@@ -20,6 +20,7 @@ import {
   findByName,
   GCSIM,
   GCSIM_API,
+  GCSIM_API_REF,
   inCatalog,
   Json,
   level90,
@@ -122,7 +123,9 @@ run(async () => {
   );
   const tables = parseDmTables(dm);
   const goFiles: string[] = (
-    (await fetchJson(`${GCSIM_API}/characters/${key}`)) as unknown as Json[]
+    (await fetchJson(
+      `${GCSIM_API}/characters/${key}${GCSIM_API_REF}`
+    )) as unknown as Json[]
   )
     .map((file) => file.name)
     .filter((name: string) => name.endsWith('.go'));

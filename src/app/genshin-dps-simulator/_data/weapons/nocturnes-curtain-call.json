@@ -1,0 +1,179 @@
+{
+  "id": "nocturnes-curtain-call",
+  "name": "Nocturne's Curtain Call",
+  "icon": "UI_EquipIcon_Catalyst_Brisingamen",
+  "type": "Catalyst",
+  "rarity": 5,
+  "level": 90,
+  "enabledFlag": "nocturnesCurtainCall",
+  "refinementField": "nocturnesCurtainCallRefinement",
+  "baseAtk": 542,
+  "substat": {
+    "stat": "critDamage",
+    "value": 88.2
+  },
+  "rows": [
+    {
+      "id": "weapon-hp",
+      "label": "R{refinement} passive: Max HP",
+      "status": "included",
+      "template": "+{param:hp}% Max HP",
+      "params": {
+        "hp": [10, 12, 14, 16, 18]
+      },
+      "screenStat": {
+        "stat": "hpPercent",
+        "param": "hp"
+      }
+    },
+    {
+      "id": "weapon-passive",
+      "label": "R{refinement} passive",
+      "status": "toggle",
+      "template": "After a Lunar reaction or Lunar DMG of the wielder: +{param:energy} Energy (once every 18 s), and for 12 s +{param:hp}% Max HP and +{param:cd}% CRIT DMG on Lunar DMG.",
+      "params": {
+        "energy": [14, 15, 16, 17, 18],
+        "hp": [14, 16, 18, 20, 22],
+        "cd": [60, 80, 100, 120, 140]
+      },
+      "note": "The Energy is R1's 14 at every refinement."
+    }
+  ],
+  "passive": {
+    "name": "Ballad of the Crossroads",
+    "descriptions": [
+      "Max HP increases by 10%. When triggering Lunar reactions or inflicting Lunar Reaction DMG on opponents, the equipping character will recover 14 Energy, and receive the Bountiful Sea's Sacred Wine effect for 12s: Max HP increases by an additional 14%, CRIT DMG from Lunar Reaction DMG increases by 60%. The Energy recovery effect can be triggered at most once every 18s, and can be triggered even when the equipping character is off-field.",
+      "Max HP increases by 12%. When triggering Lunar reactions or inflicting Lunar Reaction DMG, the equipping character will recover 15 Energy, and receive the Bountiful Sea's Sacred Wine effect for 12s: Max HP increases by an additional 16%, CRIT DMG from Lunar Reaction DMG increases by 80%. The Energy recovery effect can be triggered at most once every 18s, and can be triggered even when the equipping character is off-field.",
+      "Max HP increases by 14%. When triggering Lunar reactions or inflicting Lunar Reaction DMG, the equipping character will recover 16 Energy, and receive the Bountiful Sea's Sacred Wine effect for 12s: Max HP increases by an additional 18%, CRIT DMG from Lunar Reaction DMG increases by 100%. The Energy recovery effect can be triggered at most once every 18s, and can be triggered even when the equipping character is off-field.",
+      "Max HP increases by 16%. When triggering Lunar reactions or inflicting Lunar Reaction DMG, the equipping character will recover 17 Energy, and receive the Bountiful Sea's Sacred Wine effect for 12s: Max HP increases by an additional 20%, CRIT DMG from Lunar Reaction DMG increases by 120%. The Energy recovery effect can be triggered at most once every 18s, and can be triggered even when the equipping character is off-field.",
+      "Max HP increases by 18%. When triggering Lunar reactions or inflicting Lunar Reaction DMG, the equipping character will recover 18 Energy, and receive the Bountiful Sea's Sacred Wine effect for 12s: Max HP increases by an additional 22%, CRIT DMG from Lunar Reaction DMG increases by 140%. The Energy recovery effect can be triggered at most once every 18s, and can be triggered even when the equipping character is off-field."
+    ]
+  },
+  "blocks": [
+    {
+      "id": "curtainCall",
+      "type": "status",
+      "source": "weapon",
+      "label": "Nocturne's Curtain Call: Bountiful Sea's Sacred Wine",
+      "ifFlag": "nocturnesCurtainCall",
+      "durationFrames": 720
+    },
+    {
+      "id": "curtainCallEnergyCooldown",
+      "type": "status",
+      "source": "weapon",
+      "label": "Nocturne's Curtain Call: Energy cooldown",
+      "ifFlag": "nocturnesCurtainCall",
+      "durationFrames": 1080
+    },
+    {
+      "id": "nocturne-on-lunar-hit",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Lunar DMG: HP, Lunar CRIT DMG (and Energy)",
+      "ifFlag": "nocturnesCurtainCall",
+      "when": {
+        "hit": "category:Lunar-Bloom"
+      },
+      "do": [
+        {
+          "applyStatus": "curtainCall"
+        },
+        {
+          "addResource": "energy",
+          "amount": 14,
+          "if": {
+            "not": {
+              "status": "curtainCallEnergyCooldown"
+            }
+          }
+        },
+        {
+          "applyStatus": "curtainCallEnergyCooldown",
+          "if": {
+            "not": {
+              "status": "curtainCallEnergyCooldown"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "nocturne-on-lunar-reaction",
+      "type": "trigger",
+      "source": "weapon",
+      "label": "Lunar reaction: HP, Lunar CRIT DMG (and Energy)",
+      "ifFlag": "nocturnesCurtainCall",
+      "when": {
+        "hit": "reaction:Lunar-Bloom"
+      },
+      "do": [
+        {
+          "applyStatus": "curtainCall"
+        },
+        {
+          "addResource": "energy",
+          "amount": 14,
+          "if": {
+            "not": {
+              "status": "curtainCallEnergyCooldown"
+            }
+          }
+        },
+        {
+          "applyStatus": "curtainCallEnergyCooldown",
+          "if": {
+            "not": {
+              "status": "curtainCallEnergyCooldown"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "nocturne-hp",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Nocturne's Curtain Call: Max HP",
+      "ifFlag": "nocturnesCurtainCall",
+      "stat": "hpPercent",
+      "value": [14, 16, 18, 20, 22],
+      "scaleBy": {
+        "field": "nocturnesCurtainCallRefinement"
+      },
+      "while": {
+        "curtainCall": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "nocturne-cd",
+      "type": "bonus",
+      "source": "weapon",
+      "label": "Nocturne's Curtain Call: Lunar CRIT DMG",
+      "ifFlag": "nocturnesCurtainCall",
+      "stat": "critDamage",
+      "value": [60, 80, 100, 120, 140],
+      "scaleBy": {
+        "field": "nocturnesCurtainCallRefinement"
+      },
+      "match": {
+        "categories": ["Lunar-Bloom"]
+      },
+      "while": {
+        "curtainCall": {
+          "gte": 1
+        }
+      }
+    }
+  ],
+  "defaults": {
+    "numbers": {
+      "nocturnesCurtainCallRefinement": 1
+    },
+    "flags": {
+      "nocturnesCurtainCall": true
+    }
+  }
+}

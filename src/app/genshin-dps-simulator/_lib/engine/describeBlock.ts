@@ -35,6 +35,10 @@ const STAT_NAMES: Record<BonusStat, string> = {
   defReduction: 'DEF reduction',
   defIgnore: 'DEF ignored',
   resShred: 'RES shred',
+  lunarBonus: 'Lunar DMG',
+  lunarBaseBonus: 'Lunar Base DMG',
+  elevation: 'Elevation',
+  multiplierBonus: 'multiplier increase',
 };
 
 const FLAT_STATS: BonusStat[] = [

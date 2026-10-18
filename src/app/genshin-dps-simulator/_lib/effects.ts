@@ -88,6 +88,12 @@ export type HitBonuses = {
   defIgnore: number;
   // RES points.
   resShred: number;
+  // Fractions: Lunar DMG bonus, Lunar Base DMG bonus, Elevation, and the
+  // talent multiplier's increase.
+  lunarBonus: number;
+  lunarBaseBonus: number;
+  elevation: number;
+  multiplierBonus: number;
   // Stat totals with every bonus (the sheet's when no sheet was given).
   stats: Record<SheetStat, number>;
   activeEffectIds: string[];
@@ -211,6 +217,10 @@ const STAT_NOTE_LABELS: Partial<Record<BonusStat, string>> = {
   defReduction: 'DEF reduction',
   defIgnore: 'DEF ignored',
   resShred: 'RES shred',
+  lunarBonus: 'Lunar DMG',
+  lunarBaseBonus: 'Lunar Base DMG',
+  elevation: 'Elevation',
+  multiplierBonus: 'multiplier',
 };
 
 const formatSigned = (value: number, stat: BonusStat): string => {
@@ -337,6 +347,10 @@ export const sumHitBonuses = (
     defReduction: sumStat(actives, 'defReduction') / 100,
     defIgnore: sumStat(actives, 'defIgnore') / 100,
     resShred: sumStat(actives, 'resShred'),
+    lunarBonus: sumStat(actives, 'lunarBonus') / 100,
+    lunarBaseBonus: sumStat(actives, 'lunarBaseBonus') / 100,
+    elevation: sumStat(actives, 'elevation') / 100,
+    multiplierBonus: sumStat(actives, 'multiplierBonus') / 100,
     stats: getStatTotals(actives, sheet),
     activeEffectIds: actives.map((active) => active.effect.id),
     notes: buildNotes(actives),

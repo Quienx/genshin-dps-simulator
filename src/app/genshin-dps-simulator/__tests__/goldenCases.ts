@@ -32,6 +32,9 @@ const constellationCases = (character: CharacterId): Case[] =>
 
 export const CASES: Case[] = [
   ...constellationCases('arlecchino'),
+  // Alone, without Hydro: no Lunar-Bloom, no Dew.
+  { id: 'nefer/default', character: 'nefer', changes: [] },
+  { id: 'columbina/default', character: 'columbina', changes: [] },
   {
     id: 'arlecchino/no-wait-blood-debt',
     character: 'arlecchino',
@@ -292,6 +295,32 @@ export const TEAM_CASES: TeamCase[] = [
       { character: 'varesa', changes: [] },
     ],
     rotation: VARESA_TEAM_ROTATION,
+  },
+  {
+    // Lunar-Bloom: the rotation checked against gcsim (lunarBloom.test.ts)
+    // with her Q and second E.
+    id: 'team/nefer-columbina',
+    members: [
+      { character: 'columbina', changes: [] },
+      { character: 'nefer', changes: [] },
+    ],
+    rotation: [
+      ['columbina', 'skill'],
+      ['columbina', 'burst'],
+      ['nefer', 'skill'],
+      ...[1, 2, 3].flatMap((): [CharacterId, string][] => [
+        ['nefer', 'normal'],
+        ['nefer', 'normal'],
+        ['nefer', 'charged'],
+      ]),
+      ['nefer', 'burst'],
+      ['nefer', 'skill'],
+      ...[1, 2, 3].flatMap((): [CharacterId, string][] => [
+        ['nefer', 'normal'],
+        ['nefer', 'normal'],
+        ['nefer', 'charged'],
+      ]),
+    ],
   },
 ];
 

@@ -1,0 +1,954 @@
+{
+  "id": "columbina",
+  "name": "Columbina",
+  "element": "Hydro",
+  "weaponType": "Catalyst",
+  "rarity": 5,
+  "scalingStat": "hp",
+  "baseStats": {
+    "hp": 14695,
+    "atk": 96,
+    "def": 515
+  },
+  "ascensionStat": {
+    "stat": "critRate",
+    "value": 19.2
+  },
+  "moonsign": 1,
+  "lunarReactions": ["Lunar-Bloom"],
+  "icons": {
+    "avatar": "UI_AvatarIcon_Columbina"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Moondew Cascade",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nSummons Moonlit Tides, performing up to 3 attacks that deal Hydro DMG.\n\nCharged Attack\nConsumes a certain amount of Stamina to deal AoE Hydro DMG after a short casting time.\nIf you have at least 1 Verdant Dew, Columbina's Charged Attacks will be replaced with the special Charged Attack Moondew Cleanse, which will not consume Stamina: Consume 1 Verdant Dew to deal 3 instances of AoE Dendro DMG to opponents in front. This DMG is considered Lunar-Bloom DMG.\n\nPlunging Attack\nPlunges towards the ground from mid-air, damaging all opponents in her path. Deals AoE Hydro DMG upon impact with the ground.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                46.79, 50.3, 53.81, 58.49, 62, 65.51, 70.19, 74.87, 79.55,
+                84.23, 88.9, 93.58, 99.43, 105.28, 111.13
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [23],
+            "end": 36,
+            "cancels": {
+              "normal": 24,
+              "charged": 24
+            },
+            "element": "Hydro",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                36.63, 39.37, 42.12, 45.78, 48.53, 51.28, 54.94, 58.6, 62.26,
+                65.93, 69.59, 73.25, 77.83, 82.41, 86.99
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [20],
+            "end": 37,
+            "cancels": {
+              "normal": 20,
+              "charged": 33
+            },
+            "element": "Hydro",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-3",
+          "label": "3-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                58.48, 62.87, 67.26, 73.11, 77.49, 81.88, 87.73, 93.57, 99.42,
+                105.27, 111.12, 116.97, 124.28, 131.59, 138.9
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [41],
+            "end": 76,
+            "cancels": {
+              "normal": 74,
+              "charged": 71
+            },
+            "element": "Hydro",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                116.08, 124.79, 133.49, 145.1, 153.81, 162.51, 174.12, 185.73,
+                197.34, 208.94, 220.55, 232.16, 246.67, 261.18, 275.69
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [72],
+            "end": 101,
+            "cancels": {
+              "normal": 94,
+              "skill": 57,
+              "burst": 57,
+              "dodge": 57,
+              "swap": 57
+            },
+            "element": "Hydro",
+            "note": "From standing: a 15-frame windup before gcsim's hitmark (57)."
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "chargeLB",
+          "label": "Moondew Cleanse DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                1.51, 1.62, 1.74, 1.89, 2, 2.12, 2.27, 2.42, 2.57, 2.72, 2.87,
+                3.02, 3.21, 3.4, 3.59
+              ]
+            }
+          ],
+          "note": "Lunar-Bloom DMG, 3 hits."
+        }
+      ],
+      "forms": [
+        {
+          "id": "moondewCleanse",
+          "replaces": "charged",
+          "while": {
+            "any": [
+              {
+                "resource": "verdantDew",
+                "gte": 1
+              },
+              {
+                "resource": "moonridgeDew",
+                "gte": 1
+              }
+            ]
+          },
+          "label": "Moondew Cleanse",
+          "shortLabel": "Moondew",
+          "end": 124,
+          "cancels": {
+            "normal": 82,
+            "charged": 80,
+            "skill": 43,
+            "burst": 43,
+            "dodge": 43,
+            "swap": 43
+          },
+          "hits": [
+            {
+              "row": "normalAttack/chargeLB",
+              "frame": 62,
+              "category": "Lunar-Bloom",
+              "element": "Dendro",
+              "gauge": 0
+            },
+            {
+              "row": "normalAttack/chargeLB",
+              "frame": 70,
+              "category": "Lunar-Bloom",
+              "element": "Dendro",
+              "gauge": 0
+            },
+            {
+              "row": "normalAttack/chargeLB",
+              "frame": 92,
+              "category": "Lunar-Bloom",
+              "element": "Dendro",
+              "gauge": 0
+            }
+          ],
+          "note": "With Verdant (or Moonridge) Dew: spends 1 at 55 for 3 Lunar-Bloom hits of her Max HP (gcsim, 12-frame windup)."
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Eternal Tides",
+      "icon": "Skill_S_Columbina_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "description": "Awaken Moonbound Tides, dealing AoE Hydro DMG and summoning Gravity Ripple.\nGravity Ripple will follow the active character on the field, while continuously dealing AoE Hydro DMG to surrounding opponents. While Gravity Ripple is on the field, and nearby party members trigger Lunar reactions or inflict Lunar Reaction DMG, Columbina will accrue a special Gravity. Once Gravity is accumulated to its limit, different types of damage will be dealt to enemies based on the type of Lunar Reaction that has accumulated the most Gravity for Columbina.\nMoonsign: Ascendant Gleam: Gravity Ripple inflicts AoE Hydro DMG over a wider area.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                16.72, 17.97, 19.23, 20.9, 22.15, 23.41, 25.08, 26.75, 28.42,
+                30.1, 31.77, 33.44, 35.53, 37.62, 39.71
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [21]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "skillDoT",
+          "label": "Gravity Ripple Continuous DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                9.36, 10.06, 10.76, 11.7, 12.4, 13.1, 14.04, 14.98, 15.91,
+                16.85, 17.78, 18.72, 19.89, 21.06, 22.23
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "skillLB",
+          "label": "Gravity Interference: Lunar-Bloom DMG (per hit)",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                1.41, 1.51, 1.62, 1.76, 1.87, 1.97, 2.11, 2.25, 2.39, 2.53,
+                2.68, 2.82, 2.99, 3.17, 3.34
+              ]
+            }
+          ],
+          "hits": 5
+        },
+        {
+          "type": "text",
+          "id": "skill-cd",
+          "label": "Duration / Cooldown",
+          "value": "25 s / 17 s"
+        }
+      ],
+      "end": 41,
+      "cancels": {
+        "charged": 40,
+        "skill": 28,
+        "burst": 28,
+        "dodge": 27,
+        "swap": 26
+      },
+      "cooldown": {
+        "frames": 1020,
+        "delayFrames": 20
+      },
+      "note": "Gravity Ripple for 25 s: Hydro DMG every 117 frames; Lunar reactions and Lunar DMG fill Gravity (10 per second, for 2 s each), and 60 Gravity fire Gravity Interference (5 Lunar-Bloom hits)."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Moonlit Melancholy",
+      "icon": "Skill_E_Columbina_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "description": "Hills and tides unite under the silver light of a pristine new moon. Temporarily transforms the surrounding terrain into Lunar Domain, dealing  AoE Hydro DMG.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "hp",
+              "values": [
+                32.24, 34.66, 37.08, 40.3, 42.72, 45.14, 48.36, 51.58, 54.81,
+                58.03, 61.26, 64.48, 68.51, 72.54, 76.57
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [110],
+            "gauge": 2
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "burstBuff",
+          "label": "Lunar Reaction DMG Bonus",
+          "components": [
+            {
+              "stat": "flat",
+              "values": [
+                13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46, 49, 52, 55
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "burst-cd",
+          "label": "Duration / Cooldown",
+          "value": "20 s / 15 s"
+        }
+      ],
+      "end": 131,
+      "cancels": {
+        "charged": 130,
+        "skill": 122,
+        "dodge": 122,
+        "swap": 122
+      },
+      "cooldown": {
+        "frames": 900
+      },
+      "energyCost": 60,
+      "note": "Lunar Domain for 20 s (from frame 86, lingering 1.2 s): Lunar DMG of the party increased."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "gravityRipple",
+      "type": "status",
+      "source": "talent",
+      "label": "Gravity Ripple",
+      "durationFrames": 1500,
+      "icon": "Skill_S_Columbina_01",
+      "ticks": {
+        "everyFrames": 117,
+        "count": 12,
+        "row": "elementalSkill/skillDoT",
+        "element": "Hydro",
+        "category": "Skill"
+      }
+    },
+    {
+      "id": "gravity",
+      "type": "resource",
+      "source": "talent",
+      "label": "Gravity",
+      "min": 0,
+      "max": 60
+    },
+    {
+      "id": "gravityGain",
+      "type": "status",
+      "source": "talent",
+      "label": "Gravity: gathering",
+      "durationFrames": 120,
+      "gain": {
+        "resource": "gravity",
+        "amount": 0.5,
+        "everyFrames": 3,
+        "if": {
+          "status": "gravityRipple"
+        },
+        "firstAfterFrames": 0
+      }
+    },
+    {
+      "id": "skill-ripple",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E: Gravity Ripple (Gravity reset if it was over)",
+      "when": {
+        "hit": "skill"
+      },
+      "do": [
+        {
+          "setResource": "gravity",
+          "value": 0,
+          "if": {
+            "not": {
+              "status": "gravityRipple"
+            }
+          }
+        },
+        {
+          "applyStatus": "gravityRipple"
+        }
+      ]
+    },
+    {
+      "id": "ripple-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Gravity Ripple: Hydro particles (once every 3 s)",
+      "when": {
+        "hit": "elementalSkill/skillDoT"
+      },
+      "icdFrames": 180,
+      "do": [
+        {
+          "particles": {
+            "min": 1,
+            "max": 2,
+            "maxChance": 0.33
+          },
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "gravity-on-reaction",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Lunar reaction in the party: Gravity",
+      "when": {
+        "hit": "party:reaction:Lunar-Bloom"
+      },
+      "do": [
+        {
+          "applyStatus": "gravityGain"
+        }
+      ],
+      "if": {
+        "status": "gravityRipple"
+      }
+    },
+    {
+      "id": "gravity-on-lunar-dmg",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Lunar DMG in the party: Gravity",
+      "when": {
+        "hit": "party:category:Lunar-Bloom"
+      },
+      "do": [
+        {
+          "applyStatus": "gravityGain"
+        }
+      ],
+      "if": {
+        "status": "gravityRipple"
+      }
+    },
+    {
+      "id": "gravity-interference",
+      "type": "trigger",
+      "source": "talent",
+      "label": "60 Gravity: Gravity Interference (Lunar-Bloom)",
+      "when": {
+        "resourceChanges": "gravity",
+        "change": "increase"
+      },
+      "do": [
+        {
+          "setResource": "gravity",
+          "value": 0
+        },
+        {
+          "count": "interference"
+        },
+        {
+          "hit": {
+            "row": "elementalSkill/skillLB",
+            "element": "Dendro",
+            "category": "Lunar-Bloom",
+            "gauge": 0,
+            "afterFrames": 71
+          }
+        },
+        {
+          "hit": {
+            "row": "elementalSkill/skillLB",
+            "element": "Dendro",
+            "category": "Lunar-Bloom",
+            "gauge": 0,
+            "afterFrames": 76
+          }
+        },
+        {
+          "hit": {
+            "row": "elementalSkill/skillLB",
+            "element": "Dendro",
+            "category": "Lunar-Bloom",
+            "gauge": 0,
+            "afterFrames": 82
+          }
+        },
+        {
+          "hit": {
+            "row": "elementalSkill/skillLB",
+            "element": "Dendro",
+            "category": "Lunar-Bloom",
+            "gauge": 0,
+            "afterFrames": 91
+          }
+        },
+        {
+          "hit": {
+            "row": "elementalSkill/skillLB",
+            "element": "Dendro",
+            "category": "Lunar-Bloom",
+            "gauge": 0,
+            "afterFrames": 102
+          }
+        },
+        {
+          "addResource": "lunacy",
+          "amount": 1,
+          "if": {
+            "status": "lunacyWindow"
+          }
+        },
+        {
+          "setResource": "lunacy",
+          "value": 1,
+          "if": {
+            "not": {
+              "status": "lunacyWindow"
+            }
+          }
+        },
+        {
+          "applyStatus": "lunacyWindow"
+        }
+      ],
+      "if": {
+        "resource": "gravity",
+        "gte": 60
+      }
+    },
+    {
+      "id": "lunacy",
+      "type": "resource",
+      "source": "passive",
+      "label": "Lunacy stacks",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "lunacyWindow",
+      "type": "status",
+      "source": "passive",
+      "label": "Lunacy",
+      "durationFrames": 600
+    },
+    {
+      "id": "lunacy-cr",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Lunacy: CRIT Rate",
+      "stat": "critRate",
+      "value": 5,
+      "perStack": {
+        "state": "lunacy",
+        "max": 3
+      },
+      "while": {
+        "lunacyWindow": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "lunarDomain",
+      "type": "status",
+      "source": "talent",
+      "label": "Lunar Domain",
+      "durationFrames": 1272,
+      "icon": "Skill_E_Columbina_01"
+    },
+    {
+      "id": "burst-domain",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Q: Lunar Domain",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "applyStatus": "lunarDomain",
+          "afterFrames": 86
+        }
+      ]
+    },
+    {
+      "id": "domain-lunar",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Lunar Domain: Lunar DMG",
+      "stat": "lunarBonus",
+      "valueRow": "elementalBurst/burstBuff",
+      "match": {
+        "categories": ["Lunar-Bloom"]
+      },
+      "teamBuff": "everyone",
+      "while": {
+        "lunarDomain": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "moonridgeGiven",
+      "type": "resource",
+      "source": "passive",
+      "label": "Moonridge Dew given (per 18 s)",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "moonridgeTimer",
+      "type": "status",
+      "source": "passive",
+      "label": "Moonridge Dew: 18 s window",
+      "durationFrames": 1080
+    },
+    {
+      "id": "moonridge-dew",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Lunar-Bloom in the Lunar Domain: Moonridge Dew",
+      "when": {
+        "hit": "party:reaction:Lunar-Bloom"
+      },
+      "icdFrames": 3,
+      "do": [
+        {
+          "applyStatus": "moonridgeTimer",
+          "if": {
+            "not": {
+              "status": "moonridgeTimer"
+            }
+          }
+        },
+        {
+          "addResource": "moonridgeGiven",
+          "amount": 1
+        },
+        {
+          "addResource": "moonridgeDew",
+          "amount": 1
+        }
+      ],
+      "if": {
+        "all": [
+          {
+            "status": "lunarDomain"
+          },
+          {
+            "resource": "moonridgeGiven",
+            "lt": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "moonridge-reset",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Moonridge Dew: a new 18 s window",
+      "when": {
+        "statusEnds": "moonridgeTimer"
+      },
+      "do": [
+        {
+          "setResource": "moonridgeGiven",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "moondew-spend",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Moondew Cleanse: 1 Dew (Verdant first)",
+      "when": {
+        "use": "moondewCleanse"
+      },
+      "do": [
+        {
+          "addResource": "moonridgeDew",
+          "amount": -1,
+          "delayFrames": 55,
+          "if": {
+            "resource": "verdantDew",
+            "lte": 0
+          }
+        },
+        {
+          "addResource": "verdantDew",
+          "amount": -1,
+          "delayFrames": 55
+        }
+      ]
+    },
+    {
+      "id": "benediction-base",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Moonsign Benediction: Lunar Base DMG (her Max HP)",
+      "stat": "lunarBaseBonus",
+      "value": 0.02,
+      "ofStat": "hp",
+      "cap": 7,
+      "match": {
+        "categories": ["Lunar-Bloom"]
+      },
+      "teamBuff": "everyone"
+    }
+  ],
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "verdantDew": {}
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "charged",
+      "if": {
+        "any": [
+          {
+            "resource": "verdantDew",
+            "gte": 1
+          },
+          {
+            "resource": "moonridgeDew",
+            "gte": 1
+          }
+        ]
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "Gravity Interferences",
+      "value": "{count:interference|number}"
+    },
+    {
+      "label": "Lunar Domain (Lunar DMG) for the party",
+      "value": "+{buffValue:domain-lunar|fixed1}%, up {uptime:lunarDomain|percent}"
+    },
+    {
+      "label": "Lunar Base DMG for the party (her Max HP)",
+      "value": "+{buffValue:benediction-base|fixed1}%"
+    },
+    {
+      "label": "Moondew Cleanses",
+      "value": "{uses:moondewCleanse}"
+    },
+    {
+      "label": "Particles generated by the E",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    }
+  ],
+  "weapon": "nocturnes-curtain-call",
+  "passives": [
+    {
+      "id": "columbina-passive-1",
+      "name": "Lunacy's Lure",
+      "icon": "UI_Talent_S_Columbina_05",
+      "value": "Each Gravity Interference: +5% CRIT Rate for 10 s, up to 3 stacks (the timer restarts).",
+      "description": "When triggering Gravity Interference, Columbina gains the Lunacy effect, increasing her CRIT Rate by 5% for 10s. This effect can be stacked up to 3 times."
+    },
+    {
+      "id": "columbina-passive-2",
+      "name": "Law of the New Moon",
+      "icon": "UI_Talent_S_Columbina_06",
+      "value": "In the Lunar Domain, Lunar-Bloom gives the party Moonridge Dew (up to 3 every 18 s).",
+      "description": "When characters within the Lunar Domain trigger Lunar reactions, they will gain the following effects respectively: \n· Lunar-Charged: When the Thundercloud performs lightning strike(s) against a valid target, it has a 33% chance to perform an additional lightning strike. \n· Lunar-Bloom: When triggering Lunar-Bloom reactions, the party gains a special Moonridge Dew. Up to 3 Moonridge Dews can be gained every 18s. \n· Lunar-Crystallize: When Moondrift Harmony is triggered, every Moondrift has a 33% chance to inflict an extra attack.",
+      "note": "Only Lunar-Bloom is simulated (no Lunar-Charged or Lunar-Crystallize)."
+    },
+    {
+      "id": "columbina-passive-3",
+      "name": "Moonsign Benediction: Moonlight, Lent Unto You",
+      "icon": "UI_Talent_S_Columbina_07",
+      "value": "Bloom becomes Lunar-Bloom; the party's Lunar DMG gets Base DMG +0.2% per 1,000 of her Max HP (up to 7%). Moonsign +1.",
+      "description": "When a party member triggers an Electro-Charged, Bloom, or Hydro-Crystallize reaction, it will be converted into a Lunar-Charged, Lunar-Bloom, or Lunar-Crystallize reaction respectively. Lunar Reaction DMG inflicted by party members gain a Base DMG increase based on Columbina's Max HP. For every 1,000 points of Max HP, the Base DMG of Lunar reactions is increased by 0.2%, up to a maximum of 7%.\n\nAdditionally, when Columbina is in the party, the party's Moonsign will increase by 1 level."
+    },
+    {
+      "id": "columbina-passive-4",
+      "name": "Lunar Vigil",
+      "icon": "UI_Talent_S_Columbina_08",
+      "value": "Not used in combat.",
+      "description": "If one of your party members is incapacitated while in the Nod-Krai or Frost Moon regions, Columbina will revive this character. The amount of HP the character will have upon revival is based on Columbina's Friendship Level. This effect can occur once every 100s. This effect does not trigger in Domains, Trounce Domains, or the Spiral Abyss.\nAdditionally, Columbina appears to have a special affinity for certain animals who are influenced by kuuvahki..."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Radiance Over Blossoms and Peaks",
+      "icon": "UI_Talent_S_Columbina_01",
+      "effect": "Unleashing her Elemental Skill Eternal Tides will immediately trigger an effect equivalent to the effect of Gravity Interference. This effect can be triggered o",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "Unleashing her Elemental Skill Eternal Tides will immediately trigger an effect equivalent to the effect of Gravity Interference. This effect can be triggered once every 15s.\nMoonsign: Ascendant Gleam\nWhen Gravity Interference is triggered, if the Lunar reaction type that has accumulated the most Gravity for Columbina is:\n· Lunar-Charged: Your current active character will recover 6 Energy.\n· Lunar-Bloom: Your active character's interruption resistance will be increased for 8s.\n· Lunar-Crystallize: Summons a Rainsea Shield. The Rainsea Shield's DMG absorption is based on 12% of Columbina's Max HP, and it will absorb Hydro DMG with 250% effectiveness for 8s.\n\nAll nearby party members' Lunar Reaction DMG is elevated by 1.5%."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Not in Lone Splendor",
+      "icon": "UI_Talent_S_Columbina_02",
+      "effect": "Rate of accumulating Gravity increases by 34%. ",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "Rate of accumulating Gravity increases by 34%. \nWhen Gravity Interference is triggered, Columbina will receive the Lunar Brilliance effect, which increases her Max HP by 40% for 8s.\nMoonsign: Ascendant Gleam:\nWhen Lunar Brilliance is active, if, during the current trigger of Gravity Interference, the Lunar reaction type that has accumulated the most Gravity for Columbina is:\n· Lunar-Charged: ATK of your current active character increases. Increase in ATK is equal to 1% of Columbina's Max HP.\n· Lunar-Bloom: Elemental Mastery of your current active character increases. Increase in Elemental Mastery is equal to 0.35% of Columbina's Max HP.\n· Lunar-Crystallize: DEF of your current active character increases. Increase in DEF is equal to 1% of Columbina's Max HP.\n\nAll nearby party members' Lunar Reaction DMG is elevated by 7%."
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Dreamlike Glow Across Tranquil Waters",
+      "icon": "UI_Talent_U_Columbina_01",
+      "effect": "Increases the Level of Elemental Skill Eternal Tides by 3.",
+      "impact": "simulated",
+      "note": "Talent levels: raise the level by hand.",
+      "description": "Increases the Level of Elemental Skill Eternal Tides by 3.\nMaximum upgrade level is 15.\n\nAll nearby party members' Lunar Reaction DMG is elevated by 1.5%."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Cloudveiled Ridges in Floral Mists",
+      "icon": "UI_Talent_S_Columbina_03",
+      "effect": "When Gravity Interference is triggered, 4 Elemental Energy will be restored to Columbina;",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "When Gravity Interference is triggered, 4 Elemental Energy will be restored to Columbina;\nAdditionally, if the Lunar reaction type that accumulates the most Gravity for Columbina is Lunar-Charged, Lunar-Bloom, or Lunar-Crystallize, the Lunar Reaction DMG dealt by this instance of Gravity Interference is increased by 12.5%/2.5%/12.5% of Columbina's Max HP respectively. This effect can be triggered at most once every 15s.\n\nAll nearby party members' Lunar Reaction DMG is elevated by 1.5%."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Silence Tending One Lone Song",
+      "icon": "UI_Talent_U_Columbina_02",
+      "effect": "Increases the Level of Elemental Burst Moonlit Melancholy by 3.",
+      "impact": "simulated",
+      "note": "Talent levels: raise the level by hand.",
+      "description": "Increases the Level of Elemental Burst Moonlit Melancholy by 3.\nMaximum upgrade level is 15.\n\nAll nearby party members' Lunar Reaction DMG is elevated by 1.5%."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Through Darkness Led by Moonlight",
+      "icon": "UI_Talent_S_Columbina_04",
+      "effect": "For 8s after characters in the Lunar Domain trigger a Lunar reaction, based on the elements involved in the reaction, the CRIT DMG of the corresponding Elementa",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "For 8s after characters in the Lunar Domain trigger a Lunar reaction, based on the elements involved in the reaction, the CRIT DMG of the corresponding Elemental DMG done by all party members is increased by 80%. The CRIT DMG-increasing effects for the same Elemental Type do not stack.\n\nAll nearby party members' Lunar Reaction DMG is elevated by 7%."
+    }
+  ],
+  "defaults": {
+    "numbers": {
+      "atk": 1045,
+      "hp": 39521,
+      "def": 618,
+      "em": 39.6,
+      "cr": 63.9,
+      "cd": 240.1,
+      "bonus": 0,
+      "elementalBonus": 0,
+      "energyRecharge": 142,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 10,
+      "burstLevel": 10,
+      "nocturnesCurtainCallRefinement": 1,
+      "startingEnergy": 60
+    },
+    "flags": {
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "nocturnesCurtainCall": true,
+      "silkenMoonsSerenade2": true,
+      "silkenMoonsSerenade4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q (Lunar Domain)"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "silkenMoonsSerenade4",
+      "label": "Silken Moon's Serenade 4-piece (party EM, Lunar DMG)"
+    }
+  ],
+  "artifactSet": "silken-moons-serenade",
+  "rotation": {
+    "automaticDescription": "Q when it is ready (Lunar Domain), E when it is ready (Gravity Ripple), Moondew Cleanse when the party has Dew, Normal Attacks otherwise."
+  }
+}

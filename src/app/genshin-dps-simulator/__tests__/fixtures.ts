@@ -1,7 +1,9 @@
 // Character files edited on the fly, to test engine features no shipped
 // character uses yet. They are loaded and validated like real files.
 import arlecchinoJson from '../_data/characters/arlecchino.json';
+import columbinaJson from '../_data/characters/columbina.json';
 import mualaniJson from '../_data/characters/mualani.json';
+import neferJson from '../_data/characters/nefer.json';
 import { loadCharacterFile } from '../_lib/characterData';
 import { createDamageContext } from '../_lib/damageEngine';
 import { createRuntime } from '../_lib/engine/runtime';
@@ -20,10 +22,12 @@ type CharacterFile = any;
 const FILES: Record<string, unknown> = {
   arlecchino: arlecchinoJson,
   mualani: mualaniJson,
+  nefer: neferJson,
+  columbina: columbinaJson,
 };
 
 export const editCharacter = (
-  baseId: 'arlecchino' | 'mualani',
+  baseId: 'arlecchino' | 'mualani' | 'nefer' | 'columbina',
   edit: (file: CharacterFile) => void
 ): CharacterFile => {
   const file = structuredClone(FILES[baseId]);

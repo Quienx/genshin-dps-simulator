@@ -23,7 +23,7 @@ import {
 } from './schema';
 import { ActionData } from '../actionSchema';
 import { CharacterData } from '../characterSchema';
-import { addHit, addTransformativeHit } from '../damageEngine';
+import { addHit, addLunarHit, addTransformativeHit } from '../damageEngine';
 import {
   countStacks,
   EffectData,
@@ -34,7 +34,13 @@ import {
 } from '../effects';
 import formatNumber from '../formatNumber';
 import { FRAMES_PER_SECOND } from '../frames';
-import { getTransformativeReaction, isAmplifyingReaction } from '../reactions';
+import {
+  getLunarMultiplier,
+  getTransformativeReaction,
+  isAmplifyingReaction,
+  isLunarCategory,
+  TRANSFORMATIVE_REACTIONS,
+} from '../reactions';
 import { readFlag, readFlagNumber, readNumber } from '../readValue';
 import { RotationTraceEntry } from '../rotation/types';
 import { buildStatSheet } from '../stats';
@@ -240,6 +246,19 @@ export type PartyLink = {
     hit: HitRequest,
     attackerElement: boolean
   ) => void;
+  // The party's Moonsign: what every member adds (see `moonsign`).
+  moonsign: number;
+  // Resources the party shares (`shared: true`, Verdant Dew): one value
+  // for every member declaring them. `setShared` stores the new value,
+  // passes it to each of those members (`receiveSharedResource`) and fires
+  // the `party:<id>` triggers; it returns the change.
+  getShared: (id: string) => number | undefined;
+  setShared: (
+    id: string,
+    value: number,
+    frame: number,
+    entry: RotationTraceEntry | null
+  ) => number;
 };
 
 type RuntimeOptions = {
@@ -367,6 +386,8 @@ export const createRuntime = ({
     { addedAt: number; holder: string | null; logIndex: number }[]
   >();
   const scheduled: ScheduledApply[] = [];
+  // Statuses whose `gain` is ticking.
+  const gaining = new Set<string>();
   // Per cooldown id, when each of its charges is ready (one entry unless
   // the action has `charges`).
   const cooldownReadyAt = new Map<string, number[]>();
@@ -416,6 +437,8 @@ export const createRuntime = ({
   const partyElementCount = (elements: string[]) =>
     partyElements.filter((element) => elements.includes(element)).length;
 
+  const moonsignLevel = party?.moonsign ?? character.moonsign;
+
   // Bonuses that read a talent row get its value at this run's level; those
   // that read a form field, the field's; those scaled by a party element
   // count, the value for it (1-based, as a field's).
@@ -439,6 +462,17 @@ export const createRuntime = ({
                   Math.max(1, partyElementCount(block.scaleBy.partyElements))
                 ) - 1
               ],
+            scaleBy: undefined,
+          }
+        : {}),
+      ...(block.scaleBy &&
+      'moonsign' in block.scaleBy &&
+      Array.isArray(block.value)
+        ? {
+            value:
+              moonsignLevel > 0
+                ? block.value[Math.min(block.value.length, moonsignLevel) - 1]
+                : 0,
             scaleBy: undefined,
           }
         : {}),
@@ -492,12 +526,20 @@ export const createRuntime = ({
       typeof block.initial === 'number'
         ? block.initial
         : readNumber(values, block.initial.field);
-    const value = Math.min(block.max, Math.max(block.min, initial));
+    // A party resource starts as the party has it (the first member
+    // declaring it set it).
+    const value =
+      (block.shared ? party?.getShared(block.id) : undefined) ??
+      Math.min(block.max, Math.max(block.min, initial));
     resources.set(block.id, value);
     logPush(activity.resources, block.id, { frame: 0, value });
   });
 
-  const getResource = (id: string): number => resources.get(id) ?? 0;
+  // A party resource is read from the party (alone, it is the character's).
+  const isShared = (id: string): boolean =>
+    Boolean(party && resourceBlocks.get(id)?.shared);
+  const getResource = (id: string): number =>
+    (isShared(id) ? party?.getShared(id) : undefined) ?? resources.get(id) ?? 0;
 
   // ---------------------------------------------------------- statuses
 
@@ -572,8 +614,8 @@ export const createRuntime = ({
     holder: string = character.id
   ): Record<string, number> => {
     const state: Record<string, number> = {};
-    resources.forEach((value, id) => {
-      state[id] = value;
+    resources.forEach((_, id) => {
+      state[id] = getResource(id);
     });
     statusBlocks.forEach((block, id) => {
       state[id] = block.stacks
@@ -743,6 +785,30 @@ export const createRuntime = ({
         queue.push(tickFrame + drain.everyFrames, tick);
       };
       queue.push(frame + (drain.firstAfterFrames ?? drain.everyFrames), tick);
+    }
+
+    // A refresh keeps the ticks already running.
+    const { gain } = block;
+    if (gain && !gaining.has(id)) {
+      if (!resourceBlocks.has(gain.resource)) {
+        throw new Error(`"${id}" fills an unknown resource "${gain.resource}"`);
+      }
+      gaining.add(id);
+      const tick = (tickFrame: number) => {
+        if (!isActive(id, tickFrame)) {
+          gaining.delete(id);
+          return;
+        }
+        if (!gain.if || evaluate(gain.if, tickFrame)) {
+          setResource(
+            gain.resource,
+            getResource(gain.resource) + gain.amount,
+            tickFrame
+          );
+        }
+        queue.push(tickFrame + gain.everyFrames, tick);
+      };
+      queue.push(frame + (gain.firstAfterFrames ?? gain.everyFrames), tick);
     }
 
     // Expiring is an end too, for `statusEnds` triggers.
@@ -1128,6 +1194,15 @@ export const createRuntime = ({
       return meetsBounds(getResource(condition.resource), condition);
     }
     if ('status' in condition) {
+      const hasBounds = ['gt', 'gte', 'lt', 'lte'].some(
+        (bound) => bound in condition
+      );
+      if (hasBounds) {
+        const value = statusBlocks.get(condition.status)?.stacks
+          ? getStackCount(condition.status, frame)
+          : Number(isActive(condition.status, frame));
+        return meetsBounds(value, condition);
+      }
       if (condition.atEvent) {
         const eventFrame =
           evalContext.eventFrames?.[condition.atEvent] ?? frame;
@@ -1155,6 +1230,11 @@ export const createRuntime = ({
       return condition.everyone
         ? count === partyElements.length
         : count >= (condition.gte ?? 1);
+    }
+    if ('moonsign' in condition) {
+      return condition.moonsign === 'ascendant'
+        ? moonsignLevel >= 2
+        : moonsignLevel === 1;
     }
     if ('all' in condition) {
       return condition.all.every((entry) =>
@@ -1193,6 +1273,10 @@ export const createRuntime = ({
     if (value === before) {
       return 0;
     }
+    // The party's: every member declaring it gets the new value.
+    if (party && block.shared) {
+      return party.setShared(id, value, frame, entry);
+    }
     resources.set(id, value);
     logPush(activity.resources, id, { frame, value });
     logEvent('resource', frame, id, { before, value });
@@ -1200,6 +1284,25 @@ export const createRuntime = ({
     fireTriggers('resourceChanges', [id], frame, entry, value - before);
     shareResource(id, value - before, frame);
     return value - before;
+  };
+
+  // A party resource another member (or the party) changed: this
+  // character's copy, its log and its own `resourceChanges` triggers (the
+  // party fires the `party:` ones).
+  const receiveSharedResource = (
+    id: string,
+    value: number,
+    change: number,
+    frame: number,
+    entry: RotationTraceEntry | null
+  ) => {
+    if (!resourceBlocks.has(id)) {
+      return;
+    }
+    resources.set(id, value);
+    logPush(activity.resources, id, { frame, value });
+    logEvent('resource', frame, id, { before: value - change, value });
+    fireTriggers('resourceChanges', [id], frame, entry, change);
   };
 
   // Casting an action with an Energy cost spends it.
@@ -1223,6 +1326,9 @@ export const createRuntime = ({
     }
     if ('resource' in amount) {
       return getResource(amount.resource) * (amount.times ?? 1);
+    }
+    if ('stacks' in amount) {
+      return getStackCount(amount.stacks, frame) * (amount.times ?? 1);
     }
     if ('ifStatus' in amount) {
       return isActive(amount.ifStatus, frame) ? amount.then : amount.else;
@@ -1345,7 +1451,10 @@ export const createRuntime = ({
       return;
     }
     if ('addStack' in op) {
-      applyStatusNow(op.addStack, frame);
+      const times = op.times ? getAmount(op.times, frame, scope) : 1;
+      for (let stack = 0; stack < Math.floor(times); stack++) {
+        applyStatusNow(op.addStack, frame);
+      }
       return;
     }
     if ('reduceCooldown' in op) {
@@ -1739,19 +1848,20 @@ export const createRuntime = ({
 
     // Components on the scaling stat make the multiplier; the others
     // (e.g. the EM part of an ATK + EM row) are added as flat base DMG.
-    const scalingMultiplier = scaling
-      .filter((part) => part.stat === statName)
-      .reduce((sum, part) => sum + part.value, 0);
-    const otherBase = scaling
-      .filter((part) => part.stat !== statName)
-      .reduce(
-        (sum, part) =>
-          sum +
-          (part.stat === 'flat'
-            ? part.value
-            : (summed.stats[part.stat] * part.value) / 100),
-        0
-      );
+    // A multiplier increase (Nefer's Veil) scales them all.
+    const increase = Math.max(0, 1 + summed.multiplierBonus);
+    const partDamage = (part: StatScaling) =>
+      part.stat === 'flat'
+        ? part.value
+        : (summed.stats[part.stat] * part.value) / 100;
+    const scalingMultiplier =
+      scaling
+        .filter((part) => part.stat === statName)
+        .reduce((sum, part) => sum + part.value, 0) * increase;
+    const otherBase =
+      scaling
+        .filter((part) => part.stat !== statName)
+        .reduce((sum, part) => sum + partDamage(part), 0) * increase;
     const effectIds = [
       ...(renamed ? [renamed.id] : []),
       ...(infusion ? [infusion.id] : []),
@@ -1779,36 +1889,75 @@ export const createRuntime = ({
     const amplified =
       auraReaction && isAmplifyingReaction(auraReaction) ? auraReaction : null;
 
-    addHit(context, {
-      time: toSeconds(hit.frame),
-      category: hit.category,
+    const notes = [
       element,
-      stat: summed.stats[statName],
-      multiplier: scalingMultiplier + summed.flatMultiplier,
-      flatDamage: otherBase + summed.flatDamage,
-      extraCrit: summed.critRate,
-      extraCritDamage: summed.critDamage,
-      extraBonus: summed.dmgBonus,
-      extraEm: summed.elementalMastery,
-      defReduction: summed.defReduction,
-      defIgnore: summed.defIgnore,
-      resShred: summed.resShred,
-      reaction: amplified ?? reaction?.reaction,
+      ...(amplified ?? reaction?.reaction
+        ? [amplified ?? reaction?.reaction]
+        : []),
+      ...noteResources.map(
+        (block) => `${block.label}: ${getResource(block.id).toFixed(1)}%`
+      ),
+      ...summed.notes,
+    ].join('; ');
+    const origin = {
       actionId: hit.actionId,
       sourceId: hit.sourceId,
       blockUid: hit.blockUid ?? (hit.entry?.blockUid || undefined),
       effectIds,
-      notes: [
+    };
+    if (isLunarCategory(hit.category)) {
+      // Lunar DMG (Lunar-Bloom): every stat part is its base DMG, flat
+      // parts and flat DMG come after the Lunar multiplier.
+      const statParts = scaling.filter((part) => part.stat !== 'flat');
+      const mainStat = statParts[0]?.stat ?? statName;
+      addLunarHit(context, {
+        time: toSeconds(hit.frame),
+        category: hit.category,
         element,
-        ...(amplified ?? reaction?.reaction
-          ? [amplified ?? reaction?.reaction]
-          : []),
-        ...noteResources.map(
-          (block) => `${block.label}: ${getResource(block.id).toFixed(1)}%`
+        stat: mainStat === 'flat' ? 0 : summed.stats[mainStat],
+        multiplier:
+          statParts.reduce((sum, part) => sum + part.value, 0) * increase,
+        statDamage:
+          statParts.reduce((sum, part) => sum + partDamage(part), 0) * increase,
+        flatDamage:
+          scaling
+            .filter((part) => part.stat === 'flat')
+            .reduce((sum, part) => sum + part.value, 0) *
+            increase +
+          summed.flatDamage,
+        baseBonus: summed.lunarBaseBonus,
+        lunarMultiplier: getLunarMultiplier(
+          hit.category,
+          summed.stats.em,
+          summed.lunarBonus
         ),
-        ...summed.notes,
-      ].join('; '),
-    });
+        elevation: summed.elevation,
+        extraCrit: summed.critRate,
+        extraCritDamage: summed.critDamage,
+        resShred: summed.resShred,
+        notes,
+        ...origin,
+      });
+    } else {
+      addHit(context, {
+        time: toSeconds(hit.frame),
+        category: hit.category,
+        element,
+        stat: summed.stats[statName],
+        multiplier: scalingMultiplier + summed.flatMultiplier,
+        flatDamage: otherBase + summed.flatDamage,
+        extraCrit: summed.critRate,
+        extraCritDamage: summed.critDamage,
+        extraBonus: summed.dmgBonus,
+        extraEm: summed.elementalMastery,
+        defReduction: summed.defReduction,
+        defIgnore: summed.defIgnore,
+        resShred: summed.resShred,
+        reaction: amplified ?? reaction?.reaction,
+        notes,
+        ...origin,
+      });
+    }
     logEvent(
       'hit',
       hit.frame,
@@ -1979,6 +2128,15 @@ export const createRuntime = ({
     sourceId: string | undefined,
     blockUid: string | undefined
   ) => {
+    // A reaction with no damage of its own (Lunar-Bloom: the party gains
+    // Verdant Dew): only its triggers.
+    if (!TRANSFORMATIVE_REACTIONS.includes(reaction)) {
+      count(`reactions:${reaction}`);
+      const keys = [`reaction:${reaction}`];
+      fireTriggers('hit', keys, frame, null);
+      shareHit(keys, frame);
+      return;
+    }
     const state = getStateValues(frame);
     const { element } = getTransformativeReaction(values, reaction);
     const request: HitRequest = {
@@ -2247,6 +2405,7 @@ export const createRuntime = ({
     getCooldownEvents: () => cooldownEvents,
     getCooldownHolds: () => cooldownHolds,
     finishActivity,
+    receiveSharedResource,
   };
 };
 

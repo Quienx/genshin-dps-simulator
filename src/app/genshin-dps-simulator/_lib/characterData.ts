@@ -18,10 +18,12 @@ import arlecchinoJson from '../_data/characters/arlecchino.json';
 import bennettJson from '../_data/characters/bennett.json';
 import chevreuseJson from '../_data/characters/chevreuse.json';
 import citlaliJson from '../_data/characters/citlali.json';
+import columbinaJson from '../_data/characters/columbina.json';
 import escoffierJson from '../_data/characters/escoffier.json';
 import iansanJson from '../_data/characters/iansan.json';
 import mavuikaJson from '../_data/characters/mavuika.json';
 import mualaniJson from '../_data/characters/mualani.json';
+import neferJson from '../_data/characters/nefer.json';
 import nicoleJson from '../_data/characters/nicole.json';
 import sucroseJson from '../_data/characters/sucrose.json';
 import varesaJson from '../_data/characters/varesa.json';
@@ -41,6 +43,8 @@ const CHARACTER_FILES: unknown[] = [
   bennettJson,
   xilonenJson,
   sucroseJson,
+  neferJson,
+  columbinaJson,
 ];
 
 // Parsing at import time makes a malformed character file fail loudly on

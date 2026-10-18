@@ -1,12 +1,37 @@
 {
   "amplifying": {
-    "Vaporize": { "Hydro": 2, "Pyro": 1.5 },
-    "Melt": { "Pyro": 2, "Cryo": 1.5 }
+    "Vaporize": {
+      "Hydro": 2,
+      "Pyro": 1.5
+    },
+    "Melt": {
+      "Pyro": 2,
+      "Cryo": 1.5
+    }
   },
-  "emBonus": { "factor": 2.78, "offset": 1400 },
+  "emBonus": {
+    "factor": 2.78,
+    "offset": 1400
+  },
   "transformative": {
-    "Overloaded": { "multiplier": 2.75, "element": "Pyro" }
+    "Overloaded": {
+      "multiplier": 2.75,
+      "element": "Pyro"
+    }
   },
   "transformativeLevelBase": 1446.85,
-  "transformativeEmBonus": { "factor": 16, "offset": 2000 }
+  "transformativeEmBonus": {
+    "factor": 16,
+    "offset": 2000
+  },
+  "lunar": {
+    "Lunar-Bloom": {
+      "multiplier": 1,
+      "element": "Dendro"
+    }
+  },
+  "lunarEmBonus": {
+    "factor": 6,
+    "offset": 2000
+  }
 }

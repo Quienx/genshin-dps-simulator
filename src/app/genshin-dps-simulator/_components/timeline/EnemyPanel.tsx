@@ -11,6 +11,7 @@ import { elementIconUrl, monsterIconUrl } from '../../_lib/genshinIcons';
 import {
   auraAt,
   damageUntil,
+  eventReactionsUntil,
   INSPECTOR_ENEMY,
   InspectorView,
   reactionsUntil,
@@ -72,7 +73,11 @@ const EnemyPanel = ({
   const share = hp > 0 ? left / hp : 0;
   const aura = auraAt(view.auras, time);
   const byReaction = reactionsUntil(view.hits, time);
-  const reactions = byReaction.reduce((sum, entry) => sum + entry.count, 0);
+  const eventReactions = eventReactionsUntil(view.auras, time);
+  const reactions = [...byReaction, ...eventReactions].reduce(
+    (sum, entry) => sum + entry.count,
+    0
+  );
   // The reaction the enemy just took: the aura's two elements that met,
   // and its own hit's DMG (Overloaded's explosion).
   const recent = [...view.auras]
@@ -294,6 +299,24 @@ const EnemyPanel = ({
                 <dd className='text-slate-200'>
                   {formatNumber(Math.round(entry.damage))}
                 </dd>
+              </div>
+            ))}
+            {/* Reactions with no hit of their own (Lunar-Bloom). */}
+            {eventReactions.map((entry) => (
+              <div
+                key={entry.reaction}
+                data-testid={`timeline-enemy-reaction-${entry.reaction}`}
+                className='flex items-center justify-between pl-3 text-[11px]'
+              >
+                <dt className='flex items-center gap-1.5 text-violet-300'>
+                  <span className='flex items-center -space-x-1'>
+                    {elementsOf(entry.reaction).map((element) => (
+                      <ElementIcon key={element} element={element} size={16} />
+                    ))}
+                  </span>
+                  {entry.reaction} ×{entry.count}
+                </dt>
+                <dd className='text-slate-400'>no DMG</dd>
               </div>
             ))}
           </dl>

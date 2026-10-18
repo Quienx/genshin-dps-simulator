@@ -39,8 +39,12 @@ const elementSchema = z.enum([
 export type Condition =
   | ({ resource: string } & z.infer<typeof stateConditionSchema>)
   // Active now, or (for the planner) at a named event of the action being
-  // considered, e.g. "absorb" of a Charged Attack.
-  | { status: string; atEvent?: string }
+  // considered, e.g. "absorb" of a Charged Attack. With bounds, its value
+  // must meet them instead: a stack status' count (Nefer's 3 Veils), 0 or 1
+  // for the others.
+  | ({ status: string; atEvent?: string } & z.infer<
+      typeof stateConditionSchema
+    >)
   | { flag: string }
   // A number form field (e.g. party members), by name.
   | ({ field: string } & z.infer<typeof stateConditionSchema>)
@@ -55,6 +59,9 @@ export type Condition =
   // missing), or every member with `everyone`. Alone, the party is the
   // character.
   | { partyElements: string[]; gte?: number; everyone?: true }
+  // The party's Moonsign (each Moonsign member adds 1): "nascent" with one,
+  // "ascendant" with two or more.
+  | { moonsign: 'nascent' | 'ascendant' }
   | { all: Condition[] }
   | { any: Condition[] }
   | { not: Condition }
@@ -63,7 +70,10 @@ export type Condition =
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.union([
     z.object({ resource: z.string() }).merge(stateConditionSchema).strict(),
-    z.object({ status: z.string(), atEvent: z.string().optional() }).strict(),
+    z
+      .object({ status: z.string(), atEvent: z.string().optional() })
+      .merge(stateConditionSchema)
+      .strict(),
     z.object({ flag: z.string() }).strict(),
     z.object({ field: z.string() }).merge(stateConditionSchema).strict(),
     z.object({ ready: z.string() }).strict(),
@@ -76,6 +86,7 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
         everyone: z.literal(true).optional(),
       })
       .strict(),
+    z.object({ moonsign: z.enum(['nascent', 'ascendant']) }).strict(),
     z.object({ all: z.array(conditionSchema) }).strict(),
     z.object({ any: z.array(conditionSchema) }).strict(),
     z.object({ not: conditionSchema }).strict(),
@@ -87,8 +98,9 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
 
 // How much: a number, one of two numbers depending on a status, a talent
 // row's value at the character's talent level, a number form field, a
-// resource's current value, or (in a `resourceChanges` trigger) how much the
-// resource moved, as a positive number. `times` scales the last two
+// resource's current value, a stack status' count, or (in a
+// `resourceChanges` trigger) how much the resource moved, as a positive
+// number. `times` scales the last two
 // (Mavuika's Fighting Spirit: the Nightsoul points she spent, × 0.25 more at
 // C1).
 const amountSchema = z.union([
@@ -98,6 +110,8 @@ const amountSchema = z.union([
   z.object({ field: z.string() }),
   z.object({ resource: z.string(), times: z.number().optional() }).strict(),
   z.object({ changed: z.literal(true), times: z.number().optional() }).strict(),
+  // A stack status' count now (Nefer's Veils, kept when her Q spends them).
+  z.object({ stacks: z.string(), times: z.number().optional() }).strict(),
 ]);
 
 // Every operation can be limited to a flag, a condition and an ICD of its own,
@@ -142,7 +156,14 @@ export const opSchema = z.union([
   z.object({ removeStatus: z.string(), ...opGuardShape }).strict(),
   // Lengthens the status that is up now (nothing when it is down).
   z.object({ extendStatus: z.string(), frames, ...opGuardShape }).strict(),
-  z.object({ addStack: z.string(), ...opGuardShape }).strict(),
+  // `times`: several stacks at once (Nefer absorbing every Seed of Deceit).
+  z
+    .object({
+      addStack: z.string(),
+      times: amountSchema.optional(),
+      ...opGuardShape,
+    })
+    .strict(),
   z
     .object({
       // Cuts only what is left of the cooldown.
@@ -297,6 +318,11 @@ const hitMatchSchema = z.object({
 // (RES points); flat numbers for flatAtk, flatHp, flatDef, elementalMastery
 // and flatDamage (added to the hit's base DMG); flatMultiplier is talent %
 // of the scaling stat. Negative values are debuffs.
+// Lunar DMG (hits of a Lunar category, `_data/reactions.json`):
+// lunarBonus is gcsim's reaction bonus ("Lunar-Bloom DMG +x%"),
+// lunarBaseBonus its BaseDmgBonus ("Base DMG +x%", added together) and
+// elevation its Elevation (a final × (1 + x%)). multiplierBonus scales the
+// hit's talent multiplier and flat DMG (× (1 + x%)), any hit: Nefer's Veil.
 //
 // The stat fields the user fills in are the character screen's totals, so
 // these are only for bonuses that screen does not show (conditional buffs).
@@ -316,6 +342,10 @@ export const BONUS_STATS = [
   'defReduction',
   'defIgnore',
   'resShred',
+  'lunarBonus',
+  'lunarBaseBonus',
+  'elevation',
+  'multiplierBonus',
 ] as const;
 
 export const sheetStatSchema = z.enum(['atk', 'hp', 'def', 'em']);
@@ -340,12 +370,14 @@ export const bonusBlockSchema = z
     stat: z.enum(BONUS_STATS).optional(),
     // One value, or one per refinement / level picked by `scaleBy`.
     value: z.union([z.number(), z.array(z.number()).min(1)]).optional(),
-    // By a number field (refinement, level), or by how many party members
-    // are of these elements (Escoffier's A4: 1, 2, 3 or 4 Hydro/Cryo).
+    // By a number field (refinement, level), by how many party members
+    // are of these elements (Escoffier's A4: 1, 2, 3 or 4 Hydro/Cryo), or by
+    // the party's Moonsign (Nascent, Ascendant Gleam; none without one).
     scaleBy: z
       .union([
         z.object({ field: z.string() }).strict(),
         z.object({ partyElements: z.array(z.string()).min(1) }).strict(),
+        z.object({ moonsign: z.literal(true) }).strict(),
       ])
       .optional(),
     // `value` is a % of this stat's total at the moment of the hit (after
@@ -443,6 +475,9 @@ export const resourceBlockSchema = z.object({
   max: flagNumberSchema,
   // Starting value: a number, or a form field (clamped to min/max).
   initial: z.union([z.number(), z.object({ field: z.string() })]).default(0),
+  // The party's: one value every member declaring it shares (Verdant Dew).
+  // Alone, the character's own.
+  shared: z.boolean().optional(),
   // Shown in each hit's notes ("Bond of Life: 130.0%").
   noteFormat: z.enum(['percent']).optional(),
   // How its value reads in the activity timeline; defaults to noteFormat.
@@ -502,6 +537,18 @@ export const statusBlockSchema = z
         if: conditionSchema.optional(),
       })
       .optional(),
+    // Fills a resource while it lasts, as `drain` spends one (Columbina's
+    // Gravity: 0.5 every 3 frames). It never ends the status, and a refresh
+    // keeps its rhythm (gcsim's gravityAccum).
+    gain: z
+      .object({
+        resource: z.string(),
+        amount: z.number().positive(),
+        everyFrames: frames.min(1),
+        firstAfterFrames: frames.optional(),
+        if: conditionSchema.optional(),
+      })
+      .optional(),
   })
   .refine(
     (block) =>
@@ -509,10 +556,11 @@ export const statusBlockSchema = z
       (block.durationFrames === undefined &&
         !block.ticks &&
         !block.drain &&
+        !block.gain &&
         !block.endsWith),
     {
       message:
-        'A stack status times each stack on its own: it takes no "durationFrames", "ticks", "drain" or "endsWith"',
+        'A stack status times each stack on its own: it takes no "durationFrames", "ticks", "drain", "gain" or "endsWith"',
     }
   );
 

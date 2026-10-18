@@ -3,9 +3,15 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-export const GCSIM = 'https://raw.githubusercontent.com/genshinsim/gcsim/main';
-export const GCSIM_API =
-  'https://api.github.com/repos/genshinsim/gcsim/contents/internal';
+// GCSIM_SOURCE=<owner/repo>@<branch> reads a fork instead (a character only
+// in an open pull request: dersario/gcsim@nefer).
+const [GCSIM_REPO, GCSIM_REF] = (
+  process.env.GCSIM_SOURCE ?? 'genshinsim/gcsim@main'
+).split('@');
+export const GCSIM = `https://raw.githubusercontent.com/${GCSIM_REPO}/${GCSIM_REF}`;
+export const GCSIM_API = `https://api.github.com/repos/${GCSIM_REPO}/contents/internal`;
+// The contents API reads the branch from `?ref=`.
+export const GCSIM_API_REF = `?ref=${GCSIM_REF}`;
 export const AMBER = 'https://gi.yatta.moe/api/v2/en';
 // Curves have no language.
 const AMBER_STATIC = 'https://gi.yatta.moe/api/v2/static';

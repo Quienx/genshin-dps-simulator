@@ -21,6 +21,15 @@ const reactionsSchema = z.object({
     factor: z.number(),
     offset: z.number().positive(),
   }),
+  // Lunar reactions: a hit of one of these categories is Lunar DMG (gcsim's
+  // direct Lunar attacks), with the reaction's multiplier and element.
+  lunar: z.record(
+    z.object({
+      multiplier: z.number().positive(),
+      element: z.enum(['Pyro', 'Electro', 'Cryo', 'Hydro', 'Anemo', 'Dendro']),
+    })
+  ),
+  lunarEmBonus: z.object({ factor: z.number(), offset: z.number().positive() }),
 });
 
 const REACTIONS = reactionsSchema.parse(reactionsJson);
@@ -82,4 +91,27 @@ export const getTransformativeReaction = (
       ) +
       readNumber(values, 'reactionBonus') / 100);
   return { element: data.element, baseDamage };
+};
+
+// Lunar DMG: a hit of a Lunar category (Lunar-Bloom), see `addLunarHit`.
+export const isLunarCategory = (category: string): boolean =>
+  category in REACTIONS.lunar;
+
+export const LUNAR_REACTIONS = Object.keys(REACTIONS.lunar);
+
+// What multiplies a Lunar hit's base DMG (gcsim's calcDirectReaction): the
+// reaction's multiplier × (1 + EM bonus + Lunar DMG bonus).
+export const getLunarMultiplier = (
+  category: string,
+  elementalMastery: number,
+  lunarBonus: number
+): number => {
+  const data = REACTIONS.lunar[category];
+  if (!data) {
+    throw new Error(`Unknown Lunar reaction "${category}"`);
+  }
+  return (
+    data.multiplier *
+    (1 + getEmBonus(elementalMastery, REACTIONS.lunarEmBonus) + lunarBonus)
+  );
 };

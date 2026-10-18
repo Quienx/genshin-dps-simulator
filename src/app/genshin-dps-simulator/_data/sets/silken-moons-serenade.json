@@ -1,0 +1,120 @@
+{
+  "id": "silken-moons-serenade",
+  "name": "Silken Moon's Serenade",
+  "screenStats": [
+    {
+      "stat": "energyRecharge",
+      "value": 20
+    }
+  ],
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15042_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15042_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15042_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15042_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15042_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "Energy Recharge +20%.",
+      "flag": "silkenMoonsSerenade2",
+      "note": "Already on the character screen."
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "When dealing Elemental DMG, gain the Gleaming Moon: Devotion effect for 8s: Increases all party members' Elemental Mastery by 60/120 when the party's Moonsign is Nascent Gleam/Ascendant Gleam. The equipping character can trigger this effect while off-field. All party members' Lunar Reaction DMG is increased by 10% for each different Gleaming Moon effect that party members have. Effects from Gleaming Moon cannot stack.",
+      "flag": "silkenMoonsSerenade4",
+      "note": "Gleaming Moon: Devotion after the wearer's Elemental DMG; with another set's Gleaming Moon (Night of the Sky's Unveiling) the party gets +10% more."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "gleamingMoonDevotion",
+      "type": "status",
+      "source": "artifact",
+      "label": "Gleaming Moon: Devotion",
+      "ifFlag": "silkenMoonsSerenade4",
+      "durationFrames": 480
+    },
+    {
+      "id": "silken-4pc-trigger",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Elemental DMG: Gleaming Moon: Devotion",
+      "ifFlag": "silkenMoonsSerenade4",
+      "when": {
+        "hit": "elemental"
+      },
+      "do": [
+        {
+          "applyStatus": "gleamingMoonDevotion"
+        }
+      ]
+    },
+    {
+      "id": "silken-4pc-em",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Silken Moon's Serenade 4-piece: EM",
+      "ifFlag": "silkenMoonsSerenade4",
+      "stat": "elementalMastery",
+      "value": [60, 120],
+      "scaleBy": {
+        "moonsign": true
+      },
+      "while": {
+        "gleamingMoonDevotion": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "everyone"
+    },
+    {
+      "id": "silken-4pc-lunar",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Gleaming Moon: Devotion: Lunar DMG",
+      "ifFlag": "silkenMoonsSerenade4",
+      "stat": "lunarBonus",
+      "value": 10,
+      "match": {
+        "categories": ["Lunar-Bloom"]
+      },
+      "while": {
+        "gleamingMoonDevotion": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "everyone"
+    }
+  ],
+  "defaults": {
+    "flags": {
+      "silkenMoonsSerenade2": true,
+      "silkenMoonsSerenade4": true
+    }
+  }
+}

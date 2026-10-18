@@ -1,0 +1,1034 @@
+{
+  "id": "nefer",
+  "name": "Nefer",
+  "element": "Dendro",
+  "weaponType": "Catalyst",
+  "rarity": 5,
+  "scalingStat": "atk",
+  "baseStats": {
+    "hp": 12704,
+    "atk": 344,
+    "def": 799,
+    "em": 100
+  },
+  "ascensionStat": {
+    "stat": "critDamage",
+    "value": 38.4
+  },
+  "moonsign": 1,
+  "lunarReactions": ["Lunar-Bloom"],
+  "icons": {
+    "avatar": "UI_AvatarIcon_Nefer"
+  },
+  "talents": [
+    {
+      "id": "normalAttack",
+      "kind": "normal",
+      "name": "Striking Serpent",
+      "icon": "Skill_A_Catalyst_MD",
+      "levelField": "normalAttackLevel",
+      "boostedBy": null,
+      "description": "Normal Attack\nPerforms up to 4 kicks that deal Dendro DMG with the ferocity and grace of a striking serpent.\n\nCharged Attack\nNefer enters the Slither state, consuming Stamina to move rapidly forward for up to 2.5s. When the skill button is released, the duration ends, or Stamina runs out, Nefer will exit the Slither state and consume a certain amount of additional Stamina to deal Dendro DMG to opponents. When in the Shadow Dance state, additional Stamina consumption is decreased.\nAdditionally, unleashing the Elemental Skill Senet Strategy: Dance of a Thousand Nights or sprinting while Nefer is in the Slither state will not cause her to exit the state.\n\nPlunging Attack\nCalling upon the might of Dendro, Nefer plunges towards the ground from mid-air, damaging all opponents in her path and dealing AoE Dendro DMG upon impact with the ground.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "attack-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                38.07, 40.93, 43.78, 47.59, 50.44, 53.3, 57.11, 60.91, 64.72,
+                68.53, 72.34, 76.14, 80.9, 85.66, 90.42
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [10],
+            "end": 40,
+            "cancels": {
+              "normal": 15,
+              "charged": 40
+            },
+            "element": "Dendro",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                37.56, 40.38, 43.2, 46.96, 49.77, 52.59, 56.35, 60.1, 63.86,
+                67.62, 71.37, 75.13, 79.82, 84.52, 89.21
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [8],
+            "end": 38,
+            "cancels": {
+              "normal": 20,
+              "charged": 38
+            },
+            "element": "Dendro",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-3",
+          "label": "3-Hit DMG (2 hits)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                25.24, 27.13, 29.03, 31.55, 33.44, 35.34, 37.86, 40.38, 42.91,
+                45.43, 47.96, 50.48, 53.64, 56.79, 59.95
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [10, 26],
+            "end": 62,
+            "cancels": {
+              "normal": 49,
+              "charged": 62
+            },
+            "element": "Dendro",
+            "icd": "NormalAttack"
+          },
+          "hits": 2
+        },
+        {
+          "type": "multiplier",
+          "id": "attack-4",
+          "label": "4-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                60.99, 65.57, 70.14, 76.24, 80.82, 85.39, 91.49, 97.59, 103.69,
+                109.79, 115.89, 121.99, 129.61, 137.24, 144.86
+              ]
+            }
+          ],
+          "timing": {
+            "action": "normal",
+            "hitmarks": [22],
+            "end": 51,
+            "cancels": {
+              "normal": 51
+            },
+            "element": "Dendro",
+            "icd": "NormalAttack"
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "charge",
+          "label": "Charged Attack DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                130.88, 140.7, 150.51, 163.6, 173.42, 183.23, 196.32, 209.41,
+                222.5, 235.58, 248.67, 261.76, 278.12, 294.48, 310.84
+              ]
+            }
+          ],
+          "timing": {
+            "action": "charged",
+            "hitmarks": [44],
+            "end": 72,
+            "cancels": {
+              "normal": 29,
+              "skill": 48,
+              "burst": 48,
+              "dodge": 48,
+              "swap": 28
+            },
+            "element": "Dendro"
+          }
+        }
+      ],
+      "forms": [
+        {
+          "id": "phantasm",
+          "replaces": "charged",
+          "while": {
+            "all": [
+              {
+                "status": "shadowDance"
+              },
+              {
+                "resource": "phantasmCharges",
+                "gte": 1
+              },
+              {
+                "any": [
+                  {
+                    "resource": "verdantDew",
+                    "gte": 1
+                  },
+                  {
+                    "resource": "moonridgeDew",
+                    "gte": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "label": "Phantasm Performance",
+          "shortLabel": "Phantasm",
+          "icon": "Skill_S_Nefer_01",
+          "end": 126,
+          "cancels": {
+            "burst": 30,
+            "dodge": 30
+          },
+          "hits": [
+            {
+              "row": "elementalSkill/phantasm-nefer-1",
+              "frame": 30,
+              "category": "Charged",
+              "element": "Dendro"
+            },
+            {
+              "row": "elementalSkill/phantasm-shade-1",
+              "frame": 35,
+              "category": "Lunar-Bloom",
+              "element": "Dendro",
+              "gauge": 0
+            },
+            {
+              "row": "elementalSkill/phantasm-shade-2",
+              "frame": 43,
+              "category": "Lunar-Bloom",
+              "element": "Dendro",
+              "gauge": 0
+            },
+            {
+              "row": "elementalSkill/phantasm-nefer-2",
+              "frame": 44,
+              "category": "Charged",
+              "element": "Dendro"
+            },
+            {
+              "row": "elementalSkill/phantasm-shade-3",
+              "frame": 45,
+              "category": "Lunar-Bloom",
+              "element": "Dendro",
+              "gauge": 0
+            }
+          ],
+          "note": "In Shadow Dance with a Phantasm charge and Dew: spends 1 Dew at 29; 2 Charged hits of Nefer and 3 Lunar-Bloom hits of her Shades (gcsim, 20-frame windup)."
+        }
+      ]
+    },
+    {
+      "id": "elementalSkill",
+      "kind": "skill",
+      "name": "Senet Strategy: Dance of a Thousand Nights",
+      "icon": "Skill_S_Nefer_01",
+      "levelField": "skillLevel",
+      "boostedBy": "c3",
+      "description": "A dance that dissolved dynasties, as chilling as a winter's night on the great sea of sand, yet lingering with the tenderness of moonlit gauze. Nefer charges forward, dealing AoE Dendro DMG and entering the Shadow Dance state.\nWhile in the Shadow Dance state, if you have at least 1 Verdant Dew, Nefer's Charged Attacks will be replaced with the special Charged Attack Phantasm Performance, which will not consume Stamina. When in the Shadow Dance state, Nefer's resistance to interruption is increased.\n\nTwo initial charges.\n\n\"The world is a game in which the pieces remain hidden behind a veil. To avoid falling into a trap, one must collect every piece of information one can. This is the meaning of secrets.\"",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "skill",
+          "label": "Skill DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                76.38, 82.11, 87.84, 95.48, 101.21, 106.94, 114.58, 122.21,
+                129.85, 137.49, 145.13, 152.77, 162.32, 171.86, 181.41
+              ]
+            },
+            {
+              "stat": "em",
+              "values": [
+                152.77, 164.23, 175.68, 190.96, 202.42, 213.88, 229.15, 244.43,
+                259.71, 274.98, 290.26, 305.54, 324.63, 343.73, 362.82
+              ]
+            }
+          ],
+          "timing": {
+            "action": "skill",
+            "hitmarks": [24]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "phantasm-nefer-1",
+          "label": "Phantasm Performance 1-Hit DMG (Nefer)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                24.64, 26.49, 28.34, 30.8, 32.65, 34.5, 36.96, 39.42, 41.89,
+                44.35, 46.82, 49.28, 52.36, 55.44, 58.52
+              ]
+            },
+            {
+              "stat": "em",
+              "values": [
+                49.28, 52.98, 56.67, 61.6, 65.3, 68.99, 73.92, 78.85, 83.78,
+                88.7, 93.63, 98.56, 104.72, 110.88, 117.04
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "phantasm-nefer-2",
+          "label": "Phantasm Performance 2-Hit DMG (Nefer)",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                32.03, 34.43, 36.84, 40.04, 42.44, 44.84, 48.05, 51.25, 54.45,
+                57.66, 60.86, 64.06, 68.07, 72.07, 76.08
+              ]
+            },
+            {
+              "stat": "em",
+              "values": [
+                64.06, 68.87, 73.67, 80.08, 84.88, 89.69, 96.1, 102.5, 108.91,
+                115.32, 121.72, 128.13, 136.14, 144.14, 152.15
+              ]
+            }
+          ]
+        },
+        {
+          "type": "multiplier",
+          "id": "phantasm-shade-1",
+          "label": "Phantasm Performance 1-Hit DMG (Shades)",
+          "components": [
+            {
+              "stat": "em",
+              "values": [
+                96, 103.2, 110.4, 120, 127.2, 134.4, 144, 153.6, 163.2, 172.8,
+                182.4, 192, 204, 216, 228
+              ]
+            }
+          ],
+          "note": "Lunar-Bloom DMG."
+        },
+        {
+          "type": "multiplier",
+          "id": "phantasm-shade-2",
+          "label": "Phantasm Performance 2-Hit DMG (Shades)",
+          "components": [
+            {
+              "stat": "em",
+              "values": [
+                96, 103.2, 110.4, 120, 127.2, 134.4, 144, 153.6, 163.2, 172.8,
+                182.4, 192, 204, 216, 228
+              ]
+            }
+          ],
+          "note": "Lunar-Bloom DMG."
+        },
+        {
+          "type": "multiplier",
+          "id": "phantasm-shade-3",
+          "label": "Phantasm Performance 3-Hit DMG (Shades)",
+          "components": [
+            {
+              "stat": "em",
+              "values": [
+                128, 137.6, 147.2, 160, 169.6, 179.2, 192, 204.8, 217.6, 230.4,
+                243.2, 256, 272, 288, 304
+              ]
+            }
+          ],
+          "note": "Lunar-Bloom DMG."
+        },
+        {
+          "type": "text",
+          "id": "skill-cd",
+          "label": "Shadow Dance / Cooldown",
+          "value": "9 s / 9 s (2 charges)"
+        }
+      ],
+      "end": 52,
+      "cancels": {
+        "normal": 26,
+        "charged": 29,
+        "dodge": 38,
+        "swap": 25,
+        "burst": 38
+      },
+      "cooldown": {
+        "frames": 540,
+        "delayFrames": 22,
+        "charges": 2
+      },
+      "note": "Shadow Dance for 9 s with 3 Phantasm Performance charges (her Charged Attacks with Dew)."
+    },
+    {
+      "id": "elementalBurst",
+      "kind": "burst",
+      "name": "Sacred Vow: True Eye's Phantasm",
+      "icon": "Skill_E_Nefer_01",
+      "levelField": "burstLevel",
+      "boostedBy": "c5",
+      "description": "Grant \"revelation\" to the mysteries of the false through Thoth's true sight, dealing AoE Dendro DMG to opponents ahead. When unleashed, Nefer will consume all Veils of Falsehood to increase the DMG dealt by the current Elemental Burst.\n\nThe blessings of the Ibis King proclaimed by the singers of the burning sands are, in truth, more akin to dire curses.",
+      "rows": [
+        {
+          "type": "multiplier",
+          "id": "burst-1",
+          "label": "1-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                224.64, 241.49, 258.34, 280.8, 297.65, 314.5, 336.96, 359.42,
+                381.89, 404.35, 426.82, 449.28, 477.36, 505.44, 533.52
+              ]
+            },
+            {
+              "stat": "em",
+              "values": [
+                449.28, 482.98, 516.67, 561.6, 595.3, 628.99, 673.92, 718.85,
+                763.78, 808.7, 853.63, 898.56, 954.72, 1010.88, 1067.04
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [104]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "burst-2",
+          "label": "2-Hit DMG",
+          "components": [
+            {
+              "stat": "atk",
+              "values": [
+                336.96, 362.23, 387.5, 421.2, 446.47, 471.74, 505.44, 539.14,
+                572.83, 606.53, 640.22, 673.92, 716.04, 758.16, 800.28
+              ]
+            },
+            {
+              "stat": "em",
+              "values": [
+                673.92, 724.46, 775.01, 842.4, 892.94, 943.49, 1010.88, 1078.27,
+                1145.66, 1213.06, 1280.45, 1347.84, 1432.08, 1516.32, 1600.56
+              ]
+            }
+          ],
+          "timing": {
+            "action": "burst",
+            "hitmarks": [149]
+          }
+        },
+        {
+          "type": "multiplier",
+          "id": "veil-bonus",
+          "label": "DMG Bonus per Veil of Falsehood",
+          "components": [
+            {
+              "stat": "flat",
+              "values": [
+                13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46, 49, 52, 55
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "burst-cd",
+          "label": "Cooldown",
+          "value": "15 s"
+        }
+      ],
+      "end": 131,
+      "cancels": {
+        "normal": 119,
+        "skill": 119,
+        "dodge": 120,
+        "swap": 118,
+        "phantasm": 124
+      },
+      "cooldown": {
+        "frames": 900
+      },
+      "energyCost": 60,
+      "note": "Consumes every Veil of Falsehood: each one raises this Q's DMG."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "shadowDance",
+      "type": "status",
+      "source": "talent",
+      "label": "Shadow Dance",
+      "durationFrames": 540,
+      "icon": "Skill_S_Nefer_01"
+    },
+    {
+      "id": "phantasmCharges",
+      "type": "resource",
+      "source": "talent",
+      "label": "Phantasm Performance charges",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "skill-shadow-dance",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E: Shadow Dance, 3 Phantasm charges",
+      "when": {
+        "use": "skill"
+      },
+      "do": [
+        {
+          "applyStatus": "shadowDance"
+        },
+        {
+          "setResource": "phantasmCharges",
+          "value": 3
+        },
+        {
+          "applyStatus": "seedWindow",
+          "if": {
+            "moonsign": "ascendant"
+          }
+        }
+      ]
+    },
+    {
+      "id": "skill-particles",
+      "type": "trigger",
+      "source": "talent",
+      "label": "E hit: Dendro particles",
+      "when": {
+        "hit": "skill"
+      },
+      "icdFrames": 12,
+      "do": [
+        {
+          "particles": {
+            "min": 2,
+            "max": 3,
+            "maxChance": 0.66
+          },
+          "afterFrames": 100
+        }
+      ]
+    },
+    {
+      "id": "swap-out",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Leaving the field ends Shadow Dance",
+      "when": {
+        "swap": "out"
+      },
+      "do": [
+        {
+          "removeStatus": "shadowDance"
+        },
+        {
+          "setResource": "phantasmCharges",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "phantasm-spend",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Phantasm Performance: a charge, 1 Dew (Verdant first), the Seeds; its Veils count from its first hit",
+      "when": {
+        "use": "phantasm"
+      },
+      "do": [
+        {
+          "addResource": "phantasmCharges",
+          "amount": -1,
+          "delayFrames": 20
+        },
+        {
+          "addResource": "moonridgeDew",
+          "amount": -1,
+          "delayFrames": 29,
+          "if": {
+            "resource": "verdantDew",
+            "lte": 0
+          }
+        },
+        {
+          "addResource": "verdantDew",
+          "amount": -1,
+          "delayFrames": 29
+        },
+        {
+          "addStack": "veil",
+          "times": {
+            "resource": "seeds"
+          },
+          "delayFrames": 29
+        },
+        {
+          "setResource": "seeds",
+          "value": 0,
+          "delayFrames": 29
+        },
+        {
+          "setResource": "phantasmVeil",
+          "value": {
+            "stacks": "veil"
+          },
+          "delayFrames": 30
+        }
+      ]
+    },
+    {
+      "id": "seedWindow",
+      "type": "status",
+      "source": "passive",
+      "label": "A Wager of Moonlight: Seeds of Deceit",
+      "durationFrames": 900
+    },
+    {
+      "id": "seeds",
+      "type": "resource",
+      "source": "passive",
+      "label": "Seeds of Deceit",
+      "min": 0,
+      "max": 5
+    },
+    {
+      "id": "seed-on-lunar-bloom",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Lunar-Bloom in the window: a Seed of Deceit (30 frames later, as a Dendro Core)",
+      "when": {
+        "hit": "party:reaction:Lunar-Bloom"
+      },
+      "do": [
+        {
+          "addResource": "seeds",
+          "amount": 1,
+          "delayFrames": 30
+        }
+      ],
+      "if": {
+        "status": "seedWindow"
+      }
+    },
+    {
+      "id": "charged-absorb",
+      "type": "trigger",
+      "source": "passive",
+      "label": "Charged Attack: absorbs the Seeds of Deceit",
+      "when": {
+        "hit": "normalAttack/charge"
+      },
+      "do": [
+        {
+          "addStack": "veil",
+          "times": {
+            "resource": "seeds"
+          }
+        },
+        {
+          "setResource": "seeds",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "veil",
+      "type": "status",
+      "source": "passive",
+      "label": "Veil of Falsehood",
+      "stacks": {
+        "max": 3,
+        "durationFrames": 540
+      }
+    },
+    {
+      "id": "veilEm",
+      "type": "status",
+      "source": "passive",
+      "label": "Veil of Falsehood: EM",
+      "durationFrames": 480
+    },
+    {
+      "id": "veil-em",
+      "type": "trigger",
+      "source": "passive",
+      "label": "3 Veils: +100 EM",
+      "when": {
+        "resourceChanges": "seeds",
+        "change": "decrease"
+      },
+      "do": [
+        {
+          "applyStatus": "veilEm",
+          "delayFrames": 1,
+          "if": {
+            "status": "veil",
+            "gte": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "veil-em-bonus",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Veil of Falsehood: EM",
+      "stat": "elementalMastery",
+      "value": 100,
+      "while": {
+        "veilEm": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "phantasmVeil",
+      "type": "resource",
+      "source": "passive",
+      "label": "Veils of the Phantasm Performance (at its first hit)",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "veil-phantasm",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Veil of Falsehood: Phantasm Performance DMG",
+      "stat": "multiplierBonus",
+      "value": 8,
+      "perStack": {
+        "state": "phantasmVeil",
+        "max": 3
+      },
+      "match": {
+        "actions": ["phantasm"]
+      }
+    },
+    {
+      "id": "veilSpent",
+      "type": "resource",
+      "source": "talent",
+      "label": "Veils consumed by the Q",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "burst-veil",
+      "type": "trigger",
+      "source": "talent",
+      "label": "Q: consumes every Veil of Falsehood",
+      "when": {
+        "use": "burst"
+      },
+      "do": [
+        {
+          "setResource": "veilSpent",
+          "value": {
+            "stacks": "veil"
+          }
+        },
+        {
+          "removeStatus": "veil"
+        }
+      ]
+    },
+    {
+      "id": "burst-veil-bonus",
+      "type": "bonus",
+      "source": "talent",
+      "label": "Q: DMG per Veil consumed",
+      "stat": "dmgBonus",
+      "valueRow": "elementalBurst/veil-bonus",
+      "perStack": {
+        "state": "veilSpent",
+        "max": 3
+      },
+      "match": {
+        "actions": ["burst"]
+      }
+    },
+    {
+      "id": "benediction-base",
+      "type": "bonus",
+      "source": "passive",
+      "label": "Moonsign Benediction: Lunar-Bloom Base DMG (her EM)",
+      "stat": "lunarBaseBonus",
+      "value": 1.75,
+      "ofStat": "em",
+      "cap": 14,
+      "match": {
+        "categories": ["Lunar-Bloom"]
+      },
+      "teamBuff": "everyone"
+    }
+  ],
+  "systems": {
+    "energy": {
+      "initialField": "startingEnergy"
+    },
+    "verdantDew": {}
+  },
+  "automatic": [
+    {
+      "use": "burst",
+      "ifFlag": "useBurst",
+      "if": {
+        "ready": "burst"
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "all": [
+          {
+            "ready": "skill"
+          },
+          {
+            "not": {
+              "status": "shadowDance"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "use": "charged",
+      "if": {
+        "all": [
+          {
+            "status": "shadowDance"
+          },
+          {
+            "resource": "phantasmCharges",
+            "gte": 1
+          },
+          {
+            "any": [
+              {
+                "resource": "verdantDew",
+                "gte": 1
+              },
+              {
+                "resource": "moonridgeDew",
+                "gte": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "use": "skill",
+      "if": {
+        "ready": "skill"
+      }
+    },
+    {
+      "use": "normal"
+    }
+  ],
+  "details": [
+    {
+      "label": "Phantasm Performances",
+      "value": "{uses:phantasm}"
+    },
+    {
+      "label": "Lunar-Bloom Base DMG for the party (her EM)",
+      "value": "+{buffValue:benediction-base|fixed1}%"
+    },
+    {
+      "label": "Veil of Falsehood up",
+      "value": "{uptime:veil|percent}"
+    },
+    {
+      "label": "Particles generated by the E",
+      "value": "{particles|number}"
+    },
+    {
+      "label": "Energy left at the end",
+      "value": "{resource:energy|fixed1} / 60"
+    }
+  ],
+  "weapon": "reliquary-of-truth",
+  "passives": [
+    {
+      "id": "nefer-passive-1",
+      "name": "A Wager of Moonlight",
+      "icon": "UI_Talent_S_Nefer_05",
+      "value": "Ascendant Gleam: for 15 s after her E, Lunar-Bloom makes Seeds of Deceit; her Charged Attacks absorb them as Veils of Falsehood (+8% Phantasm Performance DMG each, up to 3; at 3, +100 EM for 8 s).",
+      "description": "Nefer will be granted the corresponding buff effects based on the party's Moonsign.\n\nMoonsign: Ascendant Gleam: When she unleashes her Elemental Skill Senet Strategy: Dance of a Thousand Nights, any Dendro Cores on the field will be converted to Seeds of Deceit, and any Lunar-Bloom reactions triggered by nearby characters in the following 15s that would create Dendro Cores or Bountiful Cores will instead create Seeds of Deceit. Seeds of Deceit cannot trigger Hyperbloom or Burgeon reactions and will not burst.\nWhen Nefer unleashes a Charged Attack or Phantasm Performance, she can absorb Seeds of Deceit within a certain range, gaining 1 stack of Veil of Falsehood for every seed absorbed. When this effect reaches 3 stacks, or when the third stack's duration is refreshed, Nefer's Elemental Mastery will be increased by 100 for 8s.",
+      "note": "Seeds come from the party's Lunar-Bloom (one each); they never expire here, and Dendro Cores are not simulated."
+    },
+    {
+      "id": "nefer-passive-2",
+      "name": "Daughter of the Dust and Sand",
+      "icon": "UI_Talent_S_Nefer_06",
+      "value": "Slither gathers Verdant Dew faster (EM over 500).",
+      "description": "When Nefer is in the Shadow Dance state, for 5s after a party member triggers a Lunar-Bloom reaction, Nefer's Slither state will provide additional Verdant Dew. Every 100 points of Nefer's Elemental Mastery beyond 500 will strengthen this additional provision effect by 10%. The maximum increase that can be achieved this way is 50%.",
+      "note": "Not simulated: Slither (a held Charged Attack without Dew) is not modeled."
+    },
+    {
+      "id": "nefer-passive-3",
+      "name": "Moonsign Benediction: Dusklit Eaves",
+      "icon": "UI_Talent_S_Nefer_07",
+      "value": "Bloom becomes Lunar-Bloom; the party's Lunar-Bloom Base DMG +0.0175% per point of her EM (up to 14%). Moonsign +1.",
+      "description": "When a party member triggers a Bloom reaction, it will be converted into the Lunar-Bloom reaction, with every point of Elemental Mastery that Nefer has increasing Lunar-Bloom's Base DMG by 0.0175%, up to a maximum of 14%.\n\nAdditionally, when Nefer is in the party, the party's Moonsign will increase by 1 level."
+    },
+    {
+      "id": "nefer-passive-4",
+      "name": "Conspiracy of the Golden Vault",
+      "icon": "UI_Talent_S_Nefer_08",
+      "value": "Not used in combat.",
+      "description": "Gains 25% more rewards when dispatched on a Nod-Krai Expedition for 20 hours."
+    }
+  ],
+  "constellations": [
+    {
+      "id": "c1",
+      "level": 1,
+      "name": "Planning Breeds Success",
+      "icon": "UI_Talent_S_Nefer_01",
+      "effect": "The Base DMG for Lunar-Bloom reactions caused by Nefer's Phantasm Performance is increased by 60% of her Elemental Mastery. This effect is also boosted by Veil ",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "The Base DMG for Lunar-Bloom reactions caused by Nefer's Phantasm Performance is increased by 60% of her Elemental Mastery. This effect is also boosted by Veil of Falsehood."
+    },
+    {
+      "id": "c2",
+      "level": 2,
+      "name": "Observation Feeds Strategy",
+      "icon": "UI_Talent_S_Nefer_02",
+      "effect": "Enhances the effects of the Ascension Talent A Wager of Moonlight: Extends Veil of Falsehood's duration by 5s, and increases its stack limit to 5, as well as ca",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "Enhances the effects of the Ascension Talent A Wager of Moonlight: Extends Veil of Falsehood's duration by 5s, and increases its stack limit to 5, as well as causing Phantasm Performance to deal up to 140% of its original DMG. When Nefer unleashes her Elemental Skill Senet Strategy: Dance of a Thousand Nights, she will instantly gain 2 stacks of Veil of Falsehood. Additionally, when Veil of Falsehood reaches 5 stacks, or when the fifth stack's duration is refreshed, Nefer's Elemental Mastery will be increased by 200 for 8s instead.\nYou must first unlock the Ascension Talent \"A Wager of Moonlight.\""
+    },
+    {
+      "id": "c3",
+      "level": 3,
+      "name": "Deceit Cloaks the Truth",
+      "icon": "UI_Talent_U_Nefer_01",
+      "effect": "Increases the Level of Senet Strategy: Dance of a Thousand Nights by 3.",
+      "impact": "simulated",
+      "note": "Talent levels: raise the level by hand.",
+      "description": "Increases the Level of Senet Strategy: Dance of a Thousand Nights by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c4",
+      "level": 4,
+      "name": "Delusion Ensnares Reason",
+      "icon": "UI_Talent_S_Nefer_03",
+      "effect": "When Nefer is on the field and in the Shadow Dance state, you will gain Verdant Dew 25% faster.",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "When Nefer is on the field and in the Shadow Dance state, you will gain Verdant Dew 25% faster.\nAdditionally, while Nefer is in the Shadow Dance state, nearby opponents will have their Dendro RES decreased by 20%. When Nefer exits the Shadow Dance state or after she strays a certain distance away from the opponents, this effect will be removed after 4.5s."
+    },
+    {
+      "id": "c5",
+      "level": 5,
+      "name": "Opportunity Hides in the Margins",
+      "icon": "UI_Talent_U_Nefer_02",
+      "effect": "Increases the Level of Sacred Vow: True Eye's Phantasm by 3.",
+      "impact": "simulated",
+      "note": "Talent levels: raise the level by hand.",
+      "description": "Increases the Level of Sacred Vow: True Eye's Phantasm by 3.\nMaximum upgrade level is 15."
+    },
+    {
+      "id": "c6",
+      "level": 6,
+      "name": "Victory Flows from the Turning of Tides",
+      "icon": "UI_Talent_S_Nefer_04",
+      "effect": "When Nefer unleashes Phantasm Performance, the second stage of DMG dealt by herself will be converted to deal AoE Dendro DMG equal to 85% of her Elemental Maste",
+      "impact": "not-simulated",
+      "note": "Not simulated yet (the build is C0).",
+      "description": "When Nefer unleashes Phantasm Performance, the second stage of DMG dealt by herself will be converted to deal AoE Dendro DMG equal to 85% of her Elemental Mastery. Additionally, when the attacks from Phantasm Performance end, an extra instance of AoE Dendro DMG equal to 120% of Nefer's Elemental Mastery will be dealt. All of the aforementioned DMG is considered Lunar-Bloom DMG dealt by Phantasm Performance.\n\nMoonsign: Ascendant Gleam\nNefer's Lunar-Bloom DMG is elevated by 15%."
+    }
+  ],
+  "defaults": {
+    "numbers": {
+      "atk": 1318,
+      "hp": 19252,
+      "def": 937,
+      "em": 671.9,
+      "cr": 64,
+      "cd": 256,
+      "bonus": 0,
+      "elementalBonus": 0,
+      "energyRecharge": 122,
+      "duration": 60,
+      "normalAttackLevel": 1,
+      "skillLevel": 10,
+      "burstLevel": 10,
+      "reliquaryOfTruthRefinement": 1,
+      "startingEnergy": 60
+    },
+    "flags": {
+      "c1": false,
+      "c2": false,
+      "c3": false,
+      "c4": false,
+      "c5": false,
+      "c6": false,
+      "reliquaryOfTruth": true,
+      "nightOfTheSkysUnveiling2": true,
+      "nightOfTheSkysUnveiling4": true,
+      "useBurst": true
+    }
+  },
+  "fields": [
+    {
+      "kind": "number",
+      "section": "stats",
+      "name": "energyRecharge",
+      "label": "Energy Recharge (%)",
+      "min": 100,
+      "step": 0.1
+    },
+    {
+      "kind": "checkbox",
+      "section": "rotation",
+      "name": "useBurst",
+      "label": "Use the Q"
+    },
+    {
+      "kind": "number",
+      "section": "rotation",
+      "name": "startingEnergy",
+      "label": "Starting Energy (0-60)",
+      "min": 0,
+      "max": 60,
+      "step": 1
+    },
+    {
+      "kind": "checkbox",
+      "section": "artifacts",
+      "name": "nightOfTheSkysUnveiling4",
+      "label": "Night of the Sky's Unveiling 4-piece (CRIT Rate, Lunar DMG)"
+    }
+  ],
+  "artifactSet": "night-of-the-skys-unveiling",
+  "rotation": {
+    "automaticDescription": "Q when it is ready, E when out of Shadow Dance, Phantasm Performance while she has a charge and the party has Dew, E when ready, Normal Attacks otherwise."
+  }
+}

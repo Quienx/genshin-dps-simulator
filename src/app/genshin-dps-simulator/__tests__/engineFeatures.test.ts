@@ -2208,3 +2208,125 @@ describe('a Dash after a held action', () => {
     ).toBeNull();
   });
 });
+
+describe('a status that fills a resource (gain)', () => {
+  const file = editCharacter('arlecchino', (character) => {
+    character.blocks.push(
+      resource('meter', { max: 60 }),
+      status('filling', {
+        durationFrames: 120,
+        gain: { resource: 'meter', amount: 0.5, everyFrames: 3 },
+      }),
+      trigger('fill', { use: 'probe' }, [{ applyStatus: 'filling' }])
+    );
+  });
+
+  it('adds every everyFrames while it lasts, and a refresh keeps the rhythm', () => {
+    const { runtime } = createFileRuntime(file);
+    runtime.fireTriggers('use', ['probe'], 0, null);
+    // Refreshed at 4: the ticks still land at 3, 6, 9…
+    runtime.queue.runUntil(4, Number.POSITIVE_INFINITY);
+    runtime.fireTriggers('use', ['probe'], 4, null);
+    runtime.queue.runUntil(9, Number.POSITIVE_INFINITY);
+    expect(runtime.getResource('meter')).toBe(1.5);
+    // It ends 120 frames after the refresh: 41 ticks (3 … 123).
+    runtime.queue.runUntil(1000, Number.POSITIVE_INFINITY);
+    expect(runtime.getResource('meter')).toBe(20.5);
+  });
+});
+
+describe('stack counts in amounts and conditions', () => {
+  const file = editCharacter('arlecchino', (character) => {
+    character.blocks.push(
+      resource('seeds', { max: 5, initial: 2 }),
+      resource('copied', { max: 5 }),
+      status('pip', { stacks: { max: 3, durationFrames: 100 } }),
+      trigger('absorb', { use: 'probe' }, [
+        { addStack: 'pip', times: { resource: 'seeds' } },
+        { setResource: 'copied', value: { stacks: 'pip' }, delayFrames: 1 },
+      ])
+    );
+  });
+
+  it('adds several stacks at once, and reads their count', () => {
+    const { runtime } = createFileRuntime(file);
+    runtime.fireTriggers('use', ['probe'], 0, null);
+    runtime.queue.runUntil(5, Number.POSITIVE_INFINITY);
+    expect(runtime.getResource('copied')).toBe(2);
+    expect(runtime.evaluate({ status: 'pip', gte: 2 }, 5)).toBe(true);
+    expect(runtime.evaluate({ status: 'pip', gte: 3 }, 5)).toBe(false);
+  });
+});
+
+describe('Moonsign', () => {
+  const file = (moonsign: number) =>
+    editCharacter('arlecchino', (character) => {
+      character.moonsign = moonsign;
+      character.blocks.push({
+        id: 'by-moonsign',
+        type: 'bonus',
+        source: 'talent',
+        label: 'by Moonsign',
+        stat: 'critDamage',
+        value: [15, 30],
+        scaleBy: { moonsign: true },
+      });
+    });
+
+  it('is Nascent with one, Ascendant with two or more', () => {
+    expect(
+      createFileRuntime(file(1)).runtime.evaluate({ moonsign: 'nascent' }, 0)
+    ).toBe(true);
+    expect(
+      createFileRuntime(file(2)).runtime.evaluate({ moonsign: 'ascendant' }, 0)
+    ).toBe(true);
+    expect(
+      createFileRuntime(file(0)).runtime.evaluate({ moonsign: 'nascent' }, 0)
+    ).toBe(false);
+  });
+
+  it('picks a bonus value by level, none without one', () => {
+    const critOf = (moonsign: number) => {
+      const { context } = simulateFile(file(moonsign), {
+        blocks: [block('n', 'normal')],
+      });
+      return context.hitLog[0].critDamage ?? 0;
+    };
+    expect(critOf(1) - critOf(0)).toBeCloseTo(0.15);
+    expect(critOf(2) - critOf(0)).toBeCloseTo(0.3);
+  });
+});
+
+describe('a multiplier increase', () => {
+  it('scales the hit’s talent multiplier and its other stats’ parts', () => {
+    const damageOf = (value: number) => {
+      const file = editCharacter('arlecchino', (character) => {
+        character.blocks.push({
+          id: 'more',
+          type: 'bonus',
+          source: 'talent',
+          label: 'more',
+          stat: 'multiplierBonus',
+          value,
+        });
+      });
+      return simulateFile(file, { blocks: [block('n', 'normal')] }).context
+        .hitLog[0].damage;
+    };
+    expect(damageOf(24) / damageOf(0)).toBeCloseTo(1.24);
+  });
+});
+
+describe('a shared resource alone', () => {
+  it('is the character’s own', () => {
+    const file = editCharacter('arlecchino', (character) => {
+      character.blocks.push(
+        resource('dew', { max: 3, shared: true }),
+        trigger('gain', { use: 'probe' }, [{ addResource: 'dew', amount: 1 }])
+      );
+    });
+    const { runtime } = createFileRuntime(file);
+    runtime.fireTriggers('use', ['probe'], 0, null);
+    expect(runtime.getResource('dew')).toBe(1);
+  });
+});

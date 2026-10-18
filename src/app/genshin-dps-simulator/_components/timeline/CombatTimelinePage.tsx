@@ -67,6 +67,7 @@ import {
   INSPECTOR_TEST_IDS,
   isSwapAction,
   MAVUIKA_PRESETS,
+  NEFER_PRESETS,
   runInspectorTest,
   runOwnRotation,
   runSolo,
@@ -132,7 +133,7 @@ const SCENARIOS: Scenario[] = [
     run: (members) => runTeam({ ...buildDefaultTeam(), members }, 'random'),
     setup: TEAM_SETUP,
   },
-  ...MAVUIKA_PRESETS.map(
+  ...[...MAVUIKA_PRESETS, ...NEFER_PRESETS].map(
     (preset): Scenario => ({
       id: preset.id,
       label: preset.label,

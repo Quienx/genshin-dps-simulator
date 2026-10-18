@@ -1,6 +1,7 @@
 import { expandBondOfLife } from './bondOfLife';
 import { expandEnergy } from './energy';
 import { expandNightsoul } from './nightsoul';
+import { expandVerdantDew } from './verdantDew';
 import { Block } from '../schema';
 import { CharacterData } from '../../characterSchema';
 
@@ -12,6 +13,7 @@ const MODULES: Record<string, SystemModule> = {
   bondOfLife: expandBondOfLife,
   energy: expandEnergy,
   nightsoul: expandNightsoul,
+  verdantDew: expandVerdantDew,
 };
 
 export const expandSystems = (character: CharacterData): Block[] =>

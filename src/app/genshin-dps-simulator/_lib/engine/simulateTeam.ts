@@ -1,9 +1,11 @@
 import { createEventLog, SimEvent, sortEvents } from './eventLog';
 import { createKitAdapter, KitAction, KitAdapter } from './kitAdapter';
+import { expandSystems } from './modules';
 import { nightsoulPartyField } from './modules/nightsoul';
+import { createVerdantDewClock, VERDANT_DEW_ID } from './modules/verdantDew';
 import { createEventQueue } from './queue';
 import { createRuntime, KitRuntime, PartyLink } from './runtime';
-import { BonusStat } from './schema';
+import { BonusStat, ResourceBlock } from './schema';
 import { collectRunResult } from './simulateKit';
 import {
   getLoadedCharacter,
@@ -194,18 +196,26 @@ type TeamOptions = {
 // takes `uses` × U units off it; the same element refreshes the aura if it
 // leaves more. One aura at a time; an element that does not react with it
 // here (no table entry) leaves it as it is.
-const AURA_ELEMENTS = new Set(['Pyro', 'Electro', 'Cryo']);
+const AURA_ELEMENTS = new Set(['Pyro', 'Electro', 'Cryo', 'Hydro', 'Dendro']);
 // The hit's element → the aura's → the reaction, and how much aura it uses.
+// `lunar`: what it becomes when a member turns it Lunar (`lunarReactions`).
+// Bloom's Dendro Cores are not simulated: Bloom only fires its triggers.
 const REACTION_TABLE: Record<
   string,
-  Record<string, { reaction: string; uses: number }>
+  Record<string, { reaction: string; uses: number; lunar?: string }>
 > = {
   Pyro: {
     Electro: { reaction: 'Overloaded', uses: 1 },
     Cryo: { reaction: 'Melt', uses: 2 },
+    Hydro: { reaction: 'Vaporize', uses: 0.5 },
   },
   Electro: { Pyro: { reaction: 'Overloaded', uses: 1 } },
   Cryo: { Pyro: { reaction: 'Melt', uses: 0.5 } },
+  Hydro: {
+    Pyro: { reaction: 'Vaporize', uses: 2 },
+    Dendro: { reaction: 'Bloom', uses: 0.5, lunar: 'Lunar-Bloom' },
+  },
+  Dendro: { Hydro: { reaction: 'Bloom', uses: 2, lunar: 'Lunar-Bloom' } },
 };
 type Aura = { element: string; gauge: number; frame: number; decay: number };
 
@@ -287,6 +297,83 @@ export const simulateTeam = (
       .map(({ effect }) => effect);
   const highVoltage = elementCount('Electro') >= 2;
   let highVoltageReadyAt = 0;
+  // Nod-Krai: the party's Moonsign, and the reactions a member turns Lunar.
+  const moonsign = team.reduce(
+    (sum, { characterId }) => sum + loadedOf(characterId).character.moonsign,
+    0
+  );
+  const lunarReactions = new Set<string>(
+    team.flatMap(
+      ({ characterId }) => loadedOf(characterId).character.lunarReactions
+    )
+  );
+
+  // Resources the party shares (`shared: true`): one value, and its bounds
+  // from the first member declaring it.
+  const sharedValues = new Map<string, number>();
+  const sharedBlocks = new Map<string, ResourceBlock>();
+  team.forEach(({ characterId }) => {
+    const { character } = loadedOf(characterId);
+    [
+      ...expandSystems(character),
+      ...character.blocks,
+      ...character.weapon.blocks,
+      ...character.artifactSet.blocks,
+    ].forEach((block) => {
+      if (
+        block.type === 'resource' &&
+        block.shared &&
+        !sharedBlocks.has(block.id)
+      ) {
+        sharedBlocks.set(block.id, block);
+      }
+    });
+  });
+  const setShared = (
+    id: string,
+    requested: number,
+    frame: number,
+    entry: RotationTraceEntry | null
+  ): number => {
+    const block = sharedBlocks.get(id);
+    if (!block) {
+      throw new Error(`No party resource "${id}"`);
+    }
+    const max = typeof block.max === 'number' ? block.max : block.max.else;
+    const before = sharedValues.get(id) ?? 0;
+    const value = Math.min(max, Math.max(block.min, requested));
+    const change = value - before;
+    if (change === 0) {
+      return 0;
+    }
+    sharedValues.set(id, value);
+    members.forEach((member) =>
+      member.runtime.receiveSharedResource(id, value, change, frame, entry)
+    );
+    const fromActive = activeAt(frame);
+    members.forEach((member, memberIndex) =>
+      member.runtime.firePartyResource(
+        id,
+        change,
+        frame,
+        fromActive === memberIndex
+      )
+    );
+    return change;
+  };
+  const dewClock = sharedBlocks.has(VERDANT_DEW_ID)
+    ? createVerdantDewClock({
+        queue,
+        getDew: () => sharedValues.get(VERDANT_DEW_ID) ?? 0,
+        gain: (frame) =>
+          setShared(
+            VERDANT_DEW_ID,
+            (sharedValues.get(VERDANT_DEW_ID) ?? 0) + 1,
+            frame,
+            null
+          ),
+      })
+    : null;
 
   // Particles caught at `frame` by every member (the one on the field
   // fully); who is on the field is known only then.
@@ -337,8 +424,12 @@ export const simulateTeam = (
         gauge: Math.max(0, current - reacts.uses * units),
         frame,
       };
-      logAura(reacts.reaction);
-      return reacts.reaction;
+      const reaction =
+        reacts.lunar && lunarReactions.has(reacts.lunar)
+          ? reacts.lunar
+          : reacts.reaction;
+      logAura(reaction);
+      return reaction;
     }
     const applied = 0.8 * units;
     if (aura && current > 0 && aura.element === element) {
@@ -407,6 +498,9 @@ export const simulateTeam = (
         highVoltageReadyAt = frame + HIGH_VOLTAGE_COOLDOWN_FRAMES;
         shareParticles(1, 'Electro', frame);
       }
+      if (dewClock && keys.includes('reaction:Lunar-Bloom')) {
+        dewClock.onLunarBloom(frame);
+      }
       const attackerActive = activeAt(frame) === index;
       members.forEach((member) =>
         member.runtime.firePartyHit(keys, frame, ids[index], attackerActive)
@@ -425,6 +519,9 @@ export const simulateTeam = (
       ),
     shareParticles,
     applyElement: auras ? applyElement : undefined,
+    moonsign,
+    getShared: (id) => sharedValues.get(id),
+    setShared,
     performAs: (attackerId, hit, attackerElement) => {
       const attacker = members.find(
         (member) => member.characterId === attackerId

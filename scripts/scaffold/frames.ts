@@ -13,6 +13,7 @@ import {
   fetchText,
   GCSIM,
   GCSIM_API,
+  GCSIM_API_REF,
   Json,
   option,
   run,
@@ -22,7 +23,9 @@ import {
 // Every .go file of a gcsim character (its dm.go's constants too).
 export const fetchFrames = async (key: string): Promise<FramesReport> => {
   const files = (
-    (await fetchJson(`${GCSIM_API}/characters/${key}`)) as unknown as Json[]
+    (await fetchJson(
+      `${GCSIM_API}/characters/${key}${GCSIM_API_REF}`
+    )) as unknown as Json[]
   )
     .map((file) => String(file.name))
     .filter((name) => name.endsWith('.go'));

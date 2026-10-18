@@ -53,7 +53,7 @@ export const SECTION_HELP = {
       'The last reaction it took.',
       '`Simulation Stats`: total DMG, DPS, reactions so far (by kind, with their DMG) and the time.',
     ],
-    note: 'Auras and reactions are only simulated in team runs (Overloaded and Melt).',
+    note: 'Auras and reactions are only simulated in team runs (Overloaded, Melt, Vaporize, and Bloom, which a Nod-Krai member turns into Lunar-Bloom).',
   },
   event: {
     title: 'Selected Event',

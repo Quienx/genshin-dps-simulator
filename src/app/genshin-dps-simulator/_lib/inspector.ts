@@ -15,6 +15,7 @@ import {
 import { ActivityBlock } from './engine/runtime';
 import formatNumber from './formatNumber';
 import { FRAMES_PER_SECOND } from './frames';
+import { isAmplifyingReaction, TRANSFORMATIVE_REACTIONS } from './reactions';
 import { getDeadWait } from './rotation/timelineLayout';
 import { TeamRun } from './team';
 import { HitLogEntry } from './types';
@@ -275,6 +276,26 @@ export const reactionsUntil = (
     byReaction.set(hit.reaction, entry);
   });
   return Array.from(byReaction.values());
+};
+
+// Reactions with no hit of their own (Lunar-Bloom gives Verdant Dew) up to
+// `time`, from the aura's record: how many of each.
+export const eventReactionsUntil = (
+  auras: AuraPoint[],
+  time: number
+): { reaction: string; count: number }[] => {
+  const counts = new Map<string, number>();
+  auras.forEach((point) => {
+    if (
+      point.reaction &&
+      point.time <= time + 1e-6 &&
+      !TRANSFORMATIVE_REACTIONS.includes(point.reaction) &&
+      !isAmplifyingReaction(point.reaction)
+    ) {
+      counts.set(point.reaction, (counts.get(point.reaction) ?? 0) + 1);
+    }
+  });
+  return Array.from(counts, ([reaction, count]) => ({ reaction, count }));
 };
 
 export type AuraPoint = {

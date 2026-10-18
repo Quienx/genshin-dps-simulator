@@ -1,0 +1,122 @@
+{
+  "id": "night-of-the-skys-unveiling",
+  "name": "Night of the Sky's Unveiling",
+  "screenStats": [
+    {
+      "stat": "elementalMastery",
+      "value": 80
+    }
+  ],
+  "pieces": [
+    {
+      "id": "flower",
+      "label": "Flower",
+      "icon": "UI_RelicIcon_15041_4"
+    },
+    {
+      "id": "plume",
+      "label": "Plume",
+      "icon": "UI_RelicIcon_15041_2"
+    },
+    {
+      "id": "sands",
+      "label": "Sands",
+      "icon": "UI_RelicIcon_15041_5"
+    },
+    {
+      "id": "goblet",
+      "label": "Goblet",
+      "icon": "UI_RelicIcon_15041_1"
+    },
+    {
+      "id": "circlet",
+      "label": "Circlet",
+      "icon": "UI_RelicIcon_15041_3"
+    }
+  ],
+  "rows": [
+    {
+      "id": "set-two-piece",
+      "label": "2-piece",
+      "value": "Increases Elemental Mastery by 80.",
+      "flag": "nightOfTheSkysUnveiling2",
+      "note": "Already on the character screen."
+    },
+    {
+      "id": "set-four-piece",
+      "label": "4-piece",
+      "value": "When nearby party members trigger Lunar Reactions, if the equipping character is on the field, gain the Gleaming Moon: Intent effect for 4s: Increases CRIT Rate by 15%/30% when the party's Moonsign is Nascent Gleam/Ascendant Gleam. All party members' Lunar Reaction DMG is increased by 10% for each different Gleaming Moon effect that party members have. Effects from Gleaming Moon cannot stack.",
+      "flag": "nightOfTheSkysUnveiling4",
+      "note": "Gleaming Moon: Intent while the wearer is on the field at a Lunar-Bloom; with another set's Gleaming Moon (Silken Moon's Serenade) the party gets +10% more."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "gleamingMoonIntent",
+      "type": "status",
+      "source": "artifact",
+      "label": "Gleaming Moon: Intent",
+      "ifFlag": "nightOfTheSkysUnveiling4",
+      "durationFrames": 240
+    },
+    {
+      "id": "night-4pc-trigger",
+      "type": "trigger",
+      "source": "artifact",
+      "label": "Lunar reaction while on the field: Gleaming Moon: Intent",
+      "ifFlag": "nightOfTheSkysUnveiling4",
+      "when": {
+        "hit": "party:reaction:Lunar-Bloom"
+      },
+      "if": {
+        "onField": true
+      },
+      "do": [
+        {
+          "applyStatus": "gleamingMoonIntent"
+        }
+      ]
+    },
+    {
+      "id": "night-4pc-cr",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Night of the Sky's Unveiling 4-piece: CRIT Rate",
+      "ifFlag": "nightOfTheSkysUnveiling4",
+      "stat": "critRate",
+      "value": [15, 30],
+      "scaleBy": {
+        "moonsign": true
+      },
+      "while": {
+        "gleamingMoonIntent": {
+          "gte": 1
+        }
+      }
+    },
+    {
+      "id": "night-4pc-lunar",
+      "type": "bonus",
+      "source": "artifact",
+      "label": "Gleaming Moon: Intent: Lunar DMG",
+      "ifFlag": "nightOfTheSkysUnveiling4",
+      "stat": "lunarBonus",
+      "value": 10,
+      "match": {
+        "categories": ["Lunar-Bloom"]
+      },
+      "while": {
+        "gleamingMoonIntent": {
+          "gte": 1
+        }
+      },
+      "teamBuff": "everyone"
+    }
+  ],
+  "defaults": {
+    "flags": {
+      "nightOfTheSkysUnveiling2": true,
+      "nightOfTheSkysUnveiling4": true
+    }
+  }
+}
