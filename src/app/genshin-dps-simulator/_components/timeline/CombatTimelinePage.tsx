@@ -20,7 +20,9 @@ import DamageSummary from './DamageSummary';
 import EnemyPanel from './EnemyPanel';
 import EventPanel from './EventPanel';
 import { buildMemberColors, MemberColor } from './memberColors';
+import { useIsDesktop, useMediaQuery, useMinimizedPanels } from './panelLayout';
 import PanelToggle from './PanelToggle';
+import ResizableSplit from './ResizableSplit';
 import { payloadOf } from './rotationDnd';
 import RotationEditBar from './RotationEditBar';
 import { buildRuler, fitPxPerSecond } from './ruler';
@@ -473,15 +475,11 @@ const CombatTimeline = ({
   // The member whose build is open (clicked in the top bar).
   const [openMember, setOpenMember] = useState<string | null>(null);
 
-  // Minimized panels: the others take their room.
-  const [panels, setPanels] = useState({
-    chart: false,
-    log: false,
-    event: false,
-    enemy: false,
-  });
-  const togglePanel = (panel: keyof typeof panels) =>
-    setPanels((current) => ({ ...current, [panel]: !current[panel] }));
+  // Minimized panels: the others take their room. Remembered on reload.
+  const { panels, togglePanel } = useMinimizedPanels();
+  // Wide screens: the panels side by side, resizable. Narrow ones stack.
+  const desktop = useIsDesktop();
+  const wideScreen = useMediaQuery('(min-width: 1280px)');
 
   const playback = usePlayback(view.duration, view.stepTimes);
   // A new run starts from the beginning; one from an edit (edit mode)
@@ -627,6 +625,213 @@ const CombatTimeline = ({
     []
   );
 
+  const chartPanel = (
+    <section
+      data-testid='timeline-panel'
+      className={cn(
+        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950',
+        panels.chart
+          ? 'flex-none'
+          : desktop
+          ? 'h-full'
+          : 'h-[60vh] lg:h-auto lg:flex-[2]'
+      )}
+    >
+      <div
+        className={cn(
+          'flex shrink-0 items-center justify-between bg-slate-900/70 px-3 py-1.5',
+          !panels.chart && 'border-b border-slate-700/60'
+        )}
+      >
+        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
+          Timeline
+          <SectionHelp section='timeline' />
+        </h2>
+        {!panels.chart && (
+          <SourceLegend className='mr-auto ml-4 hidden md:flex' />
+        )}
+        {onResetRotation && (
+          <button
+            type='button'
+            data-testid='timeline-reset-rotation'
+            title='Drop your edits and go back to the scenario rotation'
+            onClick={onResetRotation}
+            className='mr-2 flex h-7 items-center gap-1.5 rounded-md border border-slate-700/60 bg-slate-800/60 px-2.5 text-[11px] font-medium text-slate-300 hover:bg-slate-700/70'
+          >
+            <RotateCcw className='size-3.5' />
+            Reset rotation
+          </button>
+        )}
+        <button
+          type='button'
+          data-testid='timeline-edit-rotation'
+          aria-pressed={editing}
+          onClick={onEditToggle}
+          className={cn(
+            'mr-2 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium',
+            editing
+              ? 'border-sky-500/60 bg-sky-600 text-white hover:bg-sky-500'
+              : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
+          )}
+        >
+          <Pencil className='size-3.5' />
+          {editing ? 'Done editing' : 'Edit rotation'}
+        </button>
+        <PanelToggle
+          label='timeline'
+          collapsed={panels.chart}
+          onToggle={() => togglePanel('chart')}
+        />
+      </div>
+      {/* Edit mode's drag and drop: the palette and the chart's
+          blocks drag onto the chart's tracks or the trash. */}
+      <DndContext
+        sensors={dragSensors}
+        collisionDetection={pointerWithin}
+        onDragStart={(event) => {
+          const payload = payloadOf(event);
+          setDragging(payload && withSelection(payload));
+        }}
+        onDragEnd={() => {
+          dragEndedAt.current = performance.now();
+          setDragging(null);
+        }}
+        onDragCancel={() => {
+          dragEndedAt.current = performance.now();
+          setDragging(null);
+        }}
+      >
+        {!panels.chart && edit && (
+          <RotationEditBar
+            members={members}
+            actions={Array.from(actionsById.values())}
+            rotation={edit.rotation}
+            selected={selectedBlock}
+            selection={selection}
+            onChange={edit.onChange}
+            onSelect={setSelectedBlock}
+            onClearSelection={() => setPicked([])}
+          />
+        )}
+        {!panels.chart && (
+          <div className='min-h-0 flex-1'>
+            <TimelineChart
+              view={view}
+              actions={chartActions}
+              members={members}
+              actionsById={actionsById}
+              time={playback.time}
+              ruler={ruler}
+              pxPerSecond={pxPerSecond}
+              onSeek={playback.seek}
+              onTogglePlay={playback.togglePlay}
+              onZoom={zoomBy}
+              onTrackWidthChange={handleTrackWidth}
+              selectedBlocks={edit ? selection : undefined}
+              onSelectBlock={edit ? pickBlock : undefined}
+              onSelectBlocks={edit ? pickBlocks : undefined}
+              onSelectionKey={edit ? selectionKey : undefined}
+              axisSeconds={axisSeconds}
+              onHoverChip={setHoveredChip}
+              memberRuns={run.members}
+              onDropBlock={
+                edit
+                  ? (payload, beforeUid, rowMember) => {
+                      const moved = withSelection(payload);
+                      const result = applyDrop(
+                        edit.rotation,
+                        Array.from(actionsById.values()),
+                        moved,
+                        beforeUid,
+                        rowMember
+                      );
+                      edit.onChange(result.rotation);
+                      // A group stays picked, the dragged one last.
+                      setPicked(
+                        moved.kind === 'move' && moved.blockUids
+                          ? [
+                              ...moved.blockUids.filter(
+                                (uid) => uid !== moved.blockUid
+                              ),
+                              moved.blockUid,
+                            ]
+                          : result.selected
+                          ? [result.selected]
+                          : []
+                      );
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        )}
+        <DragOverlay
+          dropAnimation={null}
+          // Above the pointer, so the placeholder in the row (where
+          // it will land) stays in sight.
+          modifiers={[liftOverlay]}
+        >
+          {draggedAction && (
+            <span className='flex h-7 items-center gap-1 rounded-md border border-sky-400 bg-slate-800 px-1.5 text-[11px] text-slate-100 shadow-lg'>
+              <RotationActionIcon
+                action={draggedAction}
+                size={18}
+                className='bg-transparent p-0 ring-0'
+              />
+              {draggedAction.shortLabel}
+              {dragging?.kind === 'move' &&
+                (dragging.blockUids?.length ?? 0) > 1 && (
+                  <span
+                    data-testid='timeline-drag-count'
+                    className='ml-0.5 rounded bg-sky-600 px-1 text-[10px] font-semibold text-white'
+                  >
+                    +{(dragging.blockUids?.length ?? 1) - 1}
+                  </span>
+                )}
+            </span>
+          )}
+        </DragOverlay>
+      </DndContext>
+    </section>
+  );
+  const logPanel = (
+    <CombatLog
+      view={view}
+      members={members}
+      actionsById={actionsById}
+      time={playback.time}
+      onSeek={playback.seek}
+      collapsed={panels.log}
+      onToggle={() => togglePanel('log')}
+    />
+  );
+  const eventPanel = (
+    <EventPanel
+      view={view}
+      run={run}
+      members={members}
+      actionsById={actionsById}
+      time={playback.time}
+      enemyLevel={enemy.level}
+      builds={builds}
+      collapsed={panels.event}
+      onToggle={() => togglePanel('event')}
+      pickedBlock={edit ? selectedBlock : null}
+      hoveredChip={hoveredChip}
+      onSeek={playback.seek}
+    />
+  );
+  const enemyPanel = (
+    <EnemyPanel
+      view={view}
+      time={playback.time}
+      hp={enemy.hp}
+      level={enemy.level}
+      collapsed={panels.enemy}
+      onToggle={() => togglePanel('enemy')}
+    />
+  );
+
   return (
     // The page always fits the window (no page scroll): each panel scrolls
     // on its own. Narrow screens stack the panels and scroll.
@@ -656,228 +861,94 @@ const CombatTimeline = ({
           onTeamChange={onTeamChange}
           onMemberClick={setOpenMember}
         />
-        <div
-          className={cn(
-            'grid gap-4 lg:min-h-0 lg:flex-1',
-            'lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]'
-          )}
-        >
-          <div className='flex min-w-0 flex-col gap-4 lg:min-h-0'>
-            <section
-              data-testid='timeline-panel'
-              className={cn(
-                'flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950',
-                panels.chart ? 'flex-none' : 'h-[60vh] lg:h-auto lg:flex-[2]'
-              )}
-            >
-              <div
-                className={cn(
-                  'flex shrink-0 items-center justify-between bg-slate-900/70 px-3 py-1.5',
-                  !panels.chart && 'border-b border-slate-700/60'
-                )}
-              >
-                <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
-                  Timeline
-                  <SectionHelp section='timeline' />
-                </h2>
-                {!panels.chart && (
-                  <SourceLegend className='mr-auto ml-4 hidden md:flex' />
-                )}
-                {onResetRotation && (
-                  <button
-                    type='button'
-                    data-testid='timeline-reset-rotation'
-                    title='Drop your edits and go back to the scenario rotation'
-                    onClick={onResetRotation}
-                    className='mr-2 flex h-7 items-center gap-1.5 rounded-md border border-slate-700/60 bg-slate-800/60 px-2.5 text-[11px] font-medium text-slate-300 hover:bg-slate-700/70'
-                  >
-                    <RotateCcw className='size-3.5' />
-                    Reset rotation
-                  </button>
-                )}
-                <button
-                  type='button'
-                  data-testid='timeline-edit-rotation'
-                  aria-pressed={editing}
-                  onClick={onEditToggle}
-                  className={cn(
-                    'mr-2 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium',
-                    editing
-                      ? 'border-sky-500/60 bg-sky-600 text-white hover:bg-sky-500'
-                      : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
-                  )}
-                >
-                  <Pencil className='size-3.5' />
-                  {editing ? 'Done editing' : 'Edit rotation'}
-                </button>
-                <PanelToggle
-                  label='timeline'
-                  collapsed={panels.chart}
-                  onToggle={() => togglePanel('chart')}
-                />
-              </div>
-              {/* Edit mode's drag and drop: the palette and the chart's
-                  blocks drag onto the chart's tracks or the trash. */}
-              <DndContext
-                sensors={dragSensors}
-                collisionDetection={pointerWithin}
-                onDragStart={(event) => {
-                  const payload = payloadOf(event);
-                  setDragging(payload && withSelection(payload));
-                }}
-                onDragEnd={() => {
-                  dragEndedAt.current = performance.now();
-                  setDragging(null);
-                }}
-                onDragCancel={() => {
-                  dragEndedAt.current = performance.now();
-                  setDragging(null);
-                }}
-              >
-                {!panels.chart && edit && (
-                  <RotationEditBar
-                    members={members}
-                    actions={Array.from(actionsById.values())}
-                    rotation={edit.rotation}
-                    selected={selectedBlock}
-                    selection={selection}
-                    onChange={edit.onChange}
-                    onSelect={setSelectedBlock}
-                    onClearSelection={() => setPicked([])}
+        {desktop ? (
+          // Left: the timeline over the log; right: the damage so far, the
+          // selected event and the enemy. Every handle resizes.
+          <ResizableSplit
+            id='columns'
+            orientation='horizontal'
+            className='flex-1'
+            panes={[
+              {
+                id: 'main',
+                minSize: '40%',
+                node: (
+                  <ResizableSplit
+                    id='main'
+                    orientation='vertical'
+                    className='h-full'
+                    panes={[
+                      {
+                        id: 'chart',
+                        node: chartPanel,
+                        collapsed: panels.chart,
+                        // Twice the log, as before resizing.
+                        defaultSize: `${200 / 3}%`,
+                        minSize: '10rem',
+                      },
+                      {
+                        id: 'log',
+                        node: logPanel,
+                        collapsed: panels.log,
+                        minSize: '6rem',
+                      },
+                    ]}
                   />
-                )}
-                {!panels.chart && (
-                  <div className='min-h-0 flex-1'>
-                    <TimelineChart
-                      view={view}
-                      actions={chartActions}
-                      members={members}
-                      actionsById={actionsById}
-                      time={playback.time}
-                      ruler={ruler}
-                      pxPerSecond={pxPerSecond}
-                      onSeek={playback.seek}
-                      onTogglePlay={playback.togglePlay}
-                      onZoom={zoomBy}
-                      onTrackWidthChange={handleTrackWidth}
-                      selectedBlocks={edit ? selection : undefined}
-                      onSelectBlock={edit ? pickBlock : undefined}
-                      onSelectBlocks={edit ? pickBlocks : undefined}
-                      onSelectionKey={edit ? selectionKey : undefined}
-                      axisSeconds={axisSeconds}
-                      onHoverChip={setHoveredChip}
-                      memberRuns={run.members}
-                      onDropBlock={
-                        edit
-                          ? (payload, beforeUid, rowMember) => {
-                              const moved = withSelection(payload);
-                              const result = applyDrop(
-                                edit.rotation,
-                                Array.from(actionsById.values()),
-                                moved,
-                                beforeUid,
-                                rowMember
-                              );
-                              edit.onChange(result.rotation);
-                              // A group stays picked, the dragged one last.
-                              setPicked(
-                                moved.kind === 'move' && moved.blockUids
-                                  ? [
-                                      ...moved.blockUids.filter(
-                                        (uid) => uid !== moved.blockUid
-                                      ),
-                                      moved.blockUid,
-                                    ]
-                                  : result.selected
-                                  ? [result.selected]
-                                  : []
-                              );
-                            }
-                          : undefined
-                      }
+                ),
+              },
+              {
+                id: 'side',
+                // As before resizing: 20rem, 22rem from Tailwind's `xl`.
+                defaultSize: wideScreen ? '22rem' : '20rem',
+                minSize: '18rem',
+                keepPixels: true,
+                node: (
+                  <div className='flex h-full min-h-0 flex-col gap-4'>
+                    <DamageSummary view={view} time={playback.time} />
+                    <ResizableSplit
+                      id='side'
+                      orientation='vertical'
+                      className='flex-1'
+                      panes={[
+                        {
+                          id: 'event',
+                          node: eventPanel,
+                          collapsed: panels.event,
+                          minSize: '8rem',
+                        },
+                        {
+                          id: 'enemy',
+                          node: enemyPanel,
+                          collapsed: panels.enemy,
+                          // Its card's own height; the event takes the rest.
+                          defaultSize: 'content',
+                          keepPixels: true,
+                          minSize: '5rem',
+                        },
+                      ]}
                     />
                   </div>
-                )}
-                <DragOverlay
-                  dropAnimation={null}
-                  // Above the pointer, so the placeholder in the row (where
-                  // it will land) stays in sight.
-                  modifiers={[liftOverlay]}
-                >
-                  {draggedAction && (
-                    <span className='flex h-7 items-center gap-1 rounded-md border border-sky-400 bg-slate-800 px-1.5 text-[11px] text-slate-100 shadow-lg'>
-                      <RotationActionIcon
-                        action={draggedAction}
-                        size={18}
-                        className='bg-transparent p-0 ring-0'
-                      />
-                      {draggedAction.shortLabel}
-                      {dragging?.kind === 'move' &&
-                        (dragging.blockUids?.length ?? 0) > 1 && (
-                          <span
-                            data-testid='timeline-drag-count'
-                            className='ml-0.5 rounded bg-sky-600 px-1 text-[10px] font-semibold text-white'
-                          >
-                            +{(dragging.blockUids?.length ?? 1) - 1}
-                          </span>
-                        )}
-                    </span>
-                  )}
-                </DragOverlay>
-              </DndContext>
-            </section>
-            <div
-              className={cn(
-                'min-h-0',
-                panels.log ? 'flex-none' : 'h-[40vh] lg:h-auto lg:flex-[1]'
-              )}
-            >
-              <CombatLog
-                view={view}
-                members={members}
-                actionsById={actionsById}
-                time={playback.time}
-                onSeek={playback.seek}
-                collapsed={panels.log}
-                onToggle={() => togglePanel('log')}
-              />
+                ),
+              },
+            ]}
+          />
+        ) : (
+          <div className='grid gap-4'>
+            <div className='flex min-w-0 flex-col gap-4'>
+              {chartPanel}
+              <div className={cn('min-h-0', !panels.log && 'h-[40vh]')}>
+                {logPanel}
+              </div>
+            </div>
+            <div className='flex min-w-0 flex-col gap-4'>
+              <DamageSummary view={view} time={playback.time} />
+              <div className={cn('min-h-0', !panels.event && 'h-[70vh]')}>
+                {eventPanel}
+              </div>
+              {enemyPanel}
             </div>
           </div>
-          {/* Right: the damage so far, the selected event (it takes the
-              room) and the enemy. */}
-          <div className='flex min-w-0 flex-col gap-4 lg:min-h-0'>
-            <DamageSummary view={view} time={playback.time} />
-            <div
-              className={cn(
-                'min-h-0',
-                panels.event ? 'flex-none' : 'h-[70vh] lg:h-auto lg:flex-1'
-              )}
-            >
-              <EventPanel
-                view={view}
-                run={run}
-                members={members}
-                actionsById={actionsById}
-                time={playback.time}
-                enemyLevel={enemy.level}
-                builds={builds}
-                collapsed={panels.event}
-                onToggle={() => togglePanel('event')}
-                pickedBlock={edit ? selectedBlock : null}
-                hoveredChip={hoveredChip}
-                onSeek={playback.seek}
-              />
-            </div>
-            <EnemyPanel
-              view={view}
-              time={playback.time}
-              hp={enemy.hp}
-              level={enemy.level}
-              collapsed={panels.enemy}
-              onToggle={() => togglePanel('enemy')}
-            />
-          </div>
-        </div>
+        )}
       </div>
       <CharacterSheet
         key={`${openMember ?? ''}:${version}`}
