@@ -2460,3 +2460,38 @@ describe("a dash's charge cancel (quickCancel: Mavuika's CDC)", () => {
     expect(locked.warning).toMatch(/^Charge cancel locked out/);
   });
 });
+
+describe("a Dash played as a kit dash (Mavuika's Sprint)", () => {
+  it('still counts as a Dash for the cancels of what came before', () => {
+    // A spin with its Final, then a Dash: the Final cancels into a Dash
+    // where it lands (45 frames after the release), not at its end.
+    const run = runTeam(
+      {
+        members: [buildMemberValues('mavuika')],
+        rotation: {
+          loop: false,
+          blocks: [
+            { ...createTeamBlock('mavuika:skill'), hold: true },
+            { ...createTeamBlock('mavuika:charged'), heldSeconds: 1 },
+            createTeamBlock('mavuika:dodge'),
+          ],
+        },
+        fillWhileWaiting: false,
+        swapDelayFrames: 0,
+        auras: false,
+      },
+      'expected'
+    );
+    const [, spin, dash] = run.trace;
+    const finalHit = run.members[0].hitLog.find((hit) =>
+      hit.row?.endsWith('skillChargeFinal')
+    );
+    expect(dash.performedAction).toBe('mavuika:flamestriderSprint');
+    expect(Math.round(dash.startTime * 60)).toBe(
+      Math.round((finalHit?.time ?? 0) * 60)
+    );
+    expect(Math.round(spin.startTime * 60) + 60 + 45).toBe(
+      Math.round(dash.startTime * 60)
+    );
+  });
+});

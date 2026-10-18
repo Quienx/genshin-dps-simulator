@@ -430,7 +430,12 @@ export const createKitAdapter = ({
         ];
       case 'cast': {
         const cast = actions[action.id];
-        return cast ? [action.id, cast.group, cast.kind] : [action.id];
+        // One played for another step also counts as that step (a Dash
+        // played as Mavuika's Sprint: a Dash for the cancels before it).
+        const asStep = action.stepId ? [action.stepId] : [];
+        return cast
+          ? [action.id, cast.group, cast.kind, ...asStep]
+          : [action.id, ...asStep];
       }
       case 'charged':
       case 'dodge':

@@ -70,10 +70,11 @@ describe('a form whose status ended', () => {
     ]);
     expect(pieces[0].warning).toBeNull();
     // Its spins past the Flamestrider are shown apart; the Final (hit 10)
-    // is still the Flamestrider's.
+    // is still the Flamestrider's. (The Sprint after the Q starts at the
+    // Q's Dash cancel.)
     expect(pieces[1].warning).toBe(
-      'Flamestrider ends at 12.17 s: hits 1–2 and 10 of 10 on it, hits 3–9 after it'
+      'Flamestrider ends at 12.17 s: hits 1–3 and 10 of 10 on it, hits 4–9 after it'
     );
-    expect(pieces[1].formEnd).toMatchObject({ within: 3, after: 7 });
+    expect(pieces[1].formEnd).toMatchObject({ within: 4, after: 6 });
   });
 });
