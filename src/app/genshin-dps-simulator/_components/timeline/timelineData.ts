@@ -567,6 +567,23 @@ export const countUpTo = (times: number[], time: number): number => {
   return low;
 };
 
+// A list of rows at `now`, from the whole run's (in their order): the ones
+// that started by then, each the run's own object unless it still changes
+// at `now` (`settlesAt` after it: an action with hits to land), which `at`
+// works out again. So a memoized row is not drawn again.
+export const rowsAt = <R extends { time: number; settlesAt?: number }>(
+  runRows: R[],
+  now: number,
+  at: (row: R, now: number) => R
+): R[] =>
+  runRows.flatMap((row) =>
+    row.time > now
+      ? []
+      : row.settlesAt !== undefined && row.settlesAt > now
+      ? [at(row, now)]
+      : [row]
+  );
+
 // The panels redraw at most this often while the playhead moves (s).
 export const PANEL_QUANTUM = 0.05;
 // While the run plays: a coarser one, so the panels leave the frames to

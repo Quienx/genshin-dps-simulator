@@ -1,29 +1,42 @@
+import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
-import { cn } from '@/lib/utils';
+import { withClassName } from '@/lib/utils';
 
-const SHAPES = {
-  circle: 'rounded-full',
-  rounded: 'rounded-md',
-  square: 'rounded-none',
-} as const;
+// An avatar's look. Long lists redrawn as the playhead moves (the combat
+// log's rows, the event's blocks) put these classes on a plain <img>
+// instead of mounting an Avatar per row.
+const avatarVariants = cva('shrink-0 object-cover', {
+  variants: {
+    shape: {
+      circle: 'rounded-full',
+      rounded: 'rounded-md',
+      square: 'rounded-none',
+    },
+    // A glyph (an element, an icon) sits on nothing; a portrait on a
+    // muted tile while it loads.
+    tile: { true: 'bg-muted', false: '' },
+    // A faint ring around it, to set it apart from the background.
+    ring: { true: 'ring-1 ring-white/10', false: '' },
+  },
+  defaultVariants: { shape: 'rounded', tile: true, ring: false },
+});
 
-type AvatarProps = Omit<React.ComponentProps<'img'>, 'width' | 'height'> & {
-  // Its side, in pixels.
-  size: number;
-  shape?: keyof typeof SHAPES;
-  // A faint ring around it, to set it apart from the background.
-  ring?: boolean;
-};
+type AvatarProps = Omit<React.ComponentProps<'img'>, 'width' | 'height'> &
+  VariantProps<typeof avatarVariants> & {
+    // Its side, in pixels.
+    size: number;
+  };
 
 // A portrait or an icon (a character, a monster, an element), square and
-// of a fixed size, on a muted background while it loads. Decorative by
-// default: pass `alt` when it says something the text beside it does not.
+// of a fixed size. Decorative by default: pass `alt` when it says
+// something the text beside it does not.
 function Avatar({
   src,
   size,
-  shape = 'rounded',
-  ring = false,
+  shape,
+  tile,
+  ring,
   alt = '',
   className,
   style,
@@ -38,34 +51,33 @@ function Avatar({
       width={size}
       height={size}
       style={{ width: size, height: size, ...style }}
-      className={cn(
-        'shrink-0 bg-muted object-cover',
-        SHAPES[shape],
-        ring && 'ring-1 ring-white/10',
+      className={withClassName(
+        avatarVariants({ shape, tile, ring }),
         className
       )}
       {...props}
     />
   );
 }
+
+const avatarStackVariants = cva('flex shrink-0 items-center', {
+  variants: { overlap: { sm: '-space-x-1', md: '-space-x-1.5' } },
+  defaultVariants: { overlap: 'md' },
+});
 
 // Avatars in a row, overlapping a little (a team's faces).
 function AvatarStack({
-  overlap = 'md',
+  overlap,
   className,
   ...props
-}: React.ComponentProps<'span'> & { overlap?: 'sm' | 'md' }) {
+}: React.ComponentProps<'span'> & VariantProps<typeof avatarStackVariants>) {
   return (
     <span
       data-slot='avatar-stack'
-      className={cn(
-        'flex shrink-0 items-center',
-        overlap === 'sm' ? '-space-x-1' : '-space-x-1.5',
-        className
-      )}
+      className={withClassName(avatarStackVariants({ overlap }), className)}
       {...props}
     />
   );
 }
 
-export { Avatar, AvatarStack };
+export { Avatar, AvatarStack, avatarStackVariants, avatarVariants };

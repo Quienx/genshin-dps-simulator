@@ -11,7 +11,7 @@ import {
   Trash2,
   UserPlus,
 } from 'lucide-react';
-import { memo, ReactNode, useState } from 'react';
+import { memo, ReactNode, useCallback, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -541,19 +541,128 @@ const HeaderMembers = memo(function HeaderMembers({
 },
 sameShownProps);
 
+// Play, pause and step: drawn again only when playing starts or stops.
+const PlayerButtons = memo(function PlayerButtons({
+  playing,
+  onTogglePlay,
+  onStep,
+}: Pick<TimelineHeaderProps, 'playing' | 'onTogglePlay' | 'onStep'>) {
+  return (
+    <div className='flex items-center gap-1 border-l border-border pl-2.5'>
+      <IconButton label={playing ? 'Pause' : 'Play'} onClick={onTogglePlay}>
+        {playing ? <Pause /> : <Play />}
+      </IconButton>
+      <IconButton label='Previous step' onClick={() => onStep(-1)}>
+        <SkipBack />
+      </IconButton>
+      <IconButton label='Next step' onClick={() => onStep(1)}>
+        <SkipForward />
+      </IconButton>
+    </div>
+  );
+},
+sameShownProps);
+
+const SpeedToggle = memo(function SpeedToggle({
+  speed,
+  onSpeedChange,
+}: Pick<TimelineHeaderProps, 'speed' | 'onSpeedChange'>) {
+  return (
+    <ToggleGroup
+      type='single'
+      size='2xs'
+      aria-label='Playback speed'
+      value={String(speed)}
+      onValueChange={(value) => {
+        // Clicking the speed on again unpicks it (''): one stays.
+        if (value) {
+          onSpeedChange(Number(value));
+        }
+      }}
+    >
+      {SPEEDS.map((value) => (
+        <ToggleGroupItem key={value} value={String(value)}>
+          {value}×
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+},
+sameShownProps);
+
+// Zoom, Fit and Simulate again.
+const ViewControls = memo(function ViewControls({
+  onZoom,
+  onFit,
+  onSimulate,
+  simulating = false,
+}: Pick<
+  TimelineHeaderProps,
+  'onZoom' | 'onFit' | 'onSimulate' | 'simulating'
+>) {
+  return (
+    <div className='ml-auto flex items-center gap-1.5'>
+      <div className='flex items-center gap-1 rounded-lg border border-border bg-muted/60 py-0.5 pr-0.5 pl-2.5 text-2xs text-muted-foreground'>
+        Zoom
+        <Button
+          variant='ghost'
+          size='icon-xs'
+          aria-label='Zoom out'
+          onClick={() => onZoom(-1)}
+        >
+          <Minus />
+        </Button>
+        <Button
+          variant='ghost'
+          size='icon-xs'
+          aria-label='Zoom in'
+          onClick={() => onZoom(1)}
+        >
+          <Plus />
+        </Button>
+      </div>
+      <Button variant='secondary' size='xs' onClick={onFit} className='px-3'>
+        Fit
+      </Button>
+      <Button
+        size='xs'
+        data-testid='timeline-simulate'
+        aria-busy={simulating}
+        onClick={onSimulate}
+        className='px-3 shadow'
+      >
+        <Dices className={cn(simulating && 'animate-spin')} aria-hidden />
+        {simulating ? 'Simulating…' : 'Simulate again'}
+      </Button>
+    </div>
+  );
+},
+sameShownProps);
+
+// The same function on every render, calling the latest one it was given:
+// for the memoized controls, whose callbacks the page makes anew each time
+// (Fit reads the width, Simulate the team) and must not go stale.
+const useLatestCallback = <A extends unknown[]>(
+  callback: (...args: A) => void
+) => {
+  const latest = useRef(callback);
+  latest.current = callback;
+  return useCallback((...args: A) => latest.current(...args), []);
+};
+
 const TimelineHeader = ({
   members,
   duration,
   time,
   playing,
   speed,
-  onTogglePlay,
-  onStep,
-  onSpeedChange,
+  onTogglePlay: togglePlay,
+  onStep: step,
+  onSpeedChange: changeSpeed,
   onSeek,
-  onZoom,
-  onFit,
-  onSimulate,
+  onZoom: zoom,
+  onFit: fit,
+  onSimulate: simulate,
   simulating = false,
   scenarios,
   scenario,
@@ -562,118 +671,77 @@ const TimelineHeader = ({
   onTeamChange,
   teamActions,
   share,
-}: TimelineHeaderProps) => (
-  <header className='flex shrink-0 flex-col gap-2'>
-    <div className='flex items-center gap-2'>
-      <HeaderTitle
-        duration={duration}
-        share={share}
-        teamActions={teamActions}
-        scenarios={scenarios}
-        scenario={scenario}
-        onScenarioChange={onScenarioChange}
-      />
-    </div>
-
-    <Panel
-      as='div'
-      data-testid='timeline-header'
-      className='flex flex-wrap items-center gap-2.5 px-2 py-1.5'
-    >
-      <HeaderMembers
-        members={members}
-        onTeamChange={onTeamChange}
-        onMemberClick={onMemberClick}
-      />
-
-      <div className='flex items-center gap-1 border-l border-border pl-2.5'>
-        <IconButton label={playing ? 'Pause' : 'Play'} onClick={onTogglePlay}>
-          {playing ? <Pause /> : <Play />}
-        </IconButton>
-        <IconButton label='Previous step' onClick={() => onStep(-1)}>
-          <SkipBack />
-        </IconButton>
-        <IconButton label='Next step' onClick={() => onStep(1)}>
-          <SkipForward />
-        </IconButton>
-      </div>
-
-      <div className='flex min-w-64 flex-1 flex-col gap-1 border-l border-border pl-2.5'>
-        <div className='flex items-center gap-1'>
-          <ToggleGroup
-            type='single'
-            size='2xs'
-            aria-label='Playback speed'
-            value={String(speed)}
-            onValueChange={(value) => {
-              // Clicking the speed on again unpicks it (''): one stays.
-              if (value) {
-                onSpeedChange(Number(value));
-              }
-            }}
-          >
-            {SPEEDS.map((value) => (
-              <ToggleGroupItem key={value} value={String(value)}>
-                {value}×
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <span
-            data-testid='timeline-time'
-            className='ml-2 font-mono text-2xs text-foreground tabular-nums'
-          >
-            {time.toFixed(3)} s{' '}
-            <span className='text-subtle'>/ {formatNumber(duration)} s</span>
-          </span>
-        </div>
-        <input
-          type='range'
-          aria-label='Time'
-          min={0}
-          max={duration}
-          step={0.001}
-          value={time}
-          onChange={(event) => onSeek(Number(event.target.value))}
-          className='h-1 w-full cursor-pointer accent-brand-500'
+}: TimelineHeaderProps) => {
+  const onTogglePlay = useLatestCallback(togglePlay);
+  const onStep = useLatestCallback(step);
+  const onSpeedChange = useLatestCallback(changeSpeed);
+  const onZoom = useLatestCallback(zoom);
+  const onFit = useLatestCallback(fit);
+  const onSimulate = useLatestCallback(simulate);
+  return (
+    <header className='flex shrink-0 flex-col gap-2'>
+      <div className='flex items-center gap-2'>
+        <HeaderTitle
+          duration={duration}
+          share={share}
+          teamActions={teamActions}
+          scenarios={scenarios}
+          scenario={scenario}
+          onScenarioChange={onScenarioChange}
         />
       </div>
 
-      <div className='ml-auto flex items-center gap-1.5'>
-        <div className='flex items-center gap-1 rounded-lg border border-border bg-muted/60 py-0.5 pr-0.5 pl-2.5 text-2xs text-muted-foreground'>
-          Zoom
-          <Button
-            variant='ghost'
-            size='icon-xs'
-            aria-label='Zoom out'
-            onClick={() => onZoom(-1)}
-          >
-            <Minus />
-          </Button>
-          <Button
-            variant='ghost'
-            size='icon-xs'
-            aria-label='Zoom in'
-            onClick={() => onZoom(1)}
-          >
-            <Plus />
-          </Button>
+      <Panel
+        as='div'
+        data-testid='timeline-header'
+        className='flex flex-wrap items-center gap-2.5 px-2 py-1.5'
+      >
+        <HeaderMembers
+          members={members}
+          onTeamChange={onTeamChange}
+          onMemberClick={onMemberClick}
+        />
+
+        <PlayerButtons
+          playing={playing}
+          onTogglePlay={onTogglePlay}
+          onStep={onStep}
+        />
+
+        {/* The clock and the slider: the only part of the bar redrawn as
+          the playhead moves. */}
+        <div className='flex min-w-64 flex-1 flex-col gap-1 border-l border-border pl-2.5'>
+          <div className='flex items-center gap-1'>
+            <SpeedToggle speed={speed} onSpeedChange={onSpeedChange} />
+            <span
+              data-testid='timeline-time'
+              className='ml-2 font-mono text-2xs text-foreground tabular-nums'
+            >
+              {time.toFixed(3)} s{' '}
+              <span className='text-subtle'>/ {formatNumber(duration)} s</span>
+            </span>
+          </div>
+          <input
+            type='range'
+            aria-label='Time'
+            min={0}
+            max={duration}
+            step={0.001}
+            value={time}
+            onChange={(event) => onSeek(Number(event.target.value))}
+            className='h-1 w-full cursor-pointer accent-brand-500'
+          />
         </div>
-        <Button variant='secondary' size='xs' onClick={onFit} className='px-3'>
-          Fit
-        </Button>
-        <Button
-          size='xs'
-          data-testid='timeline-simulate'
-          aria-busy={simulating}
-          onClick={onSimulate}
-          className='px-3 shadow'
-        >
-          <Dices className={cn(simulating && 'animate-spin')} aria-hidden />
-          {simulating ? 'Simulating…' : 'Simulate again'}
-        </Button>
-      </div>
-    </Panel>
-  </header>
-);
+
+        <ViewControls
+          onZoom={onZoom}
+          onFit={onFit}
+          onSimulate={onSimulate}
+          simulating={simulating}
+        />
+      </Panel>
+    </header>
+  );
+};
 
 export default TimelineHeader;

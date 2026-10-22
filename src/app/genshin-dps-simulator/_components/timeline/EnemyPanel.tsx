@@ -39,13 +39,7 @@ const ElementIcon = ({ element, size }: { element: string; size: number }) => {
   const src = elementIconUrl(element);
   // A glyph on its own: no tile behind it.
   return src ? (
-    <Avatar
-      src={src}
-      alt={element}
-      size={size}
-      shape='square'
-      className='bg-transparent'
-    />
+    <Avatar src={src} alt={element} size={size} shape='square' tile={false} />
   ) : null;
 };
 
@@ -173,7 +167,7 @@ const EnemyPanel = ({
                     src={auraIcon}
                     size={16}
                     shape='square'
-                    className='bg-transparent'
+                    tile={false}
                   />
                 )}
               </span>

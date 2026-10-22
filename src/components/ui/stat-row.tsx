@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { cn } from '@/lib/utils';
+import { withClassName } from '@/lib/utils';
 
 // Inside a StatList, rows are its terms (dt / dd); elsewhere, spans.
 const InList = React.createContext(false);
@@ -11,7 +11,7 @@ function StatList({ className, ...props }: React.ComponentProps<'dl'>) {
     <InList.Provider value>
       <dl
         data-slot='stat-list'
-        className={cn('flex flex-col gap-1.5', className)}
+        className={withClassName('flex flex-col gap-1.5', className)}
         {...props}
       />
     </InList.Provider>
@@ -52,18 +52,18 @@ function StatRow({
     <div
       data-slot='stat-row'
       data-testid={testId}
-      className={cn(
-        size === 'xs' ? 'text-xs' : 'text-2xs',
-        layout === 'inline'
-          ? 'flex items-baseline justify-between gap-3'
-          : 'flex flex-col',
+      className={withClassName(
+        `${size === 'xs' ? 'text-xs' : 'text-2xs'} ${
+          layout === 'inline'
+            ? 'flex items-baseline justify-between gap-3'
+            : 'flex flex-col'
+        }`,
         className
       )}
     >
       <Term
-        className={cn(
-          'text-subtle',
-          icon && 'flex items-center gap-1.5',
+        className={withClassName(
+          icon ? 'flex items-center gap-1.5 text-subtle' : 'text-subtle',
           labelClassName
         )}
       >
@@ -71,9 +71,10 @@ function StatRow({
         {label}
       </Term>
       <Value
-        className={cn(
-          'font-medium text-foreground tabular-nums',
-          layout === 'inline' && 'text-right',
+        className={withClassName(
+          layout === 'inline'
+            ? 'text-right font-medium text-foreground tabular-nums'
+            : 'font-medium text-foreground tabular-nums',
           valueClassName
         )}
       >

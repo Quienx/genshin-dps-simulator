@@ -26,33 +26,44 @@ const useBlockQueue = (chips: BlockChip[], time: number) => {
   const [exiting, setExiting] = useState<Map<string, BlockChip>>(
     () => new Map()
   );
-  const previousShown = useRef<BlockChip[]>([]);
+  // The blocks shown before: when they change, the ones that left start
+  // fading and the ones back stop, in this same render (React's "state
+  // from the previous render" pattern: no second commit from an effect).
+  const [previous, setPrevious] = useState({ key: shownKey, shown });
+  const [gone, setGone] = useState<BlockChip[]>([]);
+  if (previous.key !== shownKey) {
+    const now = new Set(shown.map((chip) => chip.key));
+    const left = previous.shown.filter((chip) => !now.has(chip.key));
+    const back = Array.from(exiting.keys()).filter((key) => now.has(key));
+    setPrevious({ key: shownKey, shown });
+    if (left.length > 0 || back.length > 0) {
+      const next = new Map(exiting);
+      back.forEach((key) => next.delete(key));
+      left.forEach((chip) => next.set(chip.key, chip));
+      setExiting(next);
+    }
+    if (left.length > 0) {
+      setGone(left);
+    }
+  }
+  // Once faded out, they leave the queue.
   const exitTimers = useRef<number[]>([]);
   useEffect(() => {
-    const now = new Set(shown.map((chip) => chip.key));
-    const gone = previousShown.current.filter((chip) => !now.has(chip.key));
-    previousShown.current = shown;
-    setExiting((current) => {
-      const next = new Map(current);
-      now.forEach((key) => next.delete(key));
-      gone.forEach((chip) => next.set(chip.key, chip));
-      return next;
-    });
-    if (gone.length > 0) {
-      exitTimers.current.push(
-        window.setTimeout(
-          () =>
-            setExiting((current) => {
-              const next = new Map(current);
-              gone.forEach((chip) => next.delete(chip.key));
-              return next;
-            }),
-          EXIT_MS
-        )
-      );
+    if (gone.length === 0) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shownKey]);
+    exitTimers.current.push(
+      window.setTimeout(
+        () =>
+          setExiting((current) => {
+            const next = new Map(current);
+            gone.forEach((chip) => next.delete(chip.key));
+            return next;
+          }),
+        EXIT_MS
+      )
+    );
+  }, [gone]);
   useEffect(
     () => () => exitTimers.current.forEach((timer) => clearTimeout(timer)),
     []

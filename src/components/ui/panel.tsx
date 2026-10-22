@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { cn } from '@/lib/utils';
+import { withClassName } from '@/lib/utils';
 
 type BoxProps = React.HTMLAttributes<HTMLElement> & {
   as?: 'section' | 'aside' | 'div';
@@ -11,7 +11,10 @@ function Panel({ as: Tag = 'section', className, ...props }: BoxProps) {
   return (
     <Tag
       data-slot='panel'
-      className={cn('rounded-xl border border-border bg-panel', className)}
+      className={withClassName(
+        'rounded-xl border border-border bg-panel',
+        className
+      )}
       {...props}
     />
   );
@@ -22,7 +25,7 @@ function Inset({ as: Tag = 'section', className, ...props }: BoxProps) {
   return (
     <Tag
       data-slot='inset'
-      className={cn(
+      className={withClassName(
         'rounded-lg border border-border bg-sunken/50 p-2.5',
         className
       )}

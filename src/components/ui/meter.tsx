@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { cn } from '@/lib/utils';
+import { withClassName } from '@/lib/utils';
 
 const HEIGHTS = { xs: 'h-1', sm: 'h-1.5', md: 'h-2' } as const;
 
@@ -13,11 +13,20 @@ type MeterProps = Omit<React.ComponentProps<'span'>, 'children'> & {
   indicatorClassName?: string;
 };
 
+const TRACKS = {
+  xs: 'block overflow-hidden rounded-full bg-accent/70 h-1',
+  sm: 'block overflow-hidden rounded-full bg-accent/70 h-1.5',
+  md: 'block overflow-hidden rounded-full bg-accent/70 h-2',
+} as const;
+
 const shareOf = (value: number, max: number) =>
   max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
 
 // A thin bar that fills up to a value: a timer, a resource, HP. A span, so
-// it fits inside text; its width comes from the className.
+// it fits inside text; its width comes from the className. It shows a
+// value written beside it (or in its aria-label), so it is not a meter to
+// assistive tech: a role whose value changes on every playhead move makes
+// the browser rebuild its accessibility tree on every frame.
 function Meter({
   value,
   max = 1,
@@ -30,23 +39,17 @@ function Meter({
   return (
     <span
       data-slot='meter'
-      role='meter'
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuenow={value}
-      className={cn(
-        'block overflow-hidden rounded-full bg-accent/70',
-        HEIGHTS[size],
-        className
-      )}
+      className={withClassName(TRACKS[size], className)}
       {...props}
     >
+      {/* The whole bar, slid out to the left by what is missing: a moving
+          value only changes its transform (no layout on every frame). */}
       <span
-        className={cn(
+        className={withClassName(
           'block h-full rounded-full bg-primary',
           indicatorClassName
         )}
-        style={{ width: `${share * 100}%` }}
+        style={{ transform: `translateX(${(share - 1) * 100}%)` }}
       />
     </span>
   );
@@ -69,23 +72,22 @@ function SegmentedMeter({
   fillClassName,
   ...props
 }: SegmentedMeterProps) {
+  const lit = withClassName(
+    'h-full flex-1 rounded-full bg-primary',
+    fillClassName
+  );
   return (
     <span
       data-slot='segmented-meter'
-      role='meter'
-      aria-valuemin={0}
-      aria-valuemax={segments}
-      aria-valuenow={value}
-      className={cn('flex gap-0.5', HEIGHTS[size], className)}
+      className={withClassName(`flex gap-0.5 ${HEIGHTS[size]}`, className)}
       {...props}
     >
       {Array.from({ length: segments }, (_, index) => (
         <span
           key={index}
-          className={cn(
-            'h-full flex-1 rounded-full',
-            index < value ? cn('bg-primary', fillClassName) : 'bg-accent/70'
-          )}
+          className={
+            index < value ? lit : 'h-full flex-1 rounded-full bg-accent/70'
+          }
         />
       ))}
     </span>

@@ -358,7 +358,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                       src={elementIconUrl(character.element) ?? ''}
                       alt={character.element}
                       size={18}
-                      className='bg-transparent'
+                      tile={false}
                     />
                   )}
                 </SheetTitle>

@@ -2,7 +2,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
-import { cn } from '@/lib/utils';
+import { withClassName } from '@/lib/utils';
 
 // The app's buttons. A toggle sets `aria-pressed` and gets its pressed
 // look from the variant: a secondary one turns primary, a ghost one tints.
@@ -64,7 +64,7 @@ function Button({
     <Comp
       data-slot='button'
       type={asChild ? undefined : type}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={withClassName(buttonVariants({ variant, size }), className)}
       {...props}
     />
   );

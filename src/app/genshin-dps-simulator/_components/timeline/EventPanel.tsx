@@ -14,12 +14,13 @@ import {
   ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, avatarVariants } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DisclosureButton } from '@/components/ui/disclosure';
@@ -158,16 +159,22 @@ const seconds = (value: number) =>
 const hitKey = (hit: Pick<EnemyHit, 'characterId' | 'index'>) =>
   `${hit.characterId}#${hit.index}`;
 
+// The panel follows the playhead: its repeated glyphs (elements, states,
+// bonuses, blocks) are plain <img>s with the avatar's classes, not an
+// Avatar each. A glyph sits on no tile.
+const GLYPH_CLASS = avatarVariants({ shape: 'square', tile: false });
+const ROUNDED_GLYPH_CLASS = avatarVariants({ tile: false });
+
 const ElementIcon = ({ element, size }: { element: string; size: number }) => {
   const src = elementIconUrl(element);
-  // A glyph on its own: no tile behind it.
   return src ? (
-    <Avatar
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={src}
       alt={element}
-      size={size}
-      shape='square'
-      className='bg-transparent'
+      width={size}
+      height={size}
+      className={GLYPH_CLASS}
     />
   ) : null;
 };
@@ -355,14 +362,22 @@ const BlockMeter = ({
 
 // An Active Effects row: on joining (and on each renewal, a new
 // `pulseKey`) it lights up and fades out over a second; `held` keeps it
-// lit softly (made by the event shown). Its ref and props go through, as
-// a tooltip's trigger.
+// lit softly (made by the event shown). `quiet`: drawn again for its
+// tooltip, it does not light up for the application it already showed.
+// Its ref and props go through, as a tooltip's trigger.
 const PulseRow = forwardRef<
   HTMLDivElement,
-  ComponentProps<'div'> & { pulseKey: number; held: boolean }
->(function PulseRow({ pulseKey, held, className, ...props }, ref) {
-  const [lit, setLit] = useState(true);
+  ComponentProps<'div'> & { pulseKey: number; held: boolean; quiet?: boolean }
+>(function PulseRow(
+  { pulseKey, held, quiet = false, className, ...props },
+  ref
+) {
+  const [lit, setLit] = useState(!quiet);
+  const quietKey = useRef(quiet ? pulseKey : null);
   useEffect(() => {
+    if (quietKey.current === pulseKey) {
+      return undefined;
+    }
     setLit(true);
     // Lit for a moment, then the transition fades it.
     const timer = window.setTimeout(() => setLit(false), 30);
@@ -380,6 +395,144 @@ const PulseRow = forwardRef<
         held && !lit && 'bg-brand-500/15'
       )}
     />
+  );
+});
+
+// A coordinated attack's line in Active Effects: what it dealt so far and
+// its next hit (null: none yet).
+const coordinatedText = (
+  source: ReturnType<typeof coordinatedUntil>[number] | undefined,
+  time: number
+): string | null =>
+  !source || source.hits + (source.nextAt === null ? 0 : 1) === 0
+    ? null
+    : `${source.hits} hits · ${formatNumber(Math.round(source.damage))}${
+        source.nextAt !== null
+          ? ` · next ${formatNumber(
+              Math.round((source.nextAt - time) * 10) / 10
+            )} s`
+          : ''
+      }`;
+
+// An Active Effects row: drawn again only when what it shows changes (the
+// playhead moving, it being hovered on the chart, leaving), not when
+// another row does.
+const EffectRow = memo(function EffectRow({
+  chip,
+  time,
+  giver,
+  leaving,
+  hovered,
+  held,
+  pulseKey,
+  coordinated,
+  holderName,
+  healedName,
+}: {
+  chip: BlockChip;
+  time: number;
+  giver: TimelineMember | undefined;
+  leaving: boolean;
+  hovered: boolean;
+  // Made by the event shown: it stays lit.
+  held: boolean;
+  // Its application's start: it pulses when it joins, and when renewed.
+  pulseKey: number;
+  coordinated: string | null;
+  holderName: string | null;
+  healedName: string | null;
+}) {
+  // The giver's own color: purple, Iansan's.
+  const giverBar = giver?.color.bar ?? 'bg-slate-400';
+  // Its tooltip is mounted the first time the pointer comes over it: a
+  // closed Radix tooltip on every row was most of the panel's work on each
+  // move of the playhead.
+  const [tipReady, setTipReady] = useState(false);
+  const row = (
+    <PulseRow
+      data-hovered={hovered || undefined}
+      pulseKey={pulseKey}
+      held={!leaving && held}
+      quiet={tipReady}
+      onPointerEnter={tipReady ? undefined : () => setTipReady(true)}
+      className={cn(
+        'flex min-h-0 items-center gap-2 overflow-hidden rounded-md px-1.5 hover:bg-muted/60',
+        // Folding out, it gives its room back.
+        leaving ? 'py-0' : 'py-0.5',
+        // Its bar is hovered on the chart: stronger than the event's own.
+        hovered && '!bg-amber-400/30 ring-1 ring-amber-300/80'
+      )}
+    >
+      <span className={cn('h-4 w-0.5 shrink-0 rounded-full', giverBar)} />
+      {chip.iconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={chip.iconUrl}
+          alt=''
+          width={18}
+          height={18}
+          className={GLYPH_CLASS}
+        />
+      ) : (
+        <Sparkle className='size-[18px] shrink-0 text-subtle' />
+      )}
+      <span className='min-w-0 flex-1 leading-tight'>
+        <span className='block truncate text-2xs text-muted-foreground'>
+          {chip.label}
+        </span>
+        <span className='flex items-center gap-1 truncate text-2xs text-subtle'>
+          {giver?.name ?? chip.characterId} · {chip.sourceTag}
+          {chip.type === 'heal' && !chip.healed && <Users className='size-3' />}
+        </span>
+      </span>
+      {/* A long value (Masque's) is cut; the tooltip has it whole. */}
+      <span className='max-w-[45%] min-w-0 shrink-0 text-right text-2xs leading-tight tabular-nums'>
+        {(chip.value ?? chip.short) && (
+          <span className='block truncate font-semibold text-emerald-300'>
+            {chip.value ?? chip.short}
+          </span>
+        )}
+        {coordinated && (
+          <span
+            data-testid='timeline-coordinated-total'
+            className='block truncate text-2xs text-brand-200'
+          >
+            {coordinated}
+          </span>
+        )}
+        <span className='mt-1 flex justify-end'>
+          <BlockMeter chip={chip} time={time} barClass={giverBar} />
+        </span>
+      </span>
+    </PulseRow>
+  );
+  return (
+    <li
+      className={cn(
+        'grid transition-all duration-300 ease-out',
+        leaving
+          ? 'grid-rows-[0fr] opacity-0'
+          : 'grid-rows-[1fr] animate-in duration-300 fade-in-0 slide-in-from-bottom-1'
+      )}
+    >
+      {tipReady ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{row}</TooltipTrigger>
+          <TooltipContent side='left' variant='card'>
+            <BlockTipCard
+              chip={chip}
+              time={time}
+              owner={giver ?? null}
+              holderName={holderName}
+              healedName={healedName}
+              accentClass={giverBar}
+            />
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        row
+      )}
+    </li>
   );
 });
 
@@ -405,7 +558,14 @@ const StateLine = ({
   return (
     <div className='flex h-[30px] items-center gap-2'>
       {row?.iconUrl ? (
-        <Avatar src={row.iconUrl} size={18} className='bg-transparent' />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={row.iconUrl}
+          alt=''
+          width={18}
+          height={18}
+          className={ROUNDED_GLYPH_CLASS}
+        />
       ) : (
         <Sparkle className='size-[18px] shrink-0 text-subtle/60' />
       )}
@@ -1276,10 +1436,13 @@ const EventPanel = ({
                     {bonuses.map((bonus) => (
                       <li key={bonus.id} className='flex items-center gap-2'>
                         {bonus.iconUrl ? (
-                          <Avatar
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
                             src={bonus.iconUrl}
-                            size={18}
-                            className='bg-transparent'
+                            alt=''
+                            width={18}
+                            height={18}
+                            className={ROUNDED_GLYPH_CLASS}
                           />
                         ) : (
                           <span className='size-[18px] shrink-0' />
@@ -1343,147 +1506,37 @@ const EventPanel = ({
                       </SectionLabel>
                       <ul className='flex flex-col gap-0.5'>
                         {chips.map((chip) => {
-                          const leaving = exiting.has(chip.key);
                           const giver = memberOf(chip.characterId);
-                          // The giver's own color: purple, Iansan's.
-                          const giverBar = giver?.color.bar ?? 'bg-slate-400';
                           return (
-                            <li
+                            <EffectRow
                               key={chip.key}
-                              className={cn(
-                                'grid transition-all duration-300 ease-out',
-                                leaving
-                                  ? 'grid-rows-[0fr] opacity-0'
-                                  : 'grid-rows-[1fr] animate-in duration-300 fade-in-0 slide-in-from-bottom-1'
+                              chip={chip}
+                              time={time}
+                              giver={giver}
+                              leaving={exiting.has(chip.key)}
+                              hovered={chip.key === hoveredChip}
+                              held={
+                                action !== undefined &&
+                                chip.cause === action.causeId
+                              }
+                              pulseKey={spanAt(chip, time).start}
+                              coordinated={coordinatedText(
+                                coordinated.get(
+                                  `${chip.characterId}|${chip.blockId}`
+                                ),
+                                time
                               )}
-                            >
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <PulseRow
-                                    data-hovered={
-                                      chip.key === hoveredChip || undefined
-                                    }
-                                    // It pulses when it joins, and again
-                                    // when renewed (a new application).
-                                    pulseKey={spanAt(chip, time).start}
-                                    // Made by the event shown: it stays lit.
-                                    held={
-                                      !leaving &&
-                                      action !== undefined &&
-                                      chip.cause === action.causeId
-                                    }
-                                    className={cn(
-                                      'flex min-h-0 items-center gap-2 overflow-hidden rounded-md px-1.5 hover:bg-muted/60',
-                                      // Folding out, it gives its room back.
-                                      leaving ? 'py-0' : 'py-0.5',
-                                      // Its bar is hovered on the chart:
-                                      // stronger than the event's own.
-                                      chip.key === hoveredChip &&
-                                        '!bg-amber-400/30 ring-1 ring-amber-300/80'
-                                    )}
-                                  >
-                                    <span
-                                      className={cn(
-                                        'h-4 w-0.5 shrink-0 rounded-full',
-                                        giverBar
-                                      )}
-                                    />
-                                    {chip.iconUrl ? (
-                                      <Avatar
-                                        src={chip.iconUrl}
-                                        size={18}
-                                        shape='square'
-                                        className='bg-transparent'
-                                      />
-                                    ) : (
-                                      <Sparkle className='size-[18px] shrink-0 text-subtle' />
-                                    )}
-                                    <span className='min-w-0 flex-1 leading-tight'>
-                                      <span className='block truncate text-2xs text-muted-foreground'>
-                                        {chip.label}
-                                      </span>
-                                      <span className='flex items-center gap-1 truncate text-2xs text-subtle'>
-                                        {giver?.name ?? chip.characterId} ·{' '}
-                                        {chip.sourceTag}
-                                        {chip.type === 'heal' &&
-                                          !chip.healed && (
-                                            <Users className='size-3' />
-                                          )}
-                                      </span>
-                                    </span>
-                                    {/* A long value (Masque's) is cut;
-                                        the tooltip has it whole. */}
-                                    <span className='max-w-[45%] min-w-0 shrink-0 text-right text-2xs leading-tight tabular-nums'>
-                                      {(chip.value ?? chip.short) && (
-                                        <span className='block truncate font-semibold text-emerald-300'>
-                                          {chip.value ?? chip.short}
-                                        </span>
-                                      )}
-                                      {(() => {
-                                        // A coordinated attack: what it
-                                        // dealt so far, and its next hit.
-                                        const source = coordinated.get(
-                                          `${chip.characterId}|${chip.blockId}`
-                                        );
-                                        if (
-                                          !source ||
-                                          source.hits +
-                                            (source.nextAt === null ? 0 : 1) ===
-                                            0
-                                        ) {
-                                          return null;
-                                        }
-                                        return (
-                                          <span
-                                            data-testid='timeline-coordinated-total'
-                                            className='block truncate text-2xs text-brand-200'
-                                          >
-                                            {source.hits} hits ·{' '}
-                                            {formatNumber(
-                                              Math.round(source.damage)
-                                            )}
-                                            {source.nextAt !== null &&
-                                              ` · next ${formatNumber(
-                                                Math.round(
-                                                  (source.nextAt - time) * 10
-                                                ) / 10
-                                              )} s`}
-                                          </span>
-                                        );
-                                      })()}
-                                      <span className='mt-1 flex justify-end'>
-                                        <BlockMeter
-                                          chip={chip}
-                                          time={time}
-                                          barClass={giverBar}
-                                        />
-                                      </span>
-                                    </span>
-                                  </PulseRow>
-                                </TooltipTrigger>
-                                <TooltipContent side='left' variant='card'>
-                                  <BlockTipCard
-                                    chip={chip}
-                                    time={time}
-                                    owner={giver ?? null}
-                                    holderName={
-                                      chip.holder &&
-                                      chip.holder !== chip.characterId
-                                        ? memberOf(chip.holder)?.name ??
-                                          chip.holder
-                                        : null
-                                    }
-                                    healedName={
-                                      chip.healed
-                                        ? memberOf(chip.healed)?.name ??
-                                          chip.healed
-                                        : null
-                                    }
-                                    accentClass={giverBar}
-                                  />
-                                </TooltipContent>
-                              </Tooltip>
-                            </li>
+                              holderName={
+                                chip.holder && chip.holder !== chip.characterId
+                                  ? memberOf(chip.holder)?.name ?? chip.holder
+                                  : null
+                              }
+                              healedName={
+                                chip.healed
+                                  ? memberOf(chip.healed)?.name ?? chip.healed
+                                  : null
+                              }
+                            />
                           );
                         })}
                       </ul>
