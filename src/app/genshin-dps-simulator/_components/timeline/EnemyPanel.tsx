@@ -1,10 +1,16 @@
-import { ChevronDown } from 'lucide-react';
 import { memo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { Avatar, AvatarStack } from '@/components/ui/avatar';
+import { CollapsibleSection } from '@/components/ui/disclosure';
+import { Meter } from '@/components/ui/meter';
+import { Inset, Panel } from '@/components/ui/panel';
+import { StatList, StatRow } from '@/components/ui/stat-row';
+
+import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
-import SectionHelp from './SectionHelp';
+import { ELEMENT_TEXT } from './sourceStyles';
 import { samePanelProps } from './timelineData';
 import formatNumber from '../../_lib/formatNumber';
 import { elementIconUrl, monsterIconUrl } from '../../_lib/genshinIcons';
@@ -17,14 +23,7 @@ import {
   reactionsUntil,
 } from '../../_lib/inspector';
 
-// The aura's element, in its color.
-const ELEMENT_TEXT: Record<string, string> = {
-  Pyro: 'text-orange-400',
-  Electro: 'text-violet-400',
-  Hydro: 'text-sky-400',
-  Cryo: 'text-cyan-300',
-  Dendro: 'text-lime-400',
-};
+// The aura's gauge, in its element's color.
 const ELEMENT_BARS: Record<string, string> = {
   Pyro: 'bg-orange-500',
   Electro: 'bg-violet-500',
@@ -38,9 +37,15 @@ const REACTION_SHOWN_SECONDS = 1.5;
 
 const ElementIcon = ({ element, size }: { element: string; size: number }) => {
   const src = elementIconUrl(element);
+  // A glyph on its own: no tile behind it.
   return src ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={element} width={size} height={size} />
+    <Avatar
+      src={src}
+      alt={element}
+      size={size}
+      shape='square'
+      className='bg-transparent'
+    />
   ) : null;
 };
 
@@ -113,51 +118,46 @@ const EnemyPanel = ({
   // Minimized: its title bar only.
   if (collapsed) {
     return (
-      <aside
+      <Panel
+        as='aside'
         data-testid='timeline-enemy'
-        className='flex shrink-0 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/70 px-2.5 py-2'
+        className='flex shrink-0 items-center justify-between px-3 py-2'
       >
-        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
-          Enemy
-          <SectionHelp section='enemy' />
-        </h2>
+        <PanelTitle section='enemy'>Enemy</PanelTitle>
         <PanelToggle label='enemy' collapsed onToggle={onToggle} />
-      </aside>
+      </Panel>
     );
   }
 
   return (
-    <aside
+    <Panel
+      as='aside'
       data-testid='timeline-enemy'
-      className='flex max-h-full min-h-0 shrink-0 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-700/60 bg-slate-900/70 p-2.5'
+      className='flex max-h-full min-h-0 shrink-0 flex-col gap-2 overflow-y-auto px-3 py-2'
     >
       <div className='flex items-center justify-between'>
-        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
-          Enemy
-          <SectionHelp section='enemy' />
-        </h2>
+        <PanelTitle section='enemy'>Enemy</PanelTitle>
         <PanelToggle label='enemy' collapsed={false} onToggle={onToggle} />
       </div>
 
-      <section className='rounded-lg border border-slate-700/60 bg-slate-950/50 p-2.5'>
+      <Inset>
         <div className='flex gap-2.5'>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Avatar
             src={monsterIconUrl(INSPECTOR_ENEMY.icon)}
             alt={INSPECTOR_ENEMY.name}
-            width={48}
-            height={48}
-            className='size-12 shrink-0 rounded-lg bg-slate-800 ring-1 ring-white/10'
+            size={48}
+            ring
+            className='rounded-lg'
           />
           <div className='min-w-0 flex-1'>
-            <p className='truncate text-xs text-slate-100'>
+            <p className='truncate text-xs text-foreground'>
               {INSPECTOR_ENEMY.name}{' '}
-              <span className='text-slate-400'>Lv. {level}</span>
+              <span className='text-subtle'>Lv. {level}</span>
             </p>
             {defeated > 0 && (
               <p
                 data-testid='timeline-enemy-defeated'
-                className='mt-0.5 text-[10px] font-medium text-rose-300'
+                className='mt-0.5 text-2xs font-medium text-rose-300'
               >
                 Defeated ×{defeated}
               </p>
@@ -167,10 +167,14 @@ const EnemyPanel = ({
               data-testid='timeline-enemy-aura'
               className='mt-1.5 flex h-6 items-center gap-2 text-xs'
             >
-              <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-800 ring-1 ring-white/10'>
+              <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-muted ring-1 ring-white/10'>
                 {auraIcon && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={auraIcon} alt='' width={16} height={16} />
+                  <Avatar
+                    src={auraIcon}
+                    size={16}
+                    shape='square'
+                    className='bg-transparent'
+                  />
                 )}
               </span>
               {aura ? (
@@ -178,31 +182,32 @@ const EnemyPanel = ({
                   <span
                     className={cn(
                       'font-medium',
-                      ELEMENT_TEXT[aura.element] ?? 'text-slate-200'
+                      ELEMENT_TEXT[aura.element] ?? 'text-muted-foreground'
                     )}
                   >
                     {aura.element}
                   </span>
-                  <span className='ml-auto text-slate-300 tabular-nums'>
+                  <span className='ml-auto text-muted-foreground tabular-nums'>
                     {short(aura.gauge)} U
                   </span>
                 </>
               ) : (
-                <span className='text-slate-500'>No aura</span>
+                <span className='text-subtle'>No aura</span>
               )}
             </div>
             {/* How long the aura has left. */}
-            <div className='mt-1 h-1 overflow-hidden rounded-full bg-slate-800'>
-              {aura && Number.isFinite(aura.goneIn) && aura.total > 0 && (
-                <div
-                  className={cn(
-                    'h-full',
-                    ELEMENT_BARS[aura.element] ?? 'bg-slate-400'
-                  )}
-                  style={{ width: `${(aura.goneIn / aura.total) * 100}%` }}
-                />
-              )}
-            </div>
+            <Meter
+              aria-label='Aura left'
+              value={
+                aura && Number.isFinite(aura.goneIn) && aura.total > 0
+                  ? aura.goneIn / aura.total
+                  : 0
+              }
+              className='mt-1 bg-muted'
+              indicatorClassName={
+                aura ? ELEMENT_BARS[aura.element] ?? 'bg-slate-400' : undefined
+              }
+            />
           </div>
         </div>
 
@@ -214,19 +219,19 @@ const EnemyPanel = ({
             'mt-2.5 flex h-8 items-center gap-2 rounded-md px-2 text-xs transition-colors',
             recent
               ? 'animate-in bg-violet-500/15 ring-1 ring-violet-400/40 fade-in'
-              : 'bg-slate-800/40'
+              : 'bg-muted/40'
           )}
         >
           {recent ? (
             <>
-              <span className='flex items-center -space-x-1'>
+              <AvatarStack overlap='sm'>
                 <ElementIcon element={recent.element} size={16} />
                 <ElementIcon element={recent.hitElement} size={16} />
-              </span>
+              </AvatarStack>
               <span className='font-semibold text-violet-200'>
                 {recent.reaction}
               </span>
-              <span className='text-[11px] text-slate-400 tabular-nums'>
+              <span className='text-2xs text-subtle tabular-nums'>
                 {short(recent.time)} s
               </span>
               {recentHit && (
@@ -236,41 +241,35 @@ const EnemyPanel = ({
               )}
             </>
           ) : (
-            <span className='text-[11px] text-slate-500'>No reaction now</span>
+            <span className='text-2xs text-subtle'>No reaction now</span>
           )}
         </div>
 
-        <div className='mt-2.5 h-1.5 overflow-hidden rounded-full bg-rose-950/80'>
-          <div
-            className='h-full rounded-full bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_8px_var(--color-rose-500)]'
-            style={{ width: `${share * 100}%` }}
-          />
-        </div>
-        <div className='mt-1.5 flex justify-between text-xs text-slate-200 tabular-nums'>
+        <Meter
+          aria-label='HP'
+          value={share}
+          size='sm'
+          className='mt-2.5 bg-rose-950/80'
+          indicatorClassName='bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_8px_var(--color-rose-500)]'
+        />
+        <div className='mt-1.5 flex justify-between text-xs text-muted-foreground tabular-nums'>
           <span>
             HP {formatNumber(Math.round(left))} / {formatNumber(hp)}
           </span>
           <span>{formatNumber(Math.round(share * 1000) / 10)}%</span>
         </div>
-      </section>
+      </Inset>
 
-      <section className='rounded-lg border border-slate-700/60 bg-slate-950/50'>
-        <button
-          type='button'
-          aria-expanded={statsOpen}
-          onClick={() => setStatsOpen((value) => !value)}
-          className='flex w-full items-center gap-2 px-2.5 py-2 text-xs font-medium text-slate-100'
+      <Inset className='p-0'>
+        <CollapsibleSection
+          title='Simulation Stats'
+          // Its state is the panel's, so it outlives minimizing the panel.
+          open={statsOpen}
+          onOpenChange={setStatsOpen}
+          triggerClassName='gap-2 px-2.5 py-2 text-xs font-medium text-foreground'
+          chevronClassName='size-4'
         >
-          <ChevronDown
-            className={cn(
-              'size-4 text-slate-400 transition-transform',
-              !statsOpen && '-rotate-90'
-            )}
-          />
-          Simulation Stats
-        </button>
-        {statsOpen && (
-          <dl className='flex flex-col gap-1.5 px-2.5 pb-2.5 text-xs tabular-nums'>
+          <StatList className='px-2.5 pb-2.5'>
             {[
               ['Total Damage', formatNumber(Math.round(taken))],
               ['Defeated', formatNumber(defeated)],
@@ -278,54 +277,53 @@ const EnemyPanel = ({
               ['Reactions', formatNumber(reactions)],
               ['Time', `${time.toFixed(1)} s`],
             ].map(([label, value]) => (
-              <div key={label} className='flex justify-between'>
-                <dt className='text-slate-400'>{label}</dt>
-                <dd className='text-slate-100'>{value}</dd>
-              </div>
+              <StatRow key={label} label={label} value={value} />
             ))}
             {/* Each reaction so far: how many and their DMG. */}
             {byReaction.map((entry) => (
-              <div
+              <StatRow
                 key={entry.reaction}
                 data-testid={`timeline-enemy-reaction-${entry.reaction}`}
-                className='flex items-center justify-between pl-3 text-[11px]'
-              >
-                <dt className='flex items-center gap-1.5 text-violet-300'>
-                  {/* The same two elements as the reaction above. */}
-                  <span className='flex items-center -space-x-1'>
+                size='2xs'
+                className='items-center pl-3'
+                // The same two elements as the reaction above.
+                icon={
+                  <AvatarStack overlap='sm'>
                     {elementsOf(entry.reaction).map((element) => (
                       <ElementIcon key={element} element={element} size={16} />
                     ))}
-                  </span>
-                  {entry.reaction} ×{entry.count}
-                </dt>
-                <dd className='text-slate-200'>
-                  {formatNumber(Math.round(entry.damage))}
-                </dd>
-              </div>
+                  </AvatarStack>
+                }
+                label={`${entry.reaction} ×${entry.count}`}
+                labelClassName='text-violet-300'
+                value={formatNumber(Math.round(entry.damage))}
+                valueClassName='font-normal text-muted-foreground'
+              />
             ))}
             {/* Reactions with no hit of their own (Lunar-Bloom). */}
             {eventReactions.map((entry) => (
-              <div
+              <StatRow
                 key={entry.reaction}
                 data-testid={`timeline-enemy-reaction-${entry.reaction}`}
-                className='flex items-center justify-between pl-3 text-[11px]'
-              >
-                <dt className='flex items-center gap-1.5 text-violet-300'>
-                  <span className='flex items-center -space-x-1'>
+                size='2xs'
+                className='items-center pl-3'
+                icon={
+                  <AvatarStack overlap='sm'>
                     {elementsOf(entry.reaction).map((element) => (
                       <ElementIcon key={element} element={element} size={16} />
                     ))}
-                  </span>
-                  {entry.reaction} ×{entry.count}
-                </dt>
-                <dd className='text-slate-400'>no DMG</dd>
-              </div>
+                  </AvatarStack>
+                }
+                label={`${entry.reaction} ×${entry.count}`}
+                labelClassName='text-violet-300'
+                value='no DMG'
+                valueClassName='font-normal text-subtle'
+              />
             ))}
-          </dl>
-        )}
-      </section>
-    </aside>
+          </StatList>
+        </CollapsibleSection>
+      </Inset>
+    </Panel>
   );
 };
 

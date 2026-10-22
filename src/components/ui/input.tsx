@@ -1,20 +1,39 @@
+import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
+// A field's box: sunk into its panel, its border turning the accent while
+// typing in it.
+const fieldVariants = cva(
+  'w-full min-w-0 rounded-md border border-border bg-sunken/60 text-foreground transition-colors outline-none placeholder:text-subtle focus:border-brand-500 focus:ring-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-rose-500 aria-invalid:text-rose-300',
+  {
+    variants: {
+      size: {
+        default: 'h-8 px-2.5 text-xs',
+        sm: 'h-7 px-2 text-2xs',
+        xs: 'h-6 rounded px-1 text-2xs',
+      },
+    },
+    defaultVariants: { size: 'default' },
+  }
+);
+
+function Input({
+  className,
+  type,
+  size,
+  ...props
+}: Omit<React.ComponentProps<'input'>, 'size'> &
+  VariantProps<typeof fieldVariants>) {
   return (
     <input
       type={type}
       data-slot='input'
-      className={cn(
-        'h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30',
-        'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
-        className
-      )}
+      className={cn(fieldVariants({ size }), className)}
       {...props}
     />
   );
 }
 
-export { Input };
+export { fieldVariants, Input };

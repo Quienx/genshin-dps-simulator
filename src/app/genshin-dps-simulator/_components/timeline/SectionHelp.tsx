@@ -3,10 +3,11 @@ import { memo, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { Kbd } from '@/components/ui/kbd';
+import { SectionLabel } from '@/components/ui/section-label';
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
@@ -15,32 +16,23 @@ import { SECTION_HELP, SectionHelpKey, SectionHelpText } from './sectionHelp';
 // A line of help: `backticks` become chips (a key, a gesture, a term).
 const Rich = ({ text }: { text: string }) => (
   <>
-    {text.split('`').map((part, index) =>
-      index % 2 === 1 ? (
-        <kbd
-          key={index}
-          className='mx-px rounded border border-slate-600 bg-slate-800 px-1 py-px font-sans text-[10px] font-medium whitespace-nowrap text-sky-200'
-        >
-          {part}
-        </kbd>
-      ) : (
-        part
-      )
-    )}
+    {text
+      .split('`')
+      .map((part, index) =>
+        index % 2 === 1 ? <Kbd key={index}>{part}</Kbd> : part
+      )}
   </>
 );
 
 const List = ({ title, items }: { title: string; items: string[] }) => (
   <div>
-    <p className='mb-1 text-[9px] font-semibold tracking-wider text-slate-500 uppercase'>
-      {title}
-    </p>
+    <SectionLabel className='mb-1'>{title}</SectionLabel>
     <ul className='flex flex-col gap-1'>
       {items.map((item) => (
         <li key={item} className='flex gap-1.5'>
           <span
             aria-hidden
-            className='mt-[5px] size-1 shrink-0 rounded-full bg-sky-400/80'
+            className='mt-[5px] size-1 shrink-0 rounded-full bg-brand-400/80'
           />
           <span>
             <Rich text={item} />
@@ -56,8 +48,8 @@ const List = ({ title, items }: { title: string; items: string[] }) => (
 const HelpBody = ({ help }: { help: SectionHelpText }): ReactNode => (
   <div className='flex flex-col gap-2'>
     <div>
-      <p className='text-xs font-semibold text-slate-50'>{help.title}</p>
-      <p className='mt-0.5 text-slate-300'>
+      <p className='text-xs font-semibold text-foreground'>{help.title}</p>
+      <p className='mt-0.5 text-muted-foreground'>
         <Rich text={help.summary} />
       </p>
     </div>
@@ -85,38 +77,36 @@ const SectionHelp = ({
 }) => {
   const help: SectionHelpText = SECTION_HELP[section];
   return (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            role='img'
-            tabIndex={0}
-            data-testid={`section-help-${section}`}
-            aria-label={`${help.title}: ${help.summary}`}
-            onClick={(event) => event.stopPropagation()}
-            onPointerDown={(event) => event.stopPropagation()}
-            className={cn(
-              'inline-flex shrink-0 cursor-help items-center text-slate-500 transition-colors outline-none hover:text-sky-300 focus-visible:text-sky-300',
-              className
-            )}
-          >
-            <CircleHelp className='size-3.5' aria-hidden />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent
-          side='bottom'
-          align='start'
-          collisionPadding={12}
-          className='w-[22rem] max-w-[calc(100vw-24px)] border-slate-700 bg-slate-900 p-3 text-left text-[11px] leading-relaxed font-normal tracking-normal text-balance text-slate-300 normal-case shadow-xl'
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          role='img'
+          tabIndex={0}
+          data-testid={`section-help-${section}`}
+          aria-label={`${help.title}: ${help.summary}`}
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          className={cn(
+            'inline-flex shrink-0 cursor-help items-center text-subtle transition-colors outline-none hover:text-brand-300 focus-visible:text-brand-300',
+            className
+          )}
         >
-          {/* At most half the window (or the room there is): a long help
-              scrolls inside, the pointer can move into it to scroll. */}
-          <div className='max-h-[min(50vh,calc(var(--radix-tooltip-content-available-height)-24px))] overflow-y-auto overscroll-contain pr-1'>
-            <HelpBody help={help} />
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          <CircleHelp className='size-3.5' aria-hidden />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent
+        side='bottom'
+        align='start'
+        collisionPadding={12}
+        className='w-[22rem] max-w-[calc(100vw-24px)] p-3 text-left leading-relaxed font-normal tracking-normal normal-case shadow-xl'
+      >
+        {/* At most half the window (or the room there is): a long help
+            scrolls inside, the pointer can move into it to scroll. */}
+        <div className='max-h-[min(50vh,calc(var(--radix-tooltip-content-available-height)-24px))] overflow-y-auto overscroll-contain pr-1'>
+          <HelpBody help={help} />
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 

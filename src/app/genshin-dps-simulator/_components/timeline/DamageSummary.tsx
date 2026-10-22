@@ -1,6 +1,8 @@
 import { memo, useMemo } from 'react';
 
-import SectionHelp from './SectionHelp';
+import { Panel } from '@/components/ui/panel';
+
+import PanelTitle from './PanelTitle';
 import { countUpTo, samePanelProps } from './timelineData';
 import formatNumber from '../../_lib/formatNumber';
 import { InspectorView } from '../../_lib/inspector';
@@ -34,16 +36,10 @@ const DamageSummary = ({ view, time }: DamageSummaryProps) => {
   const share = damage.total > 0 ? dealt / damage.total : 0;
 
   return (
-    <section
-      data-testid='timeline-damage'
-      className='shrink-0 rounded-xl border border-slate-700/60 bg-slate-900/70 px-2.5 py-2'
-    >
+    <Panel data-testid='timeline-damage' className='shrink-0 px-3 py-2'>
       <div className='flex items-baseline justify-between gap-2'>
-        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
-          Damage
-          <SectionHelp section='damage' />
-        </h2>
-        <span className='text-[10px] text-slate-400 tabular-nums'>
+        <PanelTitle section='damage'>Damage</PanelTitle>
+        <span className='text-2xs text-subtle tabular-nums'>
           {formatNumber(
             Math.round(
               time > 0 ? dealt / Math.min(time, view.countedDuration) : 0
@@ -52,16 +48,16 @@ const DamageSummary = ({ view, time }: DamageSummaryProps) => {
           DPS
         </span>
       </div>
-      <p className='mt-1 text-xs text-slate-400 tabular-nums'>
+      <p className='mt-1 text-xs text-subtle tabular-nums'>
         <span className='font-semibold text-amber-300'>
           {formatNumber(Math.round(dealt))}
         </span>{' '}
         / {formatNumber(Math.round(damage.total))}
-        <span className='float-right text-slate-500'>
+        <span className='float-right text-subtle'>
           {formatNumber(Math.round(share * 1000) / 10)}%
         </span>
       </p>
-    </section>
+    </Panel>
   );
 };
 

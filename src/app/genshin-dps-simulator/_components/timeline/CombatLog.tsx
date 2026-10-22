@@ -14,8 +14,16 @@ import { memo, ReactNode, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { Avatar, AvatarStack } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
+import { Panel } from '@/components/ui/panel';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
-import SectionHelp from './SectionHelp';
+import { ELEMENT_TEXT } from './sourceStyles';
 import { TimelineMember } from './TimelineChart';
 import {
   actionTitle,
@@ -42,7 +50,7 @@ const TABS: {
   Icon: LucideIcon;
   color: string;
 }[] = [
-  { id: 'all', label: 'All', Icon: Pencil, color: 'text-sky-300' },
+  { id: 'all', label: 'All', Icon: Pencil, color: 'text-brand-300' },
   { id: 'damage', label: 'Damage', Icon: Swords, color: 'text-amber-400' },
   {
     id: 'healing',
@@ -50,26 +58,20 @@ const TABS: {
     Icon: HeartPulse,
     color: 'text-emerald-400',
   },
-  { id: 'buffs', label: 'Buffs', Icon: ShieldPlus, color: 'text-sky-400' },
+  { id: 'buffs', label: 'Buffs', Icon: ShieldPlus, color: 'text-brand-400' },
   {
     id: 'debuffs',
     label: 'Debuffs',
     Icon: ShieldMinus,
     color: 'text-rose-400',
   },
-  { id: 'other', label: 'Other', Icon: CircleDot, color: 'text-slate-300' },
+  {
+    id: 'other',
+    label: 'Other',
+    Icon: CircleDot,
+    color: 'text-muted-foreground',
+  },
 ];
-
-const ELEMENT_TEXT: Record<string, string> = {
-  Pyro: 'text-orange-400',
-  Electro: 'text-violet-400',
-  Hydro: 'text-sky-400',
-  Cryo: 'text-cyan-300',
-  Dendro: 'text-lime-400',
-  Anemo: 'text-teal-300',
-  Geo: 'text-yellow-400',
-  Physical: 'text-slate-300',
-};
 
 const COLUMNS =
   'grid grid-cols-[72px_130px_minmax(150px,1.5fr)_minmax(90px,1fr)_100px_minmax(150px,1.2fr)] items-center gap-2.5';
@@ -77,8 +79,13 @@ const COLUMNS =
 const ElementIcon = ({ element, size }: { element: string; size: number }) => {
   const src = elementIconUrl(element);
   return src ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={element} width={size} height={size} />
+    <Avatar
+      src={src}
+      alt={element}
+      size={size}
+      shape='square'
+      className='bg-transparent'
+    />
   ) : null;
 };
 
@@ -189,7 +196,7 @@ const CombatLog = ({
               className='bg-transparent p-0 ring-0'
             />
           ) : (
-            <Sparkle className='size-5 text-slate-400' />
+            <Sparkle className='size-5 text-subtle' />
           ),
           ability,
           details:
@@ -204,11 +211,11 @@ const CombatLog = ({
               ? 'text-rose-400'
               : rotationAction?.kind === 'burst'
               ? 'text-violet-300'
-              : 'text-slate-100',
+              : 'text-foreground',
           notes:
             hits.length > 0 ? (
               <>
-                <span className='text-slate-300'>
+                <span className='text-muted-foreground'>
                   {same
                     ? `${formatNumber(rounded[0])}${
                         hits.length > 1 ? ` ×${hits.length}` : ''
@@ -223,7 +230,7 @@ const CombatLog = ({
                 {elements.map((element) => (
                   <Tag
                     key={element}
-                    className={ELEMENT_TEXT[element] ?? 'text-slate-300'}
+                    className={ELEMENT_TEXT[element] ?? 'text-muted-foreground'}
                   >
                     {element}
                   </Tag>
@@ -264,11 +271,11 @@ const CombatLog = ({
           time: hit.time,
           characterId: hit.characterId,
           icon: (
-            <span className='flex items-center -space-x-1'>
+            <AvatarStack overlap='sm'>
               {elements.map((element) => (
                 <ElementIcon key={element} element={element} size={18} />
               ))}
-            </span>
+            </AvatarStack>
           ),
           ability: hit.reaction,
           details: elements.join(' + '),
@@ -276,7 +283,7 @@ const CombatLog = ({
           amountClass: 'text-amber-300',
           notes: (
             <>
-              <span className='text-slate-300'>
+              <span className='text-muted-foreground'>
                 {formatNumber(Math.round(hit.damage))}
               </span>
               <Tag className='text-violet-300'>{hit.reaction}</Tag>
@@ -302,8 +309,12 @@ const CombatLog = ({
             time: tick,
             characterId: chip.characterId,
             icon: chip.iconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={chip.iconUrl} alt='' width={18} height={18} />
+              <Avatar
+                src={chip.iconUrl}
+                size={18}
+                shape='square'
+                className='bg-transparent'
+              />
             ) : (
               <HeartPulse className='size-5 text-emerald-400' />
             ),
@@ -317,7 +328,7 @@ const CombatLog = ({
             amountClass: 'text-emerald-300',
             notes: (
               <>
-                <span className='text-slate-300'>
+                <span className='text-muted-foreground'>
                   {chip.healed
                     ? memberOf.get(chip.healed)?.name ?? chip.healed
                     : 'Party'}
@@ -362,10 +373,14 @@ const CombatLog = ({
             time: entry.start,
             characterId: chip.characterId,
             icon: chip.iconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={chip.iconUrl} alt='' width={18} height={18} />
+              <Avatar
+                src={chip.iconUrl}
+                size={18}
+                shape='square'
+                className='bg-transparent'
+              />
             ) : (
-              <Sparkle className='size-4 text-slate-400' />
+              <Sparkle className='size-4 text-subtle' />
             ),
             ability: chip.label,
             details:
@@ -384,10 +399,10 @@ const CombatLog = ({
                 ? 'text-emerald-300'
                 : category === 'debuffs'
                 ? 'text-rose-300'
-                : 'text-slate-300',
+                : 'text-muted-foreground',
             notes: (
               <>
-                <Tag className='text-slate-400'>{chip.sourceTag}</Tag>
+                <Tag className='text-subtle'>{chip.sourceTag}</Tag>
                 {category !== 'other' && (
                   <Tag
                     className={
@@ -463,11 +478,11 @@ const CombatLog = ({
               onClick={() => onSeek(row.time)}
               className={cn(
                 COLUMNS,
-                'w-full border-b border-slate-800/80 px-3 py-1 text-left text-xs hover:bg-slate-800/50',
-                index === 0 && 'bg-sky-500/5'
+                'w-full border-b border-muted/80 px-3 py-1 text-left text-xs hover:bg-muted/50',
+                index === 0 && 'bg-brand-500/5'
               )}
             >
-              <span className='flex items-center gap-2 font-mono text-[11px] text-slate-200 tabular-nums'>
+              <span className='flex items-center gap-2 font-mono text-2xs text-muted-foreground tabular-nums'>
                 <span
                   className={cn(
                     'h-3.5 w-1 rounded-full',
@@ -476,28 +491,21 @@ const CombatLog = ({
                 />
                 {row.time.toFixed(3)}s
               </span>
-              <span className='flex min-w-0 items-center gap-2 text-slate-200'>
+              <span className='flex min-w-0 items-center gap-2 text-muted-foreground'>
                 {member && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={member.avatar}
-                    alt=''
-                    width={20}
-                    height={20}
-                    className='size-5 rounded-md bg-slate-700'
-                  />
+                  <Avatar src={member.avatar} size={20} className='bg-accent' />
                 )}
                 <span className='truncate'>
                   {member?.name ?? row.characterId}
                 </span>
               </span>
-              <span className='flex min-w-0 items-center gap-2 text-slate-200'>
+              <span className='flex min-w-0 items-center gap-2 text-muted-foreground'>
                 <span className='flex size-5 shrink-0 items-center justify-center'>
                   {row.icon}
                 </span>
                 <span className='truncate'>{row.ability}</span>
               </span>
-              <span className='truncate text-[11px] text-slate-400'>
+              <span className='truncate text-2xs text-subtle'>
                 {row.details}
               </span>
               <span
@@ -508,7 +516,7 @@ const CombatLog = ({
               >
                 {row.amount}
               </span>
-              <span className='flex min-w-0 flex-wrap items-center gap-x-2 text-[11px] tabular-nums'>
+              <span className='flex min-w-0 flex-wrap items-center gap-x-2 text-2xs tabular-nums'>
                 {row.notes}
               </span>
             </button>
@@ -531,64 +539,66 @@ const CombatLog = ({
   };
 
   return (
-    <section
+    <Panel
       data-testid='timeline-combat-log'
       className={cn(
-        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/70',
+        'flex min-h-0 flex-col overflow-hidden',
         !collapsed && 'h-full'
       )}
     >
       <div
         className={cn(
           'flex shrink-0 flex-wrap items-center gap-2 px-3 py-2',
-          !collapsed && 'border-b border-slate-700/60'
+          !collapsed && 'border-b border-border'
         )}
       >
-        <h2 className='mr-2 flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
+        <PanelTitle section='combatLog' className='mr-2'>
           Combat Log
-          <SectionHelp section='combatLog' />
-        </h2>
-        <div role='tablist' className='flex flex-wrap gap-1'>
+        </PanelTitle>
+        <ToggleGroup
+          type='single'
+          aria-label='Event filters'
+          value={tab}
+          onValueChange={(value) => {
+            // Clicking the filter on again unpicks it (''): one stays.
+            if (value) {
+              setTab(value as typeof tab);
+            }
+          }}
+        >
           {TABS.map(({ id, label, Icon, color }) => (
-            <button
-              key={id}
-              type='button'
-              role='tab'
-              aria-selected={tab === id}
-              onClick={() => setTab(id)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] text-slate-300 transition hover:bg-slate-800',
-                tab === id && 'bg-sky-600/30 text-sky-50 ring-1 ring-sky-500/40'
-              )}
-            >
-              <Icon className={cn('size-3.5', color)} aria-hidden />
+            <ToggleGroupItem key={id} value={id}>
+              <Icon className={color} aria-hidden />
               {label}
-              <span className='text-[10px] text-slate-500 tabular-nums'>
-                {counts[id]}
-              </span>
-            </button>
+              <span className='text-subtle tabular-nums'>{counts[id]}</span>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
         <div className='ml-auto flex items-center gap-2'>
-          <button
-            type='button'
+          <Button
+            variant='secondary'
+            size='xs'
             data-testid='timeline-log-jump'
             title='Move the playhead to the next event the filters keep'
             onClick={jumpToEvent}
-            className='flex h-7 items-center gap-1.5 rounded-md border border-slate-700/60 bg-slate-800/60 px-3 text-[11px] text-slate-300 hover:bg-slate-700/70'
           >
-            <Crosshair className='size-3.5' aria-hidden />
+            <Crosshair aria-hidden />
             Jump to event
-          </button>
-          <label className='flex h-7 w-48 items-center gap-2 rounded-md border border-slate-700/60 bg-slate-950/60 px-2.5 text-[11px] text-slate-400'>
-            <Search className='size-3.5' aria-hidden />
-            <input
+          </Button>
+          {/* The field with its magnifier inside, on the left. */}
+          <label className='relative flex'>
+            <Search
+              className='pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-subtle'
+              aria-hidden
+            />
+            <Input
+              size='sm'
               type='search'
               data-testid='timeline-log-search'
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder='Search events...'
-              className='w-full border-0 bg-transparent p-0 text-[11px] text-slate-100 placeholder:text-slate-500 focus:ring-0'
+              className='w-48 pl-8'
             />
           </label>
           <PanelToggle
@@ -607,7 +617,7 @@ const CombatLog = ({
               <div
                 className={cn(
                   COLUMNS,
-                  'shrink-0 border-b border-slate-700/60 px-3 py-1.5 text-[10px] text-slate-400'
+                  'shrink-0 border-b border-border px-3 py-1.5 text-2xs text-subtle'
                 )}
               >
                 <span>Time</span>
@@ -622,10 +632,12 @@ const CombatLog = ({
                 className='min-h-0 flex-1 overflow-y-auto'
               >
                 {rows.length === 0 && (
-                  <li className='px-3 py-6 text-center text-xs text-slate-500'>
-                    {allRows.length === 0
-                      ? 'Nothing happened yet: play or move the playhead.'
-                      : 'No events match the filters yet.'}
+                  <li>
+                    <EmptyState className='px-3'>
+                      {allRows.length === 0
+                        ? 'Nothing happened yet: play or move the playhead.'
+                        : 'No events match the filters yet.'}
+                    </EmptyState>
                   </li>
                 )}
                 {rowItems}
@@ -634,7 +646,7 @@ const CombatLog = ({
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 };
 

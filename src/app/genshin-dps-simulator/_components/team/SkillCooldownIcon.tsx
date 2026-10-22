@@ -111,7 +111,7 @@ const SkillCooldownIcon = ({
                     }deg, transparent 0)`,
               }}
             />
-            <span className='absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white tabular-nums [text-shadow:0_1px_2px_black]'>
+            <span className='absolute inset-0 flex items-center justify-center text-2xs font-bold text-white tabular-nums [text-shadow:0_1px_2px_black]'>
               {formatNumber(Math.ceil(cooldown.recharging * 10) / 10)}
             </span>
           </>
@@ -119,17 +119,17 @@ const SkillCooldownIcon = ({
       </div>
       {/* Energy still missing: shown on the icon, as in the game. */}
       {energy && energyShare < 1 && !onCooldown && (
-        <span className='absolute inset-x-0 bottom-0.5 text-center text-[10px] font-bold text-white tabular-nums [text-shadow:0_1px_2px_black]'>
+        <span className='absolute inset-x-0 bottom-0.5 text-center text-3xs font-bold text-white tabular-nums [text-shadow:0_1px_2px_black]'>
           {Math.floor(energy.value)}
         </span>
       )}
       {energy && energyShare < 1 && onCooldown && (
-        <span className='absolute inset-x-0 -bottom-1 text-center text-[9px] font-bold text-white tabular-nums [text-shadow:0_1px_2px_black]'>
+        <span className='absolute inset-x-0 -bottom-1 text-center text-3xs font-bold text-white tabular-nums [text-shadow:0_1px_2px_black]'>
           {Math.floor(energy.value)}
         </span>
       )}
       {cooldown.charges > 1 && (
-        <span className='absolute -right-1 -bottom-1 rounded-full bg-black/80 px-1 text-[9px] font-bold text-white tabular-nums'>
+        <span className='absolute -right-1 -bottom-1 rounded-full bg-black/80 px-1 text-3xs font-bold text-white tabular-nums'>
           {cooldown.ready}
         </span>
       )}

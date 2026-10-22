@@ -35,7 +35,7 @@ const TalentLevelSelect = ({
       data-testid={testId}
       aria-label={label}
       size='sm'
-      className={cn('h-7 w-auto gap-1 px-2 text-xs', className)}
+      className={cn('w-auto gap-1', className)}
     >
       <SelectValue />
     </SelectTrigger>

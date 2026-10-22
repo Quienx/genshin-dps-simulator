@@ -3,6 +3,11 @@ import { ReactNode, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { Avatar } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { NumberField } from '@/components/ui/number-field';
+import { Inset } from '@/components/ui/panel';
+import { SectionLabel } from '@/components/ui/section-label';
 import {
   Select,
   SelectContent,
@@ -17,6 +22,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { StatList, StatRow } from '@/components/ui/stat-row';
+import { toggleVariants } from '@/components/ui/toggle-group';
 
 import SectionHelp from './SectionHelp';
 import { SectionHelpKey } from './sectionHelp';
@@ -90,19 +97,19 @@ const FieldIcon = ({ field, element }: { field: string; element: string }) => {
     field === 'elementalBonus' ? elementIconUrl(element) : null;
   if (elementIcon) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Avatar
         src={elementIcon}
-        alt=''
-        width={16}
-        height={16}
-        className='size-4 shrink-0 opacity-60'
+        size={16}
+        className='bg-transparent opacity-60'
       />
     );
   }
   return (
     <span className='size-4 shrink-0'>
-      <StatIcon field={field} className='size-4 text-slate-200 opacity-50' />
+      <StatIcon
+        field={field}
+        className='size-4 text-muted-foreground opacity-50'
+      />
     </span>
   );
 };
@@ -120,37 +127,13 @@ const Section = ({
   help?: SectionHelpKey;
   children: ReactNode;
 }) => (
-  <section className='rounded-lg border border-slate-700/60 bg-slate-950/50 p-3'>
-    <h3 className='mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-slate-400 uppercase'>
+  <Inset className='p-3'>
+    <SectionLabel as='h3' className='mb-2 flex items-center gap-1.5'>
       {title}
       {help && <SectionHelp section={help} />}
-    </h3>
+    </SectionLabel>
     {children}
-  </section>
-);
-
-const Row = ({
-  label,
-  value,
-  className,
-}: {
-  label: ReactNode;
-  value: ReactNode;
-  className?: string;
-}) => (
-  <div className='flex items-center justify-between gap-3 py-0.5 text-xs'>
-    <span className='flex min-w-0 items-center gap-1.5 text-slate-400'>
-      {label}
-    </span>
-    <span
-      className={cn(
-        'text-right font-medium text-slate-100 tabular-nums',
-        className
-      )}
-    >
-      {value}
-    </span>
-  </div>
+  </Inset>
 );
 
 // A small number box for the sheet's rows.
@@ -175,42 +158,27 @@ const NumberBox = ({
 }) => {
   const error = disabled ? null : numberFieldError(value, { min, max, step });
   return (
-    <span className='flex flex-col items-end'>
-      <input
-        type='number'
-        aria-label={label}
-        aria-invalid={error !== null || undefined}
-        title={error ?? undefined}
-        value={value}
-        min={min}
-        max={max}
-        step={step ?? 'any'}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={() => {
-          const valid = clampNumberField(value, { min, max, step });
-          if (valid !== value) {
-            onChange(valid);
-          }
-        }}
-        // Looks like plain text: no box, no spinner; a faint line on hover
-        // and a blue one while editing tell it can be changed.
-        className={cn(
-          'h-5 w-20 [appearance:textfield] border-0 border-b border-transparent bg-transparent p-0 text-right text-xs font-medium text-slate-100 tabular-nums transition-colors hover:border-slate-600 focus:border-sky-500 focus:ring-0 focus:outline-none disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-          error &&
-            'border-rose-500 text-rose-300 hover:border-rose-500 focus:border-rose-500'
-        )}
-      />
-      {error && (
-        <span
-          role='alert'
-          data-testid='timeline-field-error'
-          className='mt-0.5 text-[10px] leading-none whitespace-nowrap text-rose-300'
-        >
-          {error}
-        </span>
-      )}
-    </span>
+    // Looks like plain text: no box, no spinner; a faint line on hover and
+    // a blue one while editing tell it can be changed.
+    <NumberField
+      variant='inline'
+      aria-label={label}
+      error={error}
+      data-error-testid='timeline-field-error'
+      value={value}
+      min={min}
+      max={max}
+      step={step ?? 'any'}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+      onCommit={() => {
+        const valid = clampNumberField(value, { min, max, step });
+        if (valid !== value) {
+          onChange(valid);
+        }
+      }}
+      className='w-20'
+    />
   );
 };
 
@@ -243,26 +211,18 @@ const GearSelect = ({
       aria-label={label}
       data-testid={testId}
       size='sm'
-      className='mb-2 w-full border-slate-700/60 bg-slate-900/70 text-[11px] text-slate-100 dark:bg-slate-900/70'
+      className='mb-2'
     >
       <SelectValue />
     </SelectTrigger>
-    <SelectContent className='border-slate-700 bg-slate-900 text-slate-100'>
+    <SelectContent>
       {options.map((option) => (
         <SelectItem
           key={option.id}
           value={option.id}
           data-testid={`${testId}-${option.id}`}
-          className='text-[11px] focus:bg-slate-800 focus:text-slate-50'
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={iconOf(option.icon)}
-            alt=''
-            width={18}
-            height={18}
-            className='size-[18px] rounded bg-slate-800'
-          />
+          <Avatar src={iconOf(option.icon)} size={18} className='rounded' />
           {option.name}
         </SelectItem>
       ))}
@@ -371,7 +331,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
     <Sheet open={build !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         data-testid='timeline-character-sheet'
-        className='w-full gap-0 overflow-y-auto border-slate-700 bg-slate-900 text-slate-100 sm:max-w-sm'
+        className='w-full gap-0 overflow-y-auto border-border bg-card text-foreground sm:max-w-sm'
         // Opening focuses the close button, not the first section's help
         // (a focused help opens its tooltip and keeps it open).
         onOpenAutoFocus={(event) => {
@@ -383,29 +343,26 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
       >
         {character && values && draft && (
           <>
-            <SheetHeader className='flex-row items-center gap-3 border-b border-slate-700/60'>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <SheetHeader className='flex-row items-center gap-3 border-b border-border'>
+              <Avatar
                 src={iconUrl(character.icons.avatar)}
-                alt=''
-                width={56}
-                height={56}
-                className='size-14 rounded-xl bg-slate-800 ring-1 ring-white/10'
+                size={56}
+                ring
+                className='rounded-xl'
               />
               <div className='min-w-0'>
-                <SheetTitle className='flex items-center gap-1.5 text-slate-50'>
+                <SheetTitle className='flex items-center gap-1.5 text-foreground'>
                   {character.name}
                   {elementIconUrl(character.element) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Avatar
                       src={elementIconUrl(character.element) ?? ''}
                       alt={character.element}
-                      width={18}
-                      height={18}
+                      size={18}
+                      className='bg-transparent'
                     />
                   )}
                 </SheetTitle>
-                <SheetDescription className='flex items-center gap-2 text-xs text-slate-400'>
+                <SheetDescription className='flex items-center gap-2 text-xs text-subtle'>
                   <Stars count={character.rarity} />
                   Lv. 90 · {character.weaponType}
                 </SheetDescription>
@@ -414,35 +371,37 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
 
             <div className='flex flex-col gap-3 p-4'>
               <Section title='Character screen stats' help='screenStats'>
-                {statFields.map((field) => (
-                  <Row
-                    key={field.name}
-                    label={
-                      <>
+                <StatList>
+                  {statFields.map((field) => (
+                    <StatRow
+                      key={field.name}
+                      icon={
                         <FieldIcon
                           field={field.name}
                           element={character.element}
                         />
-                        {field.label}
-                      </>
-                    }
-                    value={
-                      computed ? (
-                        formatNumber(readNumber(values, field.name))
-                      ) : (
-                        <NumberBox
-                          label={field.label}
-                          value={draft.numbers[field.name] ?? ''}
-                          min={field.min}
-                          max={field.max}
-                          step={field.step}
-                          onChange={(value) => setNumber(field.name, value)}
-                        />
-                      )
-                    }
-                  />
-                ))}
-                <p className='mt-1.5 text-[10px] text-slate-500'>
+                      }
+                      label={field.label}
+                      value={
+                        computed ? (
+                          formatNumber(readNumber(values, field.name))
+                        ) : (
+                          <NumberBox
+                            label={field.label}
+                            value={draft.numbers[field.name] ?? ''}
+                            min={field.min}
+                            max={field.max}
+                            step={field.step}
+                            onChange={(value) => setNumber(field.name, value)}
+                          />
+                        )
+                      }
+                      className='items-center'
+                      labelClassName='min-w-0'
+                    />
+                  ))}
+                </StatList>
+                <p className='mt-1.5 text-2xs text-subtle'>
                   {computed
                     ? 'Computed from the five artifacts entered (edit them in the team screen).'
                     : 'The character screen totals.'}{' '}
@@ -459,81 +418,80 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
               </Section>
 
               <Section title='Talents' help='talents'>
-                {character.talents.map((talent) => {
-                  const boosted =
-                    typeof talent.boostedBy === 'string' &&
-                    readFlag(values, talent.boostedBy);
-                  return (
-                    <Row
-                      key={talent.id}
-                      label={
-                        <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                <StatList>
+                  {character.talents.map((talent) => {
+                    const boosted =
+                      typeof talent.boostedBy === 'string' &&
+                      readFlag(values, talent.boostedBy);
+                    return (
+                      <StatRow
+                        key={talent.id}
+                        icon={
+                          <Avatar
                             src={iconUrl(talent.icon)}
-                            alt=''
-                            width={18}
-                            height={18}
-                            className='size-[18px] rounded-full bg-slate-800'
+                            size={18}
+                            shape='circle'
                           />
-                          <span className='truncate'>{talent.name}</span>
-                        </>
-                      }
-                      value={
-                        <span className='flex items-center gap-1.5'>
-                          {/* Its room is always kept, so every
+                        }
+                        label={<span className='truncate'>{talent.name}</span>}
+                        className='items-center'
+                        labelClassName='min-w-0'
+                        value={
+                          <span className='flex items-center gap-1.5'>
+                            {/* Its room is always kept, so every
                               dropdown lines up. */}
-                          <span
-                            className={cn(
-                              'w-10 text-right text-[10px] text-sky-300',
-                              !boosted && 'invisible'
-                            )}
-                          >
-                            +3 (C)
+                            <span
+                              className={cn(
+                                'w-10 text-right text-2xs text-brand-300',
+                                !boosted && 'invisible'
+                              )}
+                            >
+                              +3 (C)
+                            </span>
+                            <TalentLevelSelect
+                              className='w-20'
+                              data-testid={`timeline-talent-${talent.id}`}
+                              label={`${talent.name} level`}
+                              level={clampBaseTalentLevel(
+                                readNumber(values, talent.levelField)
+                              )}
+                              maxLevel={MAX_BASE_TALENT_LEVEL}
+                              onLevelChange={(value) =>
+                                setNumber(talent.levelField, value)
+                              }
+                            />
                           </span>
-                          <TalentLevelSelect
-                            className='w-20 justify-between'
-                            data-testid={`timeline-talent-${talent.id}`}
-                            label={`${talent.name} level`}
-                            level={clampBaseTalentLevel(
-                              readNumber(values, talent.levelField)
-                            )}
-                            maxLevel={MAX_BASE_TALENT_LEVEL}
-                            onLevelChange={(value) =>
-                              setNumber(talent.levelField, value)
-                            }
-                          />
-                        </span>
-                      }
-                    />
-                  );
-                })}
+                        }
+                      />
+                    );
+                  })}
+                </StatList>
               </Section>
 
               {runFields.length > 0 && (
                 <Section title='Run options' help='runOptions'>
                   {runFields.map((field) =>
                     field.kind === 'number' ? (
-                      <Row
+                      <StatRow
                         key={field.name}
-                        label={
-                          <>
-                            <SkillCooldownIcon
-                              icon={burstIcon}
-                              label='Q'
-                              cooldown={READY}
-                              element={character.element}
-                              // Its ring fills with what is typed in, up to
-                              // what the Q needs (Energy, Fighting Spirit).
-                              energy={{
-                                value: Number(draft.numbers[field.name] ?? 0),
-                                max: burstCharge?.needed ?? field.max ?? 0,
-                              }}
-                              size={24}
-                            />
-                            <span className='truncate'>{field.label}</span>
-                          </>
+                        className='items-center py-0.5'
+                        labelClassName='min-w-0'
+                        icon={
+                          <SkillCooldownIcon
+                            icon={burstIcon}
+                            label='Q'
+                            cooldown={READY}
+                            element={character.element}
+                            // Its ring fills with what is typed in, up to
+                            // what the Q needs (Energy, Fighting Spirit).
+                            energy={{
+                              value: Number(draft.numbers[field.name] ?? 0),
+                              max: burstCharge?.needed ?? field.max ?? 0,
+                            }}
+                            size={24}
+                          />
                         }
+                        label={<span className='truncate'>{field.label}</span>}
                         value={
                           <NumberBox
                             label={field.label}
@@ -549,7 +507,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                       <label
                         key={field.name}
                         data-testid={`timeline-sheet-option-${field.name}`}
-                        className='flex cursor-pointer items-start gap-2 py-1 text-xs text-slate-300'
+                        className='flex cursor-pointer items-start gap-2 py-1 text-xs text-muted-foreground'
                       >
                         <input
                           type='checkbox'
@@ -565,7 +523,7 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                                 )
                             )
                           }
-                          className='mt-0.5 size-3.5 shrink-0 accent-sky-500'
+                          className='mt-0.5 size-3.5 shrink-0 accent-brand-500'
                         />
                         {field.label}
                       </label>
@@ -582,25 +540,27 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                       <button
                         type='button'
                         key={entry.level}
+                        data-state={active ? 'on' : 'off'}
                         aria-pressed={active}
                         title={`C${entry.level}: ${entry.name}${
                           entry.description ? `\n\n${entry.description}` : ''
                         }`}
                         onClick={() => pickConstellation(entry.level)}
+                        // A toggle's look, in a column: the icon over its
+                        // level.
                         className={cn(
-                          'flex flex-col items-center gap-0.5 rounded-md p-1 text-[10px] transition hover:bg-slate-800',
-                          active
-                            ? 'bg-sky-600/25 text-sky-100 ring-1 ring-sky-500/40'
-                            : 'text-slate-500 opacity-60'
+                          toggleVariants({ size: null }),
+                          'flex-col gap-0.5 p-1 text-2xs',
+                          !active && 'text-subtle opacity-60'
                         )}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Avatar
                           src={iconUrl(entry.icon)}
-                          alt=''
-                          width={24}
-                          height={24}
-                          className={cn('size-6', !active && 'grayscale')}
+                          size={24}
+                          className={cn(
+                            'bg-transparent',
+                            !active && 'grayscale'
+                          )}
                         />
                         C{entry.level}
                       </button>
@@ -625,73 +585,73 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                   />
                 )}
                 <div className='mb-2 flex items-center gap-2.5'>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Avatar
                     src={iconUrl(character.weapon.icon)}
-                    alt=''
-                    width={44}
-                    height={44}
+                    size={44}
                     className={cn(
-                      'size-11 rounded-lg bg-linear-to-br from-amber-700 to-orange-400 ring-1 ring-amber-300/30',
+                      'rounded-lg bg-linear-to-br from-amber-700 to-orange-400 ring-1 ring-amber-300/30',
                       !isWeaponEquipped(character.weapon, values) &&
                         'opacity-40 grayscale'
                     )}
                   />
                   <div className='min-w-0'>
-                    <p className='truncate text-sm font-medium text-slate-100'>
+                    <p className='truncate text-sm font-medium text-foreground'>
                       {character.weapon.name}
                     </p>
-                    <p className='flex items-center gap-1.5 text-[11px] text-slate-400'>
+                    <p className='flex items-center gap-1.5 text-2xs text-subtle'>
                       <Stars count={character.weapon.rarity} />
                       Lv. {character.weapon.level}
                     </p>
                   </div>
                 </div>
-                <Row
-                  label='Refinement'
-                  value={
-                    <NumberBox
-                      label='Refinement'
-                      value={
-                        draft.numbers[character.weapon.refinementField] ?? ''
-                      }
-                      min={1}
-                      max={MAX_REFINEMENT}
-                      step={1}
-                      onChange={(value) =>
-                        setDraft(
-                          (current) => current && withRefinement(current, value)
-                        )
-                      }
-                    />
-                  }
-                />
-                <Row
-                  label='Base ATK'
-                  value={formatNumber(character.weapon.baseAtk)}
-                />
-                <Row
-                  label={
-                    STAT_NAMES[character.weapon.substat.stat] ??
-                    character.weapon.substat.stat
-                  }
-                  value={statValue(
-                    character.weapon.substat.stat,
-                    character.weapon.substat.value
-                  )}
-                />
+                <StatList>
+                  <StatRow
+                    label='Refinement'
+                    value={
+                      <NumberBox
+                        label='Refinement'
+                        value={
+                          draft.numbers[character.weapon.refinementField] ?? ''
+                        }
+                        min={1}
+                        max={MAX_REFINEMENT}
+                        step={1}
+                        onChange={(value) =>
+                          setDraft(
+                            (current) =>
+                              current && withRefinement(current, value)
+                          )
+                        }
+                      />
+                    }
+                  />
+                  <StatRow
+                    label='Base ATK'
+                    value={formatNumber(character.weapon.baseAtk)}
+                  />
+                  <StatRow
+                    label={
+                      STAT_NAMES[character.weapon.substat.stat] ??
+                      character.weapon.substat.stat
+                    }
+                    value={statValue(
+                      character.weapon.substat.stat,
+                      character.weapon.substat.value
+                    )}
+                  />
+                </StatList>
                 {character.weapon.passive && (
-                  <div className='mt-2 border-t border-slate-800 pt-2 text-xs'>
-                    <p className='font-medium text-slate-200'>
+                  <div className='mt-2 border-t border-muted pt-2 text-xs'>
+                    <p className='font-medium text-muted-foreground'>
                       {character.weapon.passive.name}{' '}
-                      <span className='text-[10px] font-normal text-slate-500'>
+                      <span className='text-2xs font-normal text-subtle'>
                         R{refinement}
                         {isWeaponEquipped(character.weapon, values)
                           ? ''
                           : ' · off'}
                       </span>
                     </p>
-                    <p className='mt-0.5 text-[11px] leading-relaxed whitespace-pre-line text-slate-400'>
+                    <p className='mt-0.5 text-2xs leading-relaxed whitespace-pre-line text-subtle'>
                       {
                         character.weapon.passive.descriptions[
                           Math.min(
@@ -723,17 +683,13 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                 )}
                 <div className='mb-2 flex items-center gap-2'>
                   {character.artifactSet.pieces.slice(0, 1).map((piece) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Avatar
                       key={piece.icon}
                       src={relicIconUrl(piece.icon)}
-                      alt=''
-                      width={36}
-                      height={36}
-                      className='size-9 rounded-md bg-slate-800'
+                      size={36}
                     />
                   ))}
-                  <p className='text-sm font-medium text-slate-100'>
+                  <p className='text-sm font-medium text-foreground'>
                     {character.artifactSet.name}
                   </p>
                 </div>
@@ -758,12 +714,12 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
                         }
                         className={cn(
                           'font-medium enabled:hover:underline',
-                          on ? 'text-emerald-300' : 'text-slate-500'
+                          on ? 'text-emerald-300' : 'text-subtle'
                         )}
                       >
                         {row.label} {on ? '' : '(off)'}
                       </button>
-                      <p className='text-[11px] leading-relaxed text-slate-400'>
+                      <p className='text-2xs leading-relaxed text-subtle'>
                         {row.value}
                       </p>
                     </div>
@@ -773,27 +729,28 @@ const CharacterSheet = ({ build, onClose, onSave }: CharacterSheetProps) => {
             </div>
 
             {/* Save runs the simulation again with this build. */}
-            <div className='sticky bottom-0 mt-auto flex items-center gap-2 border-t border-slate-700/60 bg-slate-900 p-3'>
-              <button
-                type='button'
+            <div className='sticky bottom-0 mt-auto flex items-center gap-2 border-t border-border bg-card p-3'>
+              <Button
+                variant='outline'
+                size='sm'
                 disabled={!dirty}
                 onClick={() => setDraft(build)}
-                className='flex h-8 items-center gap-1.5 rounded-md border border-slate-700 px-3 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-40'
               >
-                <RotateCcw className='size-3.5' />
+                <RotateCcw />
                 Reset
-              </button>
-              <button
-                type='button'
+              </Button>
+              <Button
+                size='sm'
                 data-testid='timeline-character-save'
                 disabled={!dirty || invalid}
                 title={invalid ? 'Fix the fields in red first' : undefined}
                 onClick={() => onSave(draft)}
-                className='ml-auto flex h-8 items-center gap-1.5 rounded-md bg-sky-600 px-3 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-40'
+                // Hovered while disabled, it still says why.
+                className='ml-auto'
               >
-                <Play className='size-3.5' />
+                <Play />
                 Save &amp; simulate
-              </button>
+              </Button>
             </div>
           </>
         )}

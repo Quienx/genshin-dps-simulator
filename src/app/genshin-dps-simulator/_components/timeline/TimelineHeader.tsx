@@ -11,18 +11,32 @@ import {
   Trash2,
   UserPlus,
 } from 'lucide-react';
-import { memo, ReactNode, useEffect, useRef, useState } from 'react';
+import { memo, ReactNode, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { Avatar, AvatarStack } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Input } from '@/components/ui/input';
+import { Panel } from '@/components/ui/panel';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverFooter,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 import ShareMenu from './ShareMenu';
 import { SharedRotation } from './shareRotation';
@@ -53,19 +67,17 @@ const SCENARIO_GROUPS: { id: TimelineScenario['group']; label: string }[] = [
 
 // The members' faces, overlapping a little.
 const ScenarioAvatars = ({ ids }: { ids: string[] }) => (
-  <span className='flex shrink-0 -space-x-1.5'>
+  <AvatarStack>
     {ids.map((id) => (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Avatar
         key={id}
         src={iconUrl(getLoadedCharacter(id).character.icons.avatar)}
-        alt=''
-        width={20}
-        height={20}
-        className='size-5 rounded-full bg-slate-800 ring-1 ring-slate-900'
+        size={20}
+        shape='circle'
+        className='ring-1 ring-card'
       />
     ))}
-  </span>
+  </AvatarStack>
 );
 
 export type HeaderMember = {
@@ -130,20 +142,6 @@ const TeamPicker = ({
     ),
   ];
   const [listed, setListed] = useState<string[]>(() => firstOf(current));
-  const ref = useRef<HTMLDivElement>(null);
-  // A click outside closes it.
-  useEffect(() => {
-    if (!open) {
-      return undefined;
-    }
-    const close = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
   const toggle = (id: string) =>
     setPicked((ids) =>
       ids.includes(id)
@@ -153,126 +151,126 @@ const TeamPicker = ({
         : ids
     );
   return (
-    <div ref={ref} className='relative'>
-      <button
-        type='button'
-        data-testid='timeline-team-picker'
-        title='Pick the team'
-        aria-expanded={open}
-        onClick={() => {
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        // Each opening starts again from the team on screen.
+        if (next) {
           setPicked(current);
           setListed(firstOf(current));
-          setOpen(!open);
-        }}
-        className='flex h-9 items-center gap-1 rounded-md border border-dashed border-slate-600 bg-slate-800/40 px-2 text-[11px] text-slate-300 transition hover:border-sky-500/60 hover:bg-slate-700/60 hover:text-slate-100'
-      >
-        <UserPlus className='size-4' aria-hidden />
-        Team
-      </button>
-      {open && (
-        <div
-          data-testid='timeline-team-picker-panel'
-          className='absolute top-full left-0 z-50 mt-1 w-80 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl'
+        }
+        setOpen(next);
+      }}
+    >
+      {/* As tall as the members' chips beside it. */}
+      <PopoverTrigger asChild>
+        <Button
+          variant='secondary'
+          size='xs'
+          data-testid='timeline-team-picker'
+          title='Pick the team'
+          className='h-auto min-h-7 gap-1 self-stretch border-dashed border-input bg-muted/40 px-2 hover:border-brand-500/60'
         >
-          <p className='mb-1.5 text-[10px] text-slate-400'>
-            Up to {TEAM_MAX} characters, in the order you pick them. One alone
-            plays its own rotation.
-          </p>
-          {/* As the game's party setup: each portrait on its rarity's
-              background, its element in the corner and its name below. */}
-          <div className='grid grid-cols-4 gap-1.5'>
-            {listed.map((id) => {
-              const character = CHARACTER_LIST.find((entry) => entry.id === id);
-              if (!character) {
-                return null;
-              }
-              const order = picked.indexOf(character.id);
-              const full = order < 0 && picked.length >= TEAM_MAX;
-              const data = getLoadedCharacter(character.id).character;
-              const element = elementIconUrl(data.element);
-              return (
-                <button
-                  type='button'
-                  key={character.id}
-                  data-testid={`timeline-team-pick-${character.id}`}
-                  aria-pressed={order >= 0}
-                  disabled={full}
-                  title={character.name}
-                  onClick={() => toggle(character.id)}
+          <UserPlus className='size-4' aria-hidden />
+          Team
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent data-testid='timeline-team-picker-panel' className='w-80'>
+        <p className='mb-1.5 text-2xs text-subtle'>
+          Up to {TEAM_MAX} characters, in the order you pick them. One alone
+          plays its own rotation.
+        </p>
+        {/* As the game's party setup: each portrait on its rarity's
+            background, its element in the corner and its name below. */}
+        <div className='grid grid-cols-4 gap-1.5'>
+          {listed.map((id) => {
+            const character = CHARACTER_LIST.find((entry) => entry.id === id);
+            if (!character) {
+              return null;
+            }
+            const order = picked.indexOf(character.id);
+            const full = order < 0 && picked.length >= TEAM_MAX;
+            const data = getLoadedCharacter(character.id).character;
+            const element = elementIconUrl(data.element);
+            return (
+              <button
+                type='button'
+                key={character.id}
+                data-testid={`timeline-team-pick-${character.id}`}
+                aria-pressed={order >= 0}
+                disabled={full}
+                title={character.name}
+                onClick={() => toggle(character.id)}
+                className={cn(
+                  'group relative flex flex-col overflow-hidden rounded-sm bg-paper text-left shadow transition disabled:opacity-30',
+                  // Picked: a gold frame and glow, raised.
+                  order >= 0
+                    ? '-translate-y-0.5 ring-[3px] ring-amber-300 shadow-[0_0_14px_rgba(252,211,77,0.55)]'
+                    : 'ring-1 ring-border hover:ring-slate-300'
+                )}
+              >
+                <span
                   className={cn(
-                    'group relative flex flex-col overflow-hidden rounded-sm bg-[#e9e5dc] text-left shadow transition disabled:opacity-30',
-                    // Picked: a gold frame and glow, raised.
-                    order >= 0
-                      ? '-translate-y-0.5 ring-[3px] ring-amber-300 shadow-[0_0_14px_rgba(252,211,77,0.55)]'
-                      : 'ring-1 ring-slate-700/60 hover:ring-slate-300'
+                    'relative block aspect-square w-full rounded-br-md',
+                    data.rarity >= 5
+                      ? 'bg-gradient-to-br from-rarity-5-from to-rarity-5-to'
+                      : 'bg-gradient-to-br from-rarity-4-from to-rarity-4-to'
                   )}
                 >
-                  <span
-                    className={cn(
-                      'relative block aspect-square w-full rounded-br-md',
-                      data.rarity >= 5
-                        ? 'bg-gradient-to-br from-[#6b4a2e] to-[#b8782c]'
-                        : 'bg-gradient-to-br from-[#4e4a75] to-[#9a6fc4]'
-                    )}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={iconUrl(data.icons.avatar)}
+                    alt=''
+                    className='size-full object-cover'
+                  />
+                  {element && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={iconUrl(data.icons.avatar)}
-                      alt=''
-                      className='size-full object-cover'
+                      src={element}
+                      alt={data.element}
+                      className='absolute top-0.5 left-0.5 size-4 drop-shadow'
                     />
-                    {element && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={element}
-                        alt={data.element}
-                        className='absolute top-0.5 left-0.5 size-4 drop-shadow'
-                      />
-                    )}
-                    {order >= 0 && (
-                      <span className='absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-amber-300 text-[11px] font-bold text-slate-900 shadow ring-1 ring-amber-100'>
-                        {order + 1}
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      'truncate px-0.5 py-0.5 text-center text-[10px]',
-                      order >= 0
-                        ? 'bg-amber-300 font-semibold text-slate-900'
-                        : 'font-medium text-[#4a4a4a]'
-                    )}
-                  >
-                    {character.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className='mt-2 flex justify-end gap-1.5'>
-            <button
-              type='button'
-              onClick={() => setOpen(false)}
-              className='h-7 rounded-md border border-slate-700/60 px-3 text-[11px] text-slate-300 hover:bg-slate-800'
-            >
-              Cancel
-            </button>
-            <button
-              type='button'
-              data-testid='timeline-team-apply'
-              disabled={picked.length === 0}
-              onClick={() => {
-                setOpen(false);
-                onApply(picked);
-              }}
-              className='h-7 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white hover:bg-sky-500 disabled:opacity-40'
-            >
-              Apply
-            </button>
-          </div>
+                  )}
+                  {order >= 0 && (
+                    <span className='absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-amber-300 text-2xs font-bold text-slate-900 shadow ring-1 ring-amber-100'>
+                      {order + 1}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'truncate px-0.5 py-0.5 text-center text-2xs',
+                    order >= 0
+                      ? 'bg-amber-300 font-semibold text-slate-900'
+                      : 'font-medium text-paper-ink'
+                  )}
+                >
+                  {character.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      )}
-    </div>
+        <PopoverFooter>
+          <PopoverClose asChild>
+            <Button variant='outline' size='xs'>
+              Cancel
+            </Button>
+          </PopoverClose>
+          <Button
+            size='xs'
+            data-testid='timeline-team-apply'
+            disabled={picked.length === 0}
+            onClick={() => {
+              setOpen(false);
+              onApply(picked);
+            }}
+          >
+            Apply
+          </Button>
+        </PopoverFooter>
+      </PopoverContent>
+    </Popover>
   );
 };
 
@@ -297,60 +295,91 @@ const SaveTeamButton = ({
     onSave(name);
   };
   return (
-    <div className='relative'>
-      <button
-        type='button'
-        data-testid='timeline-team-save'
-        aria-expanded={open}
-        onClick={() => {
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        // Each opening starts again from the members' names.
+        if (next) {
           setName(suggested);
-          setOpen(!open);
-        }}
-        className='flex h-8 items-center gap-1 rounded-md bg-sky-600 px-2.5 text-[11px] font-medium text-white hover:bg-sky-500'
-      >
-        <Save className='size-3.5' aria-hidden />
-        Save as team
-      </button>
-      {open && (
-        <div className='absolute top-full right-0 z-50 mt-1 w-64 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl'>
-          <label className='text-[10px] text-slate-400'>
-            Name (it goes to My teams)
-            <input
-              autoFocus
-              data-testid='timeline-team-save-name'
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  save();
-                }
-                if (event.key === 'Escape') {
-                  setOpen(false);
-                }
-              }}
-              className='mt-1 h-7 w-full rounded border border-slate-700/60 bg-slate-950/60 px-2 text-[11px] text-slate-100 focus:border-sky-500 focus:ring-0'
-            />
-          </label>
-          <div className='mt-2 flex justify-end gap-1.5'>
-            <button
-              type='button'
-              onClick={() => setOpen(false)}
-              className='h-7 rounded-md border border-slate-700/60 px-3 text-[11px] text-slate-300 hover:bg-slate-800'
-            >
+        }
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button size='sm' data-testid='timeline-team-save'>
+          <Save aria-hidden />
+          Save as team
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align='end' className='w-64'>
+        <label className='text-2xs text-subtle'>
+          Name (it goes to My teams)
+          <Input
+            size='sm'
+            autoFocus
+            data-testid='timeline-team-save-name'
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                save();
+              }
+            }}
+            className='mt-1'
+          />
+        </label>
+        <PopoverFooter>
+          <PopoverClose asChild>
+            <Button variant='outline' size='xs'>
               Cancel
-            </button>
-            <button
-              type='button'
-              data-testid='timeline-team-save-confirm'
-              onClick={save}
-              className='h-7 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white hover:bg-sky-500'
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+            </Button>
+          </PopoverClose>
+          <Button
+            size='xs'
+            data-testid='timeline-team-save-confirm'
+            onClick={save}
+          >
+            Save
+          </Button>
+        </PopoverFooter>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// Deletes a saved team, once confirmed.
+const DeleteTeamButton = ({
+  name,
+  onDelete,
+}: {
+  name: string;
+  onDelete: () => void;
+}) => {
+  const [asking, setAsking] = useState(false);
+  return (
+    <>
+      <Button
+        variant='destructive-outline'
+        size='sm'
+        data-testid='timeline-team-delete'
+        title={`Delete ${name}`}
+        onClick={() => setAsking(true)}
+      >
+        <Trash2 aria-hidden />
+        Delete team
+      </Button>
+      <ConfirmDialog
+        open={asking}
+        onOpenChange={setAsking}
+        data-testid='timeline-team-delete-dialog'
+        confirmTestId='timeline-team-delete-confirm'
+        title={`Delete ${name}?`}
+        description='Its rotation is deleted from this browser too.'
+        confirmLabel='Delete'
+        destructive
+        onConfirm={onDelete}
+      />
+    </>
   );
 };
 
@@ -363,15 +392,16 @@ const IconButton = ({
   onClick: () => void;
   children: ReactNode;
 }) => (
-  <button
-    type='button'
+  <Button
+    variant='secondary'
+    size='icon-sm'
     aria-label={label}
     title={label}
     onClick={onClick}
-    className='flex size-7 items-center justify-center rounded-md border border-slate-700/70 bg-slate-800/60 text-slate-100 transition hover:bg-slate-700/70 [&_svg]:size-3.5'
+    className='text-foreground'
   >
     {children}
-  </button>
+  </Button>
 );
 
 // The inspector's top bar: the party, the player and the zoom.
@@ -404,12 +434,12 @@ const HeaderTitle = memo(function HeaderTitle({
 >) {
   return (
     <>
-      <Sparkles className='size-5 text-sky-400' aria-hidden />
+      <Sparkles className='size-5 text-brand-400' aria-hidden />
       <div>
-        <h1 className='text-sm leading-tight font-semibold text-slate-50'>
-          Simulation Inspector
+        <h1 className='text-base leading-tight font-semibold text-foreground'>
+          Combat Timeline
         </h1>
-        <p className='text-[10px] text-slate-400'>
+        <p className='text-2xs text-subtle'>
           Genshin Impact · {formatNumber(duration)}s Combat Simulation
         </p>
       </div>
@@ -428,53 +458,34 @@ const HeaderTitle = memo(function HeaderTitle({
         />
       )}
       {teamActions?.kind === 'mine' && (
-        <button
-          type='button'
-          data-testid='timeline-team-delete'
-          title={`Delete ${teamActions.name}`}
-          onClick={() => {
-            if (
-              window.confirm(
-                `Delete ${teamActions.name} and its rotation from this browser?`
-              )
-            ) {
-              teamActions.onDelete();
-            }
-          }}
-          className='flex h-8 items-center gap-1 rounded-md border border-slate-700/60 bg-slate-900/70 px-2 text-[11px] text-rose-300 hover:bg-rose-500/10'
-        >
-          <Trash2 className='size-3.5' aria-hidden />
-          Delete team
-        </button>
+        <DeleteTeamButton
+          name={teamActions.name}
+          onDelete={teamActions.onDelete}
+        />
       )}
       <Select value={scenario} onValueChange={onScenarioChange}>
         <SelectTrigger
           aria-label='Simulation'
           data-testid='timeline-scenario'
           size='sm'
-          className='w-64 border-slate-700/60 bg-slate-900/70 text-[11px] text-slate-100 dark:bg-slate-900/70'
+          className='w-64'
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent
-          align='end'
-          className='border-slate-700 bg-slate-900 text-slate-100'
-        >
+        <SelectContent align='end'>
           {SCENARIO_GROUPS.map((group) => {
             const entries = scenarios.filter(
               (entry) => entry.group === group.id
             );
             return entries.length === 0 ? null : (
               <SelectGroup key={group.id}>
-                <p className='px-2 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase'>
-                  {group.label}
-                </p>
+                <SelectLabel>{group.label}</SelectLabel>
                 {entries.map((entry) => (
                   <SelectItem
                     key={entry.id}
                     value={entry.id}
                     data-testid={`timeline-scenario-${entry.id}`}
-                    className='text-[11px] focus:bg-slate-800 focus:text-slate-50'
+                    className='text-2xs'
                   >
                     <ScenarioAvatars ids={entry.avatars} />
                     {entry.label}
@@ -509,7 +520,7 @@ const HeaderMembers = memo(function HeaderMembers({
           data-testid={`timeline-member-${member.characterId}`}
           title={`${member.name}: see the build`}
           onClick={() => onMemberClick(member.characterId)}
-          className='relative flex items-center gap-1.5 overflow-hidden rounded-md border border-slate-700/60 bg-slate-800/60 py-0.5 pr-3 pl-2 text-left transition hover:border-sky-500/50 hover:bg-slate-700/60'
+          className='relative flex items-center gap-1.5 overflow-hidden rounded-md border border-border bg-muted/60 py-0.5 pr-3 pl-2 text-left transition hover:border-brand-500/50 hover:bg-accent/60'
         >
           <span
             aria-hidden
@@ -518,17 +529,10 @@ const HeaderMembers = memo(function HeaderMembers({
               member.color?.bar ?? 'bg-slate-500'
             )}
           />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={member.avatar}
-            alt=''
-            width={28}
-            height={28}
-            className='size-7 rounded-md bg-slate-700'
-          />
+          <Avatar src={member.avatar} size={28} className='bg-accent' />
           <div className='leading-tight'>
-            <p className='text-[11px] text-slate-100'>{member.name}</p>
-            <p className='text-[10px] text-slate-400'>Lv. 90</p>
+            <p className='text-2xs text-foreground'>{member.name}</p>
+            <p className='text-2xs text-subtle'>Lv. 90</p>
           </div>
         </button>
       ))}
@@ -571,9 +575,10 @@ const TimelineHeader = ({
       />
     </div>
 
-    <div
+    <Panel
+      as='div'
       data-testid='timeline-header'
-      className='flex flex-wrap items-center gap-2.5 rounded-xl border border-slate-700/60 bg-slate-900/70 px-2 py-1.5'
+      className='flex flex-wrap items-center gap-2.5 px-2 py-1.5'
     >
       <HeaderMembers
         members={members}
@@ -581,7 +586,7 @@ const TimelineHeader = ({
         onMemberClick={onMemberClick}
       />
 
-      <div className='flex items-center gap-1 border-l border-slate-700/60 pl-2.5'>
+      <div className='flex items-center gap-1 border-l border-border pl-2.5'>
         <IconButton label={playing ? 'Pause' : 'Play'} onClick={onTogglePlay}>
           {playing ? <Pause /> : <Play />}
         </IconButton>
@@ -593,29 +598,32 @@ const TimelineHeader = ({
         </IconButton>
       </div>
 
-      <div className='flex min-w-64 flex-1 flex-col gap-1 border-l border-slate-700/60 pl-2.5'>
+      <div className='flex min-w-64 flex-1 flex-col gap-1 border-l border-border pl-2.5'>
         <div className='flex items-center gap-1'>
-          {SPEEDS.map((value) => (
-            <button
-              key={value}
-              type='button'
-              aria-pressed={speed === value}
-              onClick={() => onSpeedChange(value)}
-              className={cn(
-                'rounded-md px-2 py-0.5 text-[11px] text-slate-300 transition hover:bg-slate-800',
-                speed === value &&
-                  'bg-sky-600/40 text-sky-50 hover:bg-sky-600/50'
-              )}
-            >
-              {value}×
-            </button>
-          ))}
+          <ToggleGroup
+            type='single'
+            size='2xs'
+            aria-label='Playback speed'
+            value={String(speed)}
+            onValueChange={(value) => {
+              // Clicking the speed on again unpicks it (''): one stays.
+              if (value) {
+                onSpeedChange(Number(value));
+              }
+            }}
+          >
+            {SPEEDS.map((value) => (
+              <ToggleGroupItem key={value} value={String(value)}>
+                {value}×
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
           <span
             data-testid='timeline-time'
-            className='ml-2 font-mono text-[11px] text-slate-100 tabular-nums'
+            className='ml-2 font-mono text-2xs text-foreground tabular-nums'
           >
             {time.toFixed(3)} s{' '}
-            <span className='text-slate-400'>/ {formatNumber(duration)} s</span>
+            <span className='text-subtle'>/ {formatNumber(duration)} s</span>
           </span>
         </div>
         <input
@@ -626,52 +634,45 @@ const TimelineHeader = ({
           step={0.001}
           value={time}
           onChange={(event) => onSeek(Number(event.target.value))}
-          className='h-1 w-full cursor-pointer accent-sky-500'
+          className='h-1 w-full cursor-pointer accent-brand-500'
         />
       </div>
 
       <div className='ml-auto flex items-center gap-1.5'>
-        <div className='flex items-center gap-1 rounded-lg border border-slate-700/60 bg-slate-800/60 py-0.5 pr-0.5 pl-2.5 text-[11px] text-slate-300'>
+        <div className='flex items-center gap-1 rounded-lg border border-border bg-muted/60 py-0.5 pr-0.5 pl-2.5 text-2xs text-muted-foreground'>
           Zoom
-          <button
-            type='button'
+          <Button
+            variant='ghost'
+            size='icon-xs'
             aria-label='Zoom out'
             onClick={() => onZoom(-1)}
-            className='flex size-6 items-center justify-center rounded-md hover:bg-slate-700'
           >
-            <Minus className='size-3' />
-          </button>
-          <button
-            type='button'
+            <Minus />
+          </Button>
+          <Button
+            variant='ghost'
+            size='icon-xs'
             aria-label='Zoom in'
             onClick={() => onZoom(1)}
-            className='flex size-6 items-center justify-center rounded-md hover:bg-slate-700'
           >
-            <Plus className='size-3' />
-          </button>
+            <Plus />
+          </Button>
         </div>
-        <button
-          type='button'
-          onClick={onFit}
-          className='h-7 rounded-md border border-slate-700/60 bg-slate-800/60 px-3 text-[11px] text-slate-300 hover:bg-slate-700/70'
-        >
+        <Button variant='secondary' size='xs' onClick={onFit} className='px-3'>
           Fit
-        </button>
-        <button
-          type='button'
+        </Button>
+        <Button
+          size='xs'
           data-testid='timeline-simulate'
           aria-busy={simulating}
           onClick={onSimulate}
-          className='flex h-7 items-center gap-1.5 rounded-md bg-sky-600 px-3 text-[11px] font-medium text-white shadow hover:bg-sky-500'
+          className='px-3 shadow'
         >
-          <Dices
-            className={cn('size-3.5', simulating && 'animate-spin')}
-            aria-hidden
-          />
+          <Dices className={cn(simulating && 'animate-spin')} aria-hidden />
           {simulating ? 'Simulating…' : 'Simulate again'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Panel>
   </header>
 );
 

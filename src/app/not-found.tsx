@@ -1,7 +1,9 @@
+import { TriangleAlert } from 'lucide-react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import * as React from 'react';
-import { RiAlarmWarningFill } from 'react-icons/ri';
+
+import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
   title: 'Not Found',
@@ -9,17 +11,15 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <main>
-      <section className='bg-white'>
-        <div className='layout flex min-h-screen flex-col items-center justify-center text-center text-black'>
-          <RiAlarmWarningFill
-            size={60}
-            className='drop-shadow-glow animate-flicker text-red-500'
-          />
-          <h1 className='mt-8 text-4xl md:text-6xl'>Page Not Found</h1>
-          <Link href='/'>Back to home</Link>
-        </div>
-      </section>
+    <main className='flex h-dvh flex-col items-center justify-center gap-4 bg-background p-4 text-center'>
+      <TriangleAlert className='size-12 text-amber-300' aria-hidden />
+      <h1 className='text-2xl font-semibold text-foreground'>Page not found</h1>
+      <p className='max-w-sm text-sm text-subtle'>
+        There is nothing at this address.
+      </p>
+      <Button asChild>
+        <Link href='/'>Back to the timeline</Link>
+      </Button>
     </main>
   );
 }

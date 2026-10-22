@@ -1,5 +1,4 @@
 import {
-  ChevronDown,
   Maximize2,
   Minimize2,
   Pin,
@@ -20,16 +19,26 @@ import {
 
 import { cn } from '@/lib/utils';
 
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DisclosureButton } from '@/components/ui/disclosure';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Meter, SegmentedMeter } from '@/components/ui/meter';
+import { Inset, Panel } from '@/components/ui/panel';
+import { SectionLabel } from '@/components/ui/section-label';
+import { StatList, StatRow } from '@/components/ui/stat-row';
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
 import SectionHelp from './SectionHelp';
 import { SectionHelpKey } from './sectionHelp';
+import { ELEMENT_TEXT } from './sourceStyles';
 import StatIcon from './StatIcon';
 import { TimelineMember } from './TimelineChart';
 import {
@@ -143,17 +152,6 @@ const laneOf = (chip: BlockChip): string => {
   );
 };
 
-const ELEMENT_TEXT: Record<string, string> = {
-  Pyro: 'text-orange-400',
-  Electro: 'text-violet-400',
-  Hydro: 'text-sky-400',
-  Cryo: 'text-cyan-300',
-  Dendro: 'text-lime-400',
-  Anemo: 'text-teal-300',
-  Geo: 'text-yellow-400',
-  Physical: 'text-slate-300',
-};
-
 const short = (value: number) => formatNumber(Math.round(value * 10) / 10);
 const seconds = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)} s`;
@@ -162,9 +160,15 @@ const hitKey = (hit: Pick<EnemyHit, 'characterId' | 'index'>) =>
 
 const ElementIcon = ({ element, size }: { element: string; size: number }) => {
   const src = elementIconUrl(element);
+  // A glyph on its own: no tile behind it.
   return src ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={element} width={size} height={size} />
+    <Avatar
+      src={src}
+      alt={element}
+      size={size}
+      shape='square'
+      className='bg-transparent'
+    />
   ) : null;
 };
 
@@ -190,21 +194,17 @@ const ConstellationBadge = ({
     )
     .join('\n');
   return (
-    <span
+    <Badge
       data-testid='timeline-event-constellation'
       title={title}
       aria-label={`Constellation ${count}`}
-      className={cn(
-        'flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 ring-1',
-        count > 0
-          ? 'bg-amber-500/15 ring-amber-400/40'
-          : 'bg-slate-800 ring-slate-700'
-      )}
+      variant={count > 0 ? 'warning' : 'muted'}
+      size='sm'
     >
       <span
         className={cn(
-          'text-[10px] font-bold tabular-nums',
-          count > 0 ? 'text-amber-300' : 'text-slate-400'
+          'text-2xs font-bold tabular-nums',
+          count > 0 ? 'text-amber-300' : 'text-subtle'
         )}
       >
         C{count}
@@ -217,12 +217,12 @@ const ConstellationBadge = ({
               'size-1.5 rotate-45 rounded-[1px]',
               on
                 ? 'bg-amber-300 shadow-[0_0_4px_var(--color-amber-300)]'
-                : 'bg-slate-600'
+                : 'bg-input'
             )}
           />
         ))}
       </span>
-    </span>
+    </Badge>
   );
 };
 
@@ -243,39 +243,37 @@ const Card = ({
   hidden?: boolean;
 }) =>
   hidden ? null : (
-    <section
+    <Inset
       className={cn(
-        'relative rounded-lg border border-slate-700/60 bg-slate-950/50 p-2.5',
+        'relative',
         focus && 'pr-8',
-        focus?.active && 'border-sky-500/40',
+        focus?.active && 'border-brand-500/40',
         className
       )}
     >
       {focus && (
-        <button
-          type='button'
+        <Button
+          variant='ghost'
+          size='icon-xs'
           aria-pressed={focus.active}
           aria-label={
             focus.active ? 'Show every section' : `Focus on ${focus.label}`
           }
           title={focus.active ? 'Show every section' : 'Focus on this section'}
           onClick={focus.onToggle}
-          className={cn(
-            'absolute top-2 right-2 flex size-5 items-center justify-center rounded text-slate-500 transition hover:bg-slate-700/70 hover:text-slate-100',
-            focus.active && 'bg-sky-600/30 text-sky-200'
-          )}
+          className='absolute top-2 right-2 size-5 rounded text-subtle'
         >
           {focus.active ? (
             <Minimize2 className='size-3' />
           ) : (
             <Maximize2 className='size-3' />
           )}
-        </button>
+        </Button>
       )}
       {title && (
         <h3
           className={cn(
-            'flex items-center gap-1.5 text-[11px] font-semibold text-slate-200',
+            'flex items-center gap-1.5 text-2xs font-semibold text-muted-foreground',
             // Room below only when the section is open (it has a body).
             Children.toArray(children).length > 0 && 'mb-1.5'
           )}
@@ -284,7 +282,7 @@ const Card = ({
         </h3>
       )}
       {children}
-    </section>
+    </Inset>
   );
 
 // How much is left of a block, as a mini bar in its giver's color: a
@@ -306,16 +304,13 @@ const BlockMeter = ({
   if (chip.meter) {
     const now = meterAt(chip.meter, time);
     return (
-      <span
+      <Meter
         data-testid='timeline-block-meter'
         aria-label={`${chip.meter.label} ${now.text} (${now.bound})`}
-        className='block h-1 w-16 overflow-hidden rounded-full bg-slate-700/70'
-      >
-        <span
-          className={cn('block h-full rounded-full', barClass)}
-          style={{ width: `${now.share * 100}%` }}
-        />
-      </span>
+        value={now.share}
+        className='w-16'
+        indicatorClassName={barClass}
+      />
     );
   }
   if (chip.kind === 'stacks' && chip.stacks) {
@@ -324,20 +319,13 @@ const BlockMeter = ({
     ).length;
     const segments = Math.max(chip.max ?? up, up, 1);
     return (
-      <span
+      <SegmentedMeter
         aria-label={`${up} of ${segments} stacks`}
-        className='flex h-1 w-16 gap-0.5'
-      >
-        {Array.from({ length: segments }, (_, index) => (
-          <span
-            key={index}
-            className={cn(
-              'h-full flex-1 rounded-full',
-              index < up ? barClass : 'bg-slate-700/70'
-            )}
-          />
-        ))}
-      </span>
+        value={up}
+        segments={segments}
+        className='w-16'
+        fillClassName={barClass}
+      />
     );
   }
   if (chip.end === null) {
@@ -356,15 +344,12 @@ const BlockMeter = ({
     share = Math.min(1, Math.max(0, (end - time) / (end - span.start)));
   }
   return (
-    <span
+    <Meter
       aria-label={`${Math.round(share * 100)}% left`}
-      className='block h-1 w-16 overflow-hidden rounded-full bg-slate-700/70'
-    >
-      <span
-        className={cn('block h-full rounded-full', barClass)}
-        style={{ width: `${share * 100}%` }}
-      />
-    </span>
+      value={share}
+      className='w-16'
+      indicatorClassName={barClass}
+    />
   );
 };
 
@@ -390,9 +375,9 @@ const PulseRow = forwardRef<
       className={cn(
         className,
         lit
-          ? 'bg-sky-400/35 transition-none'
+          ? 'bg-brand-400/35 transition-none'
           : 'transition-colors duration-1000 ease-out',
-        held && !lit && 'bg-sky-500/15'
+        held && !lit && 'bg-brand-500/15'
       )}
     />
   );
@@ -420,28 +405,21 @@ const StateLine = ({
   return (
     <div className='flex h-[30px] items-center gap-2'>
       {row?.iconUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={row.iconUrl}
-          alt=''
-          width={18}
-          height={18}
-          className='size-[18px] shrink-0 rounded'
-        />
+        <Avatar src={row.iconUrl} size={18} className='bg-transparent' />
       ) : (
-        <Sparkle className='size-[18px] shrink-0 text-slate-600' />
+        <Sparkle className='size-[18px] shrink-0 text-subtle/60' />
       )}
       <span className='min-w-0 flex-1 leading-tight'>
         <span className='flex items-center gap-1'>
           <span
             className={cn(
               'truncate',
-              row ? 'text-slate-200' : 'text-slate-500'
+              row ? 'text-muted-foreground' : 'text-subtle'
             )}
           >
             {row?.label ?? placeholder}
           </span>
-          <span className='ml-auto shrink-0 text-[10px] text-slate-500 tabular-nums'>
+          <span className='ml-auto shrink-0 text-2xs text-subtle tabular-nums'>
             {changed
               ? `${short(row?.before ?? 0)}${unit} → ${short(value)}${unit}`
               : row?.remaining
@@ -449,29 +427,21 @@ const StateLine = ({
               : ''}
           </span>
         </span>
-        <span className='mt-0.5 block h-1 overflow-hidden rounded-full bg-slate-700/70'>
-          <span
-            className={cn('block h-full rounded-full', bar)}
-            style={{
-              width: `${
-                value !== null && row?.max
-                  ? Math.min(100, (value / row.max) * 100)
-                  : 0
-              }%`,
-            }}
-          />
-        </span>
+        <Meter
+          value={value ?? 0}
+          max={row?.max ?? 0}
+          className='mt-0.5'
+          indicatorClassName={bar}
+        />
       </span>
-      <span className='w-16 shrink-0 text-right font-semibold text-slate-100 tabular-nums'>
+      <span className='w-16 shrink-0 text-right font-semibold text-foreground tabular-nums'>
         {value === null ? (
-          <span className='font-normal text-slate-500'>—</span>
+          <span className='font-normal text-subtle'>—</span>
         ) : (
           <>
             {short(value)}
             {row?.max !== null && row?.max !== undefined && (
-              <span className='font-normal text-slate-500'>
-                /{short(row.max)}
-              </span>
+              <span className='font-normal text-subtle'>/{short(row.max)}</span>
             )}
             {unit}
           </>
@@ -519,7 +489,7 @@ const TalentHud = ({
       <span
         className={cn(
           'block truncate',
-          button.form ? 'font-medium text-amber-300' : 'text-slate-200'
+          button.form ? 'font-medium text-amber-300' : 'text-muted-foreground'
         )}
         title={button.form ?? button.label}
       >
@@ -533,25 +503,18 @@ const TalentHud = ({
           }`}
           className='mt-1 flex items-center gap-1.5'
         >
-          <span className='block h-1 w-14 overflow-hidden rounded-full bg-slate-700/70'>
-            <span
-              className={cn('block h-full rounded-full', bar)}
-              style={{
-                width: `${Math.min(
-                  100,
-                  (energy.value /
-                    Math.max(1, energy.needed ?? energy.max ?? 1)) *
-                    100
-                )}%`,
-              }}
-            />
-          </span>
-          <span className='text-[10px] text-slate-500 tabular-nums'>
+          <Meter
+            value={energy.value}
+            max={Math.max(1, energy.needed ?? energy.max ?? 1)}
+            className='w-14'
+            indicatorClassName={bar}
+          />
+          <span className='text-2xs text-subtle tabular-nums'>
             {Math.floor(energy.value)}
           </span>
         </span>
       ) : (
-        <span className='block truncate text-[10px] text-slate-500 tabular-nums'>
+        <span className='block truncate text-2xs text-subtle tabular-nums'>
           {button.cooldown.charges > 1
             ? `${button.cooldown.ready}/${button.cooldown.charges} charges`
             : button.cooldown.remaining > 0
@@ -572,7 +535,7 @@ const CharacterStateRows = ({
   ownerBar: string;
   element: string;
 }) => (
-  <div data-testid='timeline-event-state' className='flex flex-col text-[11px]'>
+  <div data-testid='timeline-event-state' className='flex flex-col text-2xs'>
     {/* The E and the Q, as the game's buttons. */}
     <div className='mb-1 flex h-11 items-center gap-2'>
       <TalentHud button={state.skill} kind='E' element={element} />
@@ -804,791 +767,740 @@ const EventPanel = ({
     members.find((member) => member.characterId === id);
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <section
-        data-testid='timeline-event'
-        className={cn(
-          'flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/70',
-          !collapsed && 'h-full'
-        )}
-      >
-        <div className='flex shrink-0 items-center gap-2 px-2.5 py-2'>
-          <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
-            Selected Event
-            <SectionHelp section='event' />
-          </h2>
-          <span className='text-[10px] text-slate-500'>
-            {resolvedPin
-              ? 'pinned'
-              : resolved
-              ? 'selected block'
-              : 'follows the playhead'}
-          </span>
-          <button
-            type='button'
-            aria-pressed={resolvedPin !== null}
-            aria-label={resolvedPin ? 'Unpin' : 'Pin'}
-            title={resolvedPin ? 'Unpin' : 'Pin this event'}
-            disabled={!action}
-            onClick={() =>
-              setPinned((current) =>
-                current || !action ? null : pinOf(view, action, hit)
-              )
-            }
-            className={cn(
-              'ml-auto flex size-6 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-700/70 hover:text-slate-100 disabled:opacity-40',
-              resolvedPin && 'bg-sky-600/30 text-sky-200'
-            )}
-          >
-            {resolvedPin ? (
-              <PinOff className='size-3.5' />
-            ) : (
-              <Pin className='size-3.5' />
-            )}
-          </button>
-          <PanelToggle
-            label='event'
-            collapsed={collapsed}
-            onToggle={onToggle}
-          />
-        </div>
+    <Panel
+      data-testid='timeline-event'
+      className={cn(
+        'flex min-h-0 flex-col overflow-hidden',
+        !collapsed && 'h-full'
+      )}
+    >
+      <div className='flex shrink-0 items-center gap-2 px-3 py-2'>
+        <PanelTitle section='event'>Selected Event</PanelTitle>
+        <span className='text-2xs text-subtle'>
+          {resolvedPin
+            ? 'pinned'
+            : resolved
+            ? 'selected block'
+            : 'follows the playhead'}
+        </span>
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-pressed={resolvedPin !== null}
+          aria-label={resolvedPin ? 'Unpin' : 'Pin'}
+          title={resolvedPin ? 'Unpin' : 'Pin this event'}
+          disabled={!action}
+          onClick={() =>
+            setPinned((current) =>
+              current || !action ? null : pinOf(view, action, hit)
+            )
+          }
+          className='ml-auto text-subtle'
+        >
+          {resolvedPin ? <PinOff /> : <Pin />}
+        </Button>
+        <PanelToggle label='event' collapsed={collapsed} onToggle={onToggle} />
+      </div>
 
-        {!collapsed && (
-          <div className='flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2.5 pb-2.5 text-xs'>
-            {!action || !owner || !character ? (
-              <p className='py-6 text-center text-slate-500'>
-                Nothing played yet: play or move the playhead.
-              </p>
-            ) : (
-              <>
-                {/* Who, what, when, how much. */}
-                <Card hidden={hiddenBy('header')}>
-                  <div className='flex gap-2.5'>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={owner.avatar}
-                      alt=''
-                      width={44}
-                      height={44}
-                      className='size-11 shrink-0 rounded-lg bg-slate-800'
-                    />
-                    <div className='min-w-0 flex-1'>
-                      <div className='flex items-center gap-1.5'>
-                        <span
-                          className={cn(
-                            'truncate text-sm font-semibold',
-                            owner.color.text
-                          )}
-                        >
-                          {owner.name}
-                        </span>
-                        <ElementIcon element={character.element} size={16} />
-                        <ConstellationBadge
-                          build={builds.find(
-                            (values) => values.character === owner.characterId
-                          )}
-                          characterId={owner.characterId}
-                        />
-                        <span className='ml-auto text-[10px] text-slate-400 tabular-nums'>
-                          used at{' '}
-                          <span className='font-mono text-slate-300'>
-                            {action.start.toFixed(3)} s
-                          </span>
-                        </span>
-                      </div>
-                      <span className='mt-1 inline-flex max-w-full items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[11px] text-slate-200'>
-                        {rotationAction && (
-                          <RotationActionIcon
-                            action={rotationAction}
-                            size={14}
-                            className='bg-transparent p-0 ring-0'
-                          />
-                        )}
-                        <span className='truncate'>{actionName}</span>
-                        {actionElements.map((element) => (
-                          <span
-                            key={element}
-                            data-testid='timeline-event-action-element'
-                            className={cn(
-                              'inline-flex shrink-0 items-center gap-0.5 pl-1',
-                              ELEMENT_TEXT[element] ?? 'text-slate-300'
-                            )}
-                          >
-                            <ElementIcon element={element} size={12} />
-                            {element}
-                          </span>
-                        ))}
-                      </span>
-                    </div>
-                  </div>
-                  <div className='mt-2 flex items-center gap-2'>
-                    <p className='text-slate-200 tabular-nums'>
-                      Damage:{' '}
-                      {landed.length === 0 ? (
-                        <span className='text-slate-400'>
-                          {hits.length === 0 ? 'no hits' : '—'}
-                        </span>
-                      ) : (
-                        <>
-                          <span className='font-semibold text-slate-50'>
-                            {same
-                              ? `${formatNumber(rounded[0])} × ${
-                                  rounded.length
-                                }`
-                              : formatNumber(Math.round(damage))}
-                          </span>
-                          {same && (
-                            <span className='text-slate-400'>
-                              {' '}
-                              ({formatNumber(Math.round(damage))} total)
-                            </span>
-                          )}
-                        </>
-                      )}
-                      {/* Always there (its room kept), so nothing below
-                          moves when the hits are all in. */}
+      {!collapsed && (
+        <div className='flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2.5 pb-2.5 text-xs'>
+          {!action || !owner || !character ? (
+            <EmptyState>
+              Nothing played yet: play or move the playhead.
+            </EmptyState>
+          ) : (
+            <>
+              {/* Who, what, when, how much. */}
+              <Card hidden={hiddenBy('header')}>
+                <div className='flex gap-2.5'>
+                  <Avatar src={owner.avatar} size={44} className='rounded-lg' />
+                  <div className='min-w-0 flex-1'>
+                    {/* A narrow panel: the time goes under the name rather
+                        than cutting it. */}
+                    <div className='flex flex-wrap items-center gap-x-1.5 gap-y-0.5'>
                       <span
                         className={cn(
-                          'block h-4 text-[10px]',
-                          nextHit ? 'text-sky-300' : 'text-slate-500'
+                          'truncate text-sm font-semibold',
+                          owner.color.text
                         )}
                       >
-                        {nextHit
-                          ? `${pending.length} hit${
-                              pending.length === 1 ? '' : 's'
-                            } to land · next in ${short(nextHit.time - time)}s`
-                          : hits.length > 0
-                          ? 'All hits landed'
-                          : ''}
+                        {owner.name}
                       </span>
-                    </p>
-                    {hit?.isCrit && !upcoming && (
-                      <span className='ml-auto flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-400/40'>
-                        <Sparkle className='size-3' />
-                        Critical Hit
+                      <ElementIcon element={character.element} size={16} />
+                      <ConstellationBadge
+                        build={builds.find(
+                          (values) => values.character === owner.characterId
+                        )}
+                        characterId={owner.characterId}
+                      />
+                      <span className='ml-auto text-2xs whitespace-nowrap text-subtle tabular-nums'>
+                        used at{' '}
+                        <span className='font-mono text-muted-foreground'>
+                          {action.start.toFixed(3)} s
+                        </span>
                       </span>
-                    )}
+                    </div>
+                    <Badge
+                      variant='muted'
+                      size='sm'
+                      className='mt-1 max-w-full font-normal'
+                    >
+                      {rotationAction && (
+                        <RotationActionIcon
+                          action={rotationAction}
+                          size={14}
+                          className='bg-transparent p-0 ring-0'
+                        />
+                      )}
+                      <span className='truncate'>{actionName}</span>
+                      {actionElements.map((element) => (
+                        <span
+                          key={element}
+                          data-testid='timeline-event-action-element'
+                          className={cn(
+                            'inline-flex shrink-0 items-center gap-0.5 pl-1',
+                            ELEMENT_TEXT[element] ?? 'text-muted-foreground'
+                          )}
+                        >
+                          <ElementIcon element={element} size={12} />
+                          {element}
+                        </span>
+                      ))}
+                    </Badge>
                   </div>
-                  {/* The stats of the hit shown (every buff of that moment
-                      in), and what they gain over the character screen.
-                      Always there, so nothing moves. */}
-                  <div
-                    data-testid='timeline-event-stats'
-                    className='mt-2 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-slate-800 pt-2'
-                  >
-                    {hitStats.map((row) => (
-                      <div
-                        key={row.label}
-                        className='flex items-center gap-1.5 text-[11px]'
-                      >
+                </div>
+                <div className='mt-2 flex items-center gap-2'>
+                  <p className='text-muted-foreground tabular-nums'>
+                    Damage:{' '}
+                    {landed.length === 0 ? (
+                      <span className='text-subtle'>
+                        {hits.length === 0 ? 'no hits' : '—'}
+                      </span>
+                    ) : (
+                      <>
+                        <span className='font-semibold text-foreground'>
+                          {same
+                            ? `${formatNumber(rounded[0])} × ${rounded.length}`
+                            : formatNumber(Math.round(damage))}
+                        </span>
+                        {same && (
+                          <span className='text-subtle'>
+                            {' '}
+                            ({formatNumber(Math.round(damage))} total)
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {/* Always there (its room kept), so nothing below
+                        moves when the hits are all in. */}
+                    <span
+                      className={cn(
+                        'block h-4 text-2xs',
+                        nextHit ? 'text-brand-300' : 'text-subtle'
+                      )}
+                    >
+                      {nextHit
+                        ? `${pending.length} hit${
+                            pending.length === 1 ? '' : 's'
+                          } to land · next in ${short(nextHit.time - time)}s`
+                        : hits.length > 0
+                        ? 'All hits landed'
+                        : ''}
+                    </span>
+                  </p>
+                  {hit?.isCrit && !upcoming && (
+                    <Badge
+                      variant='warning'
+                      size='sm'
+                      className='ml-auto font-semibold text-amber-300'
+                    >
+                      <Sparkle className='size-3' />
+                      Critical Hit
+                    </Badge>
+                  )}
+                </div>
+                {/* The stats of the hit shown (every buff of that moment
+                    in), and what they gain over the character screen.
+                    Always there, so nothing moves. */}
+                <StatList
+                  data-testid='timeline-event-stats'
+                  className='mt-2 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-muted pt-2'
+                >
+                  {hitStats.map((row) => (
+                    <StatRow
+                      key={row.label}
+                      size='2xs'
+                      className='items-center gap-1.5'
+                      // Its room kept with no icon, so the labels line up.
+                      icon={
                         <span className='size-3.5 shrink-0'>
                           {row.field && (
                             <StatIcon
                               field={row.field}
-                              className='size-3.5 text-slate-200 opacity-50'
+                              className='size-3.5 text-muted-foreground opacity-50'
                             />
                           )}
                         </span>
-                        <span className='truncate text-slate-400'>
-                          {row.label}
-                        </span>
-                        <span className='ml-auto font-medium text-slate-100 tabular-nums'>
+                      }
+                      label={row.label}
+                      labelClassName='min-w-0 truncate'
+                      value={
+                        <>
                           {row.value}
-                        </span>
-                        <span
-                          className={cn(
-                            'w-11 text-right text-[10px] tabular-nums',
-                            row.delta > 0
-                              ? 'text-emerald-400'
-                              : row.delta < 0
-                              ? 'text-rose-400'
-                              : 'text-slate-600'
-                          )}
-                        >
-                          {row.deltaText}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                {ownerState && (
-                  <Card
-                    title={
-                      <>
-                        Character state
-                        <SectionHelp section='characterState' />
-                      </>
-                    }
-                    focus={focusOf('state', 'Character state')}
-                    hidden={hiddenBy('state')}
-                  >
-                    <CharacterStateRows
-                      state={ownerState}
-                      ownerBar={owner.color.bar}
-                      element={character.element}
-                    />
-                  </Card>
-                )}
-
-                {/* Only for those with one: Nightsoul points or Bond of
-                    Life. */}
-                {ownerState?.mechanic && (
-                  <Card
-                    title={
-                      <>
-                        Special mechanic
-                        <SectionHelp section='specialMechanic' />
-                      </>
-                    }
-                    focus={focusOf('mechanic', 'Special mechanic')}
-                    hidden={hiddenBy('mechanic')}
-                  >
-                    <div
-                      data-testid='timeline-event-mechanic'
-                      className='text-[11px]'
-                    >
-                      <StateLine
-                        row={ownerState.mechanic}
-                        placeholder=''
-                        bar={
-                          ownerState.mechanic.id === 'bondOfLife'
-                            ? 'bg-rose-500'
-                            : 'bg-fuchsia-500'
-                        }
-                      />
-                    </div>
-                  </Card>
-                )}
-
-                <Card
-                  title={
-                    <>
-                      Target
-                      <SectionHelp section='target' />
-                    </>
-                  }
-                  focus={focusOf('target', 'Target')}
-                  hidden={hiddenBy('target')}
-                >
-                  <div className='flex items-center gap-2'>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={monsterIconUrl(INSPECTOR_ENEMY.icon)}
-                      alt=''
-                      width={32}
-                      height={32}
-                      className='size-8 rounded-md bg-slate-800'
-                    />
-                    <div className='text-[11px] leading-tight'>
-                      <p className='text-slate-200'>
-                        {INSPECTOR_ENEMY.name} (Lv. {enemyLevel})
-                      </p>
-                      <p className='flex items-center gap-1 text-slate-400'>
-                        {aura ? (
-                          <>
-                            <ElementIcon element={aura.element} size={12} />
-                            {aura.element} aura · {short(aura.gauge)} U
-                          </>
-                        ) : (
-                          'No aura'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card
-                  focus={focusOf('hits', 'Hit Details')}
-                  hidden={hiddenBy('hits')}
-                  title={
-                    <button
-                      type='button'
-                      aria-expanded={openHits}
-                      onClick={() => setOpenHits((value) => !value)}
-                      className='flex w-full items-center gap-1.5'
-                    >
-                      <ChevronDown
-                        className={cn(
-                          'size-3 text-slate-500 transition-transform',
-                          !openHits && '-rotate-90'
-                        )}
-                      />
-                      Hit Details
-                      <SectionHelp section='hits' />
-                      {!openHits && (
-                        <span className='ml-auto text-[10px] font-normal text-slate-400 tabular-nums'>
-                          {landed.length}/{hits.length} landed
-                        </span>
-                      )}
-                    </button>
-                  }
-                >
-                  {openHits && (
-                    <>
-                      <div className='grid grid-cols-3 gap-2 text-[11px]'>
-                        <div>
-                          <p className='text-slate-500'>Landed</p>
-                          <p className='text-slate-100 tabular-nums'>
-                            {landed.length}/{hits.length}
-                          </p>
-                        </div>
-                        <div>
-                          <p className='text-slate-500'>
-                            {upcoming ? 'Next hit' : 'This hit'}
-                          </p>
-                          <p
+                          {/* What it gains over the character screen. */}
+                          <span
                             className={cn(
-                              'tabular-nums',
-                              upcoming ? 'text-sky-300' : 'text-slate-100'
+                              'ml-1.5 inline-block w-11 font-normal',
+                              row.delta > 0
+                                ? 'text-emerald-400'
+                                : row.delta < 0
+                                ? 'text-rose-400'
+                                : 'text-subtle/60'
                             )}
                           >
-                            {hit ? formatNumber(Math.round(hit.damage)) : '—'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className='text-slate-500'>Element</p>
-                          {hit ? (
-                            <p
-                              className={cn(
-                                'flex items-center gap-1',
-                                ELEMENT_TEXT[hit.element] ?? 'text-slate-200'
-                              )}
-                            >
+                            {row.deltaText}
+                          </span>
+                        </>
+                      }
+                      valueClassName='shrink-0'
+                    />
+                  ))}
+                </StatList>
+              </Card>
+
+              {ownerState && (
+                <Card
+                  title={
+                    <>
+                      Character state
+                      <SectionHelp section='characterState' />
+                    </>
+                  }
+                  focus={focusOf('state', 'Character state')}
+                  hidden={hiddenBy('state')}
+                >
+                  <CharacterStateRows
+                    state={ownerState}
+                    ownerBar={owner.color.bar}
+                    element={character.element}
+                  />
+                </Card>
+              )}
+
+              {/* Only for those with one: Nightsoul points or Bond of
+                  Life. */}
+              {ownerState?.mechanic && (
+                <Card
+                  title={
+                    <>
+                      Special mechanic
+                      <SectionHelp section='specialMechanic' />
+                    </>
+                  }
+                  focus={focusOf('mechanic', 'Special mechanic')}
+                  hidden={hiddenBy('mechanic')}
+                >
+                  <div
+                    data-testid='timeline-event-mechanic'
+                    className='text-2xs'
+                  >
+                    <StateLine
+                      row={ownerState.mechanic}
+                      placeholder=''
+                      bar={
+                        ownerState.mechanic.id === 'bondOfLife'
+                          ? 'bg-rose-500'
+                          : 'bg-fuchsia-500'
+                      }
+                    />
+                  </div>
+                </Card>
+              )}
+
+              <Card
+                title={
+                  <>
+                    Target
+                    <SectionHelp section='target' />
+                  </>
+                }
+                focus={focusOf('target', 'Target')}
+                hidden={hiddenBy('target')}
+              >
+                <div className='flex items-center gap-2'>
+                  <Avatar
+                    src={monsterIconUrl(INSPECTOR_ENEMY.icon)}
+                    size={32}
+                  />
+                  <div className='text-2xs leading-tight'>
+                    <p className='text-muted-foreground'>
+                      {INSPECTOR_ENEMY.name} (Lv. {enemyLevel})
+                    </p>
+                    <p className='flex items-center gap-1 text-subtle'>
+                      {aura ? (
+                        <>
+                          <ElementIcon element={aura.element} size={12} />
+                          {aura.element} aura · {short(aura.gauge)} U
+                        </>
+                      ) : (
+                        'No aura'
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card
+                focus={focusOf('hits', 'Hit Details')}
+                hidden={hiddenBy('hits')}
+                title={
+                  <DisclosureButton open={openHits} onOpenChange={setOpenHits}>
+                    Hit Details
+                    <SectionHelp section='hits' />
+                    {!openHits && (
+                      <span className='ml-auto text-2xs font-normal text-subtle tabular-nums'>
+                        {landed.length}/{hits.length} landed
+                      </span>
+                    )}
+                  </DisclosureButton>
+                }
+              >
+                {openHits && (
+                  <>
+                    <StatList className='grid grid-cols-3 gap-2'>
+                      <StatRow
+                        layout='stacked'
+                        size='2xs'
+                        label='Landed'
+                        value={`${landed.length}/${hits.length}`}
+                      />
+                      <StatRow
+                        layout='stacked'
+                        size='2xs'
+                        label={upcoming ? 'Next hit' : 'This hit'}
+                        value={hit ? formatNumber(Math.round(hit.damage)) : '—'}
+                        valueClassName={cn(upcoming && 'text-brand-300')}
+                      />
+                      <StatRow
+                        layout='stacked'
+                        size='2xs'
+                        label='Element'
+                        value={
+                          hit ? (
+                            <>
                               <ElementIcon element={hit.element} size={14} />
                               {hit.element}
-                            </p>
+                            </>
                           ) : (
-                            <p className='text-slate-500'>—</p>
-                          )}
-                        </div>
-                      </div>
-                      {hits.length > 0 && (
-                        <ul className='mt-2 flex flex-col gap-0.5'>
-                          {hits.map((entry) => {
-                            const key = hitKey(entry);
-                            return (
-                              <li key={key}>
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    setPinned(pinOf(view, action, entry));
-                                    onSeek?.(entry.time);
-                                  }}
-                                  className={cn(
-                                    'flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] hover:bg-slate-800',
-                                    hit &&
-                                      key === hitKey(hit) &&
-                                      'bg-sky-600/20'
-                                  )}
-                                >
-                                  <ElementIcon
-                                    element={entry.element}
-                                    size={12}
-                                  />
-                                  <span
-                                    className={cn(
-                                      'truncate',
-                                      entry.time > now
-                                        ? 'text-slate-500'
-                                        : 'text-slate-300'
-                                    )}
-                                  >
-                                    {entry.label}
-                                  </span>
-                                  {/* When it lands: a countdown until then. */}
-                                  {entry.time > now ? (
-                                    <span className='shrink-0 rounded bg-sky-500/15 px-1 text-[10px] text-sky-300 tabular-nums'>
-                                      lands {seconds(entry.time)} · in{' '}
-                                      {short(entry.time - time)}s
-                                    </span>
-                                  ) : (
-                                    <span className='shrink-0 text-[10px] text-emerald-400/90 tabular-nums'>
-                                      ✓ {seconds(entry.time)}
-                                    </span>
-                                  )}
-                                  {entry.isCrit && entry.time <= now && (
-                                    <span className='rounded bg-amber-500/20 px-1 text-[9px] font-bold text-amber-300'>
-                                      CRIT
-                                    </span>
-                                  )}
-                                  <span
-                                    className={cn(
-                                      'ml-auto shrink-0 font-semibold tabular-nums',
-                                      entry.time > now
-                                        ? 'text-slate-500'
-                                        : 'text-slate-100'
-                                    )}
-                                  >
-                                    {formatNumber(Math.round(entry.damage))}
-                                  </span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </>
-                  )}
-                </Card>
-
-                {/* The DMG formula: a one-line button, closed by default (it
-                  is long; open, it stays open). The line is always there,
-                  so nothing below moves. */}
-                <Card
-                  focus={focusOf('formula', 'Damage Breakdown')}
-                  hidden={hiddenBy('formula')}
-                >
-                  <button
-                    type='button'
-                    aria-expanded={openFormula}
-                    data-testid='timeline-event-formula-toggle'
-                    disabled={!formula}
-                    onClick={() => setOpenFormula((value) => !value)}
-                    className='flex w-full items-center gap-1.5 text-[11px] font-semibold text-slate-200 disabled:text-slate-500'
-                  >
-                    <ChevronDown
-                      className={cn(
-                        'size-3 text-slate-500 transition-transform',
-                        !openFormula && '-rotate-90'
-                      )}
-                    />
-                    Damage Breakdown
-                    <SectionHelp section='formula' />
-                    <span
-                      className={cn(
-                        'ml-auto text-[10px] font-normal',
-                        !formula
-                          ? 'text-slate-500'
-                          : formula.matches
-                          ? 'text-emerald-400'
-                          : 'text-rose-400'
-                      )}
-                    >
-                      {!formula
-                        ? 'no hits'
-                        : `${upcoming ? 'upcoming hit · ' : ''}${
-                            formula.matches ? '✓ matches' : '✗ does not match'
-                          }`}
-                    </span>
-                  </button>
-                  {openFormula && formula && hit && (
-                    <table
-                      data-testid='timeline-event-formula'
-                      className='mt-1.5 w-full text-[11px] tabular-nums'
-                    >
-                      <tbody>
-                        {formula.rows.map((row) => (
-                          <tr
-                            key={row.label}
-                            className='border-b border-slate-800/80'
-                          >
-                            <td className='py-0.5 text-slate-400'>
-                              {row.label}
-                            </td>
-                            <td className='py-0.5 text-right text-slate-300'>
-                              {row.value}
-                            </td>
-                            <td className='py-0.5 pl-2 text-right font-medium text-slate-100'>
-                              {row.result}
-                            </td>
-                          </tr>
-                        ))}
-                        <tr>
-                          <td className='pt-1 font-semibold text-slate-100'>
-                            Total
-                          </td>
-                          <td />
-                          <td className='pt-1 pl-2 text-right font-bold text-amber-300'>
-                            {formatNumber(Math.round(hit.damage))}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  )}
-                </Card>
-
-                {/* The bonuses on the hit: a one-line button, closed by
-                  default and always there, so nothing below moves. */}
-                <Card
-                  focus={focusOf('bonuses', 'Bonuses on this hit')}
-                  hidden={hiddenBy('bonuses')}
-                >
-                  <button
-                    type='button'
-                    aria-expanded={openBonuses}
-                    data-testid='timeline-event-bonuses-toggle'
-                    disabled={bonuses.length === 0}
-                    onClick={() => setOpenBonuses((value) => !value)}
-                    className='flex w-full items-center gap-1.5 text-[11px] font-semibold text-slate-200 disabled:text-slate-500'
-                  >
-                    <ChevronDown
-                      className={cn(
-                        'size-3 text-slate-500 transition-transform',
-                        !openBonuses && '-rotate-90'
-                      )}
-                    />
-                    Bonuses on this hit
-                    <SectionHelp section='bonuses' />
-                    <span className='ml-auto text-[10px] font-normal text-slate-400 tabular-nums'>
-                      {bonuses.length === 0 ? 'none' : bonuses.length}
-                    </span>
-                  </button>
-                  {openBonuses && bonuses.length > 0 && (
-                    <ul className='mt-1.5 flex flex-col gap-1'>
-                      {bonuses.map((bonus) => (
-                        <li key={bonus.id} className='flex items-center gap-2'>
-                          {bonus.iconUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={bonus.iconUrl}
-                              alt=''
-                              width={18}
-                              height={18}
-                              className='size-[18px] shrink-0 rounded'
-                            />
-                          ) : (
-                            <span className='size-[18px] shrink-0' />
-                          )}
-                          <span className='min-w-0 flex-1 leading-tight'>
-                            <span className='block truncate text-[11px] text-slate-200'>
-                              {bonus.label}
-                            </span>
-                            <span className='block truncate text-[10px] text-slate-500'>
-                              {bonus.from}
-                            </span>
-                          </span>
-                          <span className='shrink-0 text-right text-[11px] leading-tight'>
-                            <span className='block font-semibold text-emerald-300'>
-                              {bonus.value}
-                            </span>
-                            {bonus.remaining !== null && (
-                              <span className='block text-[10px] text-slate-500'>
-                                {short(bonus.remaining)}s left
-                              </span>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </Card>
-              </>
-            )}
-
-            {/* Every block up now, by lane, as the team inspector's queue. */}
-            <Card
-              focus={focusOf('blocks', 'Active Effects')}
-              hidden={hiddenBy('blocks')}
-              title={
-                <button
-                  type='button'
-                  aria-expanded={openLanes}
-                  onClick={() => setOpenLanes((value) => !value)}
-                  className='flex w-full items-center gap-1.5'
-                >
-                  <ChevronDown
-                    className={cn(
-                      'size-3 text-slate-500 transition-transform',
-                      !openLanes && '-rotate-90'
-                    )}
-                  />
-                  Active Effects ({upNow})
-                  <SectionHelp section='activeEffects' />
-                </button>
-              }
-            >
-              {openLanes && (
-                <div
-                  data-testid='timeline-event-blocks'
-                  className='flex flex-col gap-2'
-                >
-                  {LANES.map((lane) => {
-                    const chips = queued.filter(
-                      (chip) => laneOf(chip) === lane.id
-                    );
-                    if (chips.length === 0) {
-                      return null;
-                    }
-                    return (
-                      <div key={lane.id}>
-                        <p className='mb-0.5 flex items-center gap-1 text-[10px] font-semibold tracking-wide text-slate-500 uppercase'>
-                          {lane.title} (
-                          {
-                            chips.filter((chip) => !exiting.has(chip.key))
-                              .length
-                          }
+                            '—'
                           )
-                          <SectionHelp section={lane.help} />
-                        </p>
-                        <ul className='flex flex-col gap-0.5'>
-                          {chips.map((chip) => {
-                            const leaving = exiting.has(chip.key);
-                            const giver = memberOf(chip.characterId);
-                            // The giver's own color: purple, Iansan's.
-                            const giverBar = giver?.color.bar ?? 'bg-slate-400';
-                            return (
-                              <li
-                                key={chip.key}
+                        }
+                        valueClassName={
+                          hit
+                            ? cn(
+                                'flex items-center gap-1',
+                                ELEMENT_TEXT[hit.element] ??
+                                  'text-muted-foreground'
+                              )
+                            : 'text-subtle'
+                        }
+                      />
+                    </StatList>
+                    {hits.length > 0 && (
+                      <ul className='mt-2 flex flex-col gap-0.5'>
+                        {hits.map((entry) => {
+                          const key = hitKey(entry);
+                          return (
+                            <li key={key}>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  setPinned(pinOf(view, action, entry));
+                                  onSeek?.(entry.time);
+                                }}
                                 className={cn(
-                                  'grid transition-all duration-300 ease-out',
-                                  leaving
-                                    ? 'grid-rows-[0fr] opacity-0'
-                                    : 'grid-rows-[1fr] animate-in duration-300 fade-in-0 slide-in-from-bottom-1'
+                                  'flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-2xs hover:bg-muted',
+                                  hit &&
+                                    key === hitKey(hit) &&
+                                    'bg-brand-600/20'
                                 )}
                               >
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <PulseRow
-                                      data-hovered={
-                                        chip.key === hoveredChip || undefined
-                                      }
-                                      // It pulses when it joins, and again
-                                      // when renewed (a new application).
-                                      pulseKey={spanAt(chip, time).start}
-                                      // Made by the event shown: it stays lit.
-                                      held={
-                                        !leaving &&
-                                        action !== undefined &&
-                                        chip.cause === action.causeId
-                                      }
-                                      className={cn(
-                                        'flex min-h-0 items-center gap-2 overflow-hidden rounded-md px-1.5 hover:bg-slate-800/60',
-                                        // Folding out, it gives its room back.
-                                        leaving ? 'py-0' : 'py-0.5',
-                                        // Its bar is hovered on the chart:
-                                        // stronger than the event's own.
-                                        chip.key === hoveredChip &&
-                                          '!bg-amber-400/30 ring-1 ring-amber-300/80'
-                                      )}
-                                    >
-                                      <span
-                                        className={cn(
-                                          'h-4 w-0.5 shrink-0 rounded-full',
-                                          giverBar
-                                        )}
-                                      />
-                                      {chip.iconUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                          src={chip.iconUrl}
-                                          alt=''
-                                          width={18}
-                                          height={18}
-                                          className='size-[18px] shrink-0'
-                                        />
-                                      ) : (
-                                        <Sparkle className='size-[18px] shrink-0 text-slate-500' />
-                                      )}
-                                      <span className='min-w-0 flex-1 leading-tight'>
-                                        <span className='block truncate text-[11px] text-slate-200'>
-                                          {chip.label}
-                                        </span>
-                                        <span className='flex items-center gap-1 truncate text-[10px] text-slate-500'>
-                                          {giver?.name ?? chip.characterId} ·{' '}
-                                          {chip.sourceTag}
-                                          {chip.type === 'heal' &&
-                                            !chip.healed && (
-                                              <Users className='size-3' />
-                                            )}
-                                        </span>
-                                      </span>
-                                      {/* A long value (Masque's) is cut;
-                                          the tooltip has it whole. */}
-                                      <span className='max-w-[45%] min-w-0 shrink-0 text-right text-[11px] leading-tight tabular-nums'>
-                                        {(chip.value ?? chip.short) && (
-                                          <span className='block truncate font-semibold text-emerald-300'>
-                                            {chip.value ?? chip.short}
-                                          </span>
-                                        )}
-                                        {(() => {
-                                          // A coordinated attack: what it
-                                          // dealt so far, and its next hit.
-                                          const source = coordinated.get(
-                                            `${chip.characterId}|${chip.blockId}`
-                                          );
-                                          if (
-                                            !source ||
-                                            source.hits +
-                                              (source.nextAt === null
-                                                ? 0
-                                                : 1) ===
-                                              0
-                                          ) {
-                                            return null;
-                                          }
-                                          return (
-                                            <span
-                                              data-testid='timeline-coordinated-total'
-                                              className='block truncate text-[10px] text-sky-200'
-                                            >
-                                              {source.hits} hits ·{' '}
-                                              {formatNumber(
-                                                Math.round(source.damage)
-                                              )}
-                                              {source.nextAt !== null &&
-                                                ` · next ${formatNumber(
-                                                  Math.round(
-                                                    (source.nextAt - time) * 10
-                                                  ) / 10
-                                                )} s`}
-                                            </span>
-                                          );
-                                        })()}
-                                        <span className='mt-1 flex justify-end'>
-                                          <BlockMeter
-                                            chip={chip}
-                                            time={time}
-                                            barClass={giverBar}
-                                          />
-                                        </span>
-                                      </span>
-                                    </PulseRow>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    side='left'
-                                    className='max-w-none border-slate-700 bg-slate-900/95 p-0 text-slate-100 shadow-2xl shadow-black/50 backdrop-blur [&>span>svg]:fill-slate-900'
+                                <ElementIcon
+                                  element={entry.element}
+                                  size={12}
+                                />
+                                <span
+                                  className={cn(
+                                    'truncate',
+                                    entry.time > now
+                                      ? 'text-subtle'
+                                      : 'text-muted-foreground'
+                                  )}
+                                >
+                                  {entry.label}
+                                </span>
+                                {/* When it lands: a countdown until then
+                                    (no taller than the row's text, so the
+                                    row keeps its height as it lands). */}
+                                {entry.time > now ? (
+                                  <Badge
+                                    variant='brand'
+                                    size='xs'
+                                    className='text-2xs leading-none font-normal text-brand-300 tabular-nums'
                                   >
-                                    <BlockTipCard
-                                      chip={chip}
-                                      time={time}
-                                      owner={giver ?? null}
-                                      holderName={
-                                        chip.holder &&
-                                        chip.holder !== chip.characterId
-                                          ? memberOf(chip.holder)?.name ??
-                                            chip.holder
-                                          : null
-                                      }
-                                      healedName={
-                                        chip.healed
-                                          ? memberOf(chip.healed)?.name ??
-                                            chip.healed
-                                          : null
-                                      }
-                                      accentClass={giverBar}
+                                    lands {seconds(entry.time)} · in{' '}
+                                    {short(entry.time - time)}s
+                                  </Badge>
+                                ) : (
+                                  <span className='shrink-0 text-2xs text-emerald-400/90 tabular-nums'>
+                                    ✓ {seconds(entry.time)}
+                                  </span>
+                                )}
+                                {entry.isCrit && entry.time <= now && (
+                                  <Badge
+                                    variant='warning'
+                                    size='xs'
+                                    className='font-bold text-amber-300'
+                                  >
+                                    CRIT
+                                  </Badge>
+                                )}
+                                <span
+                                  className={cn(
+                                    'ml-auto shrink-0 font-semibold tabular-nums',
+                                    entry.time > now
+                                      ? 'text-subtle'
+                                      : 'text-foreground'
+                                  )}
+                                >
+                                  {formatNumber(Math.round(entry.damage))}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </Card>
+
+              {/* The DMG formula: a one-line button, closed by default (it
+                is long; open, it stays open). The line is always there,
+                so nothing below moves. */}
+              <Card
+                focus={focusOf('formula', 'Damage Breakdown')}
+                hidden={hiddenBy('formula')}
+              >
+                <DisclosureButton
+                  open={openFormula}
+                  onOpenChange={setOpenFormula}
+                  data-testid='timeline-event-formula-toggle'
+                  disabled={!formula}
+                  className='text-2xs font-semibold text-muted-foreground disabled:text-subtle'
+                >
+                  Damage Breakdown
+                  <SectionHelp section='formula' />
+                  <span
+                    className={cn(
+                      'ml-auto text-2xs font-normal',
+                      !formula
+                        ? 'text-subtle'
+                        : formula.matches
+                        ? 'text-emerald-400'
+                        : 'text-rose-400'
+                    )}
+                  >
+                    {!formula
+                      ? 'no hits'
+                      : `${upcoming ? 'upcoming hit · ' : ''}${
+                          formula.matches ? '✓ matches' : '✗ does not match'
+                        }`}
+                  </span>
+                </DisclosureButton>
+                {openFormula && formula && hit && (
+                  <table
+                    data-testid='timeline-event-formula'
+                    className='mt-1.5 w-full text-2xs tabular-nums'
+                  >
+                    <tbody>
+                      {formula.rows.map((row) => (
+                        <tr
+                          key={row.label}
+                          className='border-b border-muted/80'
+                        >
+                          <td className='py-0.5 text-subtle'>{row.label}</td>
+                          <td className='py-0.5 text-right text-muted-foreground'>
+                            {row.value}
+                          </td>
+                          <td className='py-0.5 pl-2 text-right font-medium text-foreground'>
+                            {row.result}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td className='pt-1 font-semibold text-foreground'>
+                          Total
+                        </td>
+                        <td />
+                        <td className='pt-1 pl-2 text-right font-bold text-amber-300'>
+                          {formatNumber(Math.round(hit.damage))}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+              </Card>
+
+              {/* The bonuses on the hit: a one-line button, closed by
+                default and always there, so nothing below moves. */}
+              <Card
+                focus={focusOf('bonuses', 'Bonuses on this hit')}
+                hidden={hiddenBy('bonuses')}
+              >
+                <DisclosureButton
+                  open={openBonuses}
+                  onOpenChange={setOpenBonuses}
+                  data-testid='timeline-event-bonuses-toggle'
+                  disabled={bonuses.length === 0}
+                  className='text-2xs font-semibold text-muted-foreground disabled:text-subtle'
+                >
+                  Bonuses on this hit
+                  <SectionHelp section='bonuses' />
+                  <span className='ml-auto text-2xs font-normal text-subtle tabular-nums'>
+                    {bonuses.length === 0 ? 'none' : bonuses.length}
+                  </span>
+                </DisclosureButton>
+                {openBonuses && bonuses.length > 0 && (
+                  <ul className='mt-1.5 flex flex-col gap-1'>
+                    {bonuses.map((bonus) => (
+                      <li key={bonus.id} className='flex items-center gap-2'>
+                        {bonus.iconUrl ? (
+                          <Avatar
+                            src={bonus.iconUrl}
+                            size={18}
+                            className='bg-transparent'
+                          />
+                        ) : (
+                          <span className='size-[18px] shrink-0' />
+                        )}
+                        <span className='min-w-0 flex-1 leading-tight'>
+                          <span className='block truncate text-2xs text-muted-foreground'>
+                            {bonus.label}
+                          </span>
+                          <span className='block truncate text-2xs text-subtle'>
+                            {bonus.from}
+                          </span>
+                        </span>
+                        <span className='shrink-0 text-right text-2xs leading-tight'>
+                          <span className='block font-semibold text-emerald-300'>
+                            {bonus.value}
+                          </span>
+                          {bonus.remaining !== null && (
+                            <span className='block text-2xs text-subtle'>
+                              {short(bonus.remaining)}s left
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </>
+          )}
+
+          {/* Every block up now, by lane, as the team inspector's queue. */}
+          <Card
+            focus={focusOf('blocks', 'Active Effects')}
+            hidden={hiddenBy('blocks')}
+            title={
+              <DisclosureButton open={openLanes} onOpenChange={setOpenLanes}>
+                Active Effects ({upNow})
+                <SectionHelp section='activeEffects' />
+              </DisclosureButton>
+            }
+          >
+            {openLanes && (
+              <div
+                data-testid='timeline-event-blocks'
+                className='flex flex-col gap-2'
+              >
+                {LANES.map((lane) => {
+                  const chips = queued.filter(
+                    (chip) => laneOf(chip) === lane.id
+                  );
+                  if (chips.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <div key={lane.id}>
+                      <SectionLabel className='mb-0.5 flex items-center gap-1'>
+                        {lane.title} (
+                        {chips.filter((chip) => !exiting.has(chip.key)).length}
+                        )
+                        <SectionHelp section={lane.help} />
+                      </SectionLabel>
+                      <ul className='flex flex-col gap-0.5'>
+                        {chips.map((chip) => {
+                          const leaving = exiting.has(chip.key);
+                          const giver = memberOf(chip.characterId);
+                          // The giver's own color: purple, Iansan's.
+                          const giverBar = giver?.color.bar ?? 'bg-slate-400';
+                          return (
+                            <li
+                              key={chip.key}
+                              className={cn(
+                                'grid transition-all duration-300 ease-out',
+                                leaving
+                                  ? 'grid-rows-[0fr] opacity-0'
+                                  : 'grid-rows-[1fr] animate-in duration-300 fade-in-0 slide-in-from-bottom-1'
+                              )}
+                            >
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <PulseRow
+                                    data-hovered={
+                                      chip.key === hoveredChip || undefined
+                                    }
+                                    // It pulses when it joins, and again
+                                    // when renewed (a new application).
+                                    pulseKey={spanAt(chip, time).start}
+                                    // Made by the event shown: it stays lit.
+                                    held={
+                                      !leaving &&
+                                      action !== undefined &&
+                                      chip.cause === action.causeId
+                                    }
+                                    className={cn(
+                                      'flex min-h-0 items-center gap-2 overflow-hidden rounded-md px-1.5 hover:bg-muted/60',
+                                      // Folding out, it gives its room back.
+                                      leaving ? 'py-0' : 'py-0.5',
+                                      // Its bar is hovered on the chart:
+                                      // stronger than the event's own.
+                                      chip.key === hoveredChip &&
+                                        '!bg-amber-400/30 ring-1 ring-amber-300/80'
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        'h-4 w-0.5 shrink-0 rounded-full',
+                                        giverBar
+                                      )}
                                     />
-                                  </TooltipContent>
-                                </Tooltip>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                  {queued.length === 0 && (
-                    <p className='text-[11px] text-slate-500'>
-                      Nothing up at this moment.
-                    </p>
-                  )}
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
-      </section>
-    </TooltipProvider>
+                                    {chip.iconUrl ? (
+                                      <Avatar
+                                        src={chip.iconUrl}
+                                        size={18}
+                                        shape='square'
+                                        className='bg-transparent'
+                                      />
+                                    ) : (
+                                      <Sparkle className='size-[18px] shrink-0 text-subtle' />
+                                    )}
+                                    <span className='min-w-0 flex-1 leading-tight'>
+                                      <span className='block truncate text-2xs text-muted-foreground'>
+                                        {chip.label}
+                                      </span>
+                                      <span className='flex items-center gap-1 truncate text-2xs text-subtle'>
+                                        {giver?.name ?? chip.characterId} ·{' '}
+                                        {chip.sourceTag}
+                                        {chip.type === 'heal' &&
+                                          !chip.healed && (
+                                            <Users className='size-3' />
+                                          )}
+                                      </span>
+                                    </span>
+                                    {/* A long value (Masque's) is cut;
+                                        the tooltip has it whole. */}
+                                    <span className='max-w-[45%] min-w-0 shrink-0 text-right text-2xs leading-tight tabular-nums'>
+                                      {(chip.value ?? chip.short) && (
+                                        <span className='block truncate font-semibold text-emerald-300'>
+                                          {chip.value ?? chip.short}
+                                        </span>
+                                      )}
+                                      {(() => {
+                                        // A coordinated attack: what it
+                                        // dealt so far, and its next hit.
+                                        const source = coordinated.get(
+                                          `${chip.characterId}|${chip.blockId}`
+                                        );
+                                        if (
+                                          !source ||
+                                          source.hits +
+                                            (source.nextAt === null ? 0 : 1) ===
+                                            0
+                                        ) {
+                                          return null;
+                                        }
+                                        return (
+                                          <span
+                                            data-testid='timeline-coordinated-total'
+                                            className='block truncate text-2xs text-brand-200'
+                                          >
+                                            {source.hits} hits ·{' '}
+                                            {formatNumber(
+                                              Math.round(source.damage)
+                                            )}
+                                            {source.nextAt !== null &&
+                                              ` · next ${formatNumber(
+                                                Math.round(
+                                                  (source.nextAt - time) * 10
+                                                ) / 10
+                                              )} s`}
+                                          </span>
+                                        );
+                                      })()}
+                                      <span className='mt-1 flex justify-end'>
+                                        <BlockMeter
+                                          chip={chip}
+                                          time={time}
+                                          barClass={giverBar}
+                                        />
+                                      </span>
+                                    </span>
+                                  </PulseRow>
+                                </TooltipTrigger>
+                                <TooltipContent side='left' variant='card'>
+                                  <BlockTipCard
+                                    chip={chip}
+                                    time={time}
+                                    owner={giver ?? null}
+                                    holderName={
+                                      chip.holder &&
+                                      chip.holder !== chip.characterId
+                                        ? memberOf(chip.holder)?.name ??
+                                          chip.holder
+                                        : null
+                                    }
+                                    healedName={
+                                      chip.healed
+                                        ? memberOf(chip.healed)?.name ??
+                                          chip.healed
+                                        : null
+                                    }
+                                    accentClass={giverBar}
+                                  />
+                                </TooltipContent>
+                              </Tooltip>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                })}
+                {queued.length === 0 && (
+                  <EmptyState className='py-2 text-2xs'>
+                    Nothing up at this moment.
+                  </EmptyState>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+    </Panel>
   );
 };
 

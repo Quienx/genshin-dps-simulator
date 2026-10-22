@@ -77,6 +77,12 @@ A team is up to 4 characters on **one clock** (a shared event queue) against one
 - **Filling** (`fillWhileWaiting`, off by default): while the next member's action recharges, the member on the field plays its automatic list instead of swapping in to wait.
 - Not modeled: swap-in effects (Nicole's 3 s on field), Chevreuse's C1 Energy for the active member, healing.
 
+## UI styles and components
+
+- **Tokens** (`src/styles/globals.css`, dark only): surfaces `bg-background` → `bg-panel` (panels) → `bg-sunken` (chart, insets), `bg-card` (popovers, dialogs, tooltips), `bg-muted` / `bg-accent` (controls, hover); lines `border-border` / `border-input`; text `text-foreground` / `text-muted-foreground` / `text-subtle`; the accent is the `brand-*` scale (`primary` = brand-600, `ring` = brand-500). Small text is `text-2xs` (11px, the least UI text gets) and `text-3xs` (10px, chart internals only), never `text-[Npx]`. Data colors (member palettes in `memberColors.ts`, sources in `sourceStyles.tsx`, elements in `ELEMENT_TEXT`, damage amber, buffs emerald) stay Tailwind colors.
+- **Components** (`src/components/ui/`): `Button` (variants and sizes for every toolbar; `aria-pressed` toggles), `Panel` / `Inset`, `Dialog` / `ConfirmDialog` (never `window.alert` / `confirm`), `Popover`, `DropdownMenu`, `ToggleGroup` (`toggleVariants` for a lone toggle), `Select`, `Input` / `Textarea` / `NumberField`, `Stepper`, `Badge`, `Avatar` / `AvatarStack`, `Meter` / `SegmentedMeter`, `DisclosureButton` / `CollapsibleSection`, `StatList` / `StatRow`, `SectionLabel`, `EmptyState`, `Kbd`, `Tooltip` (one `TooltipProvider` in the root layout; `variant='card'` for rich tips). A panel's title is `timeline/PanelTitle.tsx`. Reach for these before writing class strings; a pattern repeated twice becomes a component here.
+- `__tests__/designTokens.test.ts` fails on pixel font sizes, hex colors in classes, slate chrome shades, `sky-*` outside Hydro, and the browser's dialogs.
+
 ## JSON reference
 
 ### Character screen stats (`ascensionStat`, `screenStats`, `screenStat`)

@@ -33,6 +33,19 @@ type SourceStyle = {
   chip: string;
 };
 
+// Each element's text color (an aura, a hit's element): the same in every
+// panel.
+export const ELEMENT_TEXT: Record<string, string> = {
+  Pyro: 'text-orange-400',
+  Electro: 'text-violet-400',
+  Hydro: 'text-sky-400',
+  Cryo: 'text-cyan-300',
+  Dendro: 'text-lime-400',
+  Anemo: 'text-teal-300',
+  Geo: 'text-yellow-400',
+  Physical: 'text-slate-300',
+};
+
 export const SOURCE_STYLES: Record<SourceKind, SourceStyle> = {
   normal: {
     label: 'Normal',
@@ -158,7 +171,9 @@ export const SourceLegend = memo(function SourceLegend({
     <ul
       aria-label='Colors by source'
       className={cn(
-        'flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-slate-400',
+        // The chart's own legend: chart-sized text, so it stays on one line
+        // beside the panel's buttons.
+        'flex flex-wrap items-center gap-x-2.5 gap-y-1 text-3xs text-subtle',
         className
       )}
     >

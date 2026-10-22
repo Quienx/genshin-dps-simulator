@@ -149,10 +149,11 @@ const ResizableSplit = ({
               (collapsed[0] || collapsed[1]) && 'pointer-events-none'
             )}
           >
-            {/* A faint grip that lights up on hover, drag or focus. */}
+            {/* A faint grip, always there so it can be found, that lights
+                up on hover, drag or focus. */}
             <span
               className={cn(
-                'rounded-full bg-slate-700/0 transition-colors group-hover:bg-sky-500/70 group-focus-visible:bg-sky-500/70 group-data-[separator=active]:bg-sky-500',
+                'rounded-full bg-accent/80 transition-colors group-hover:bg-brand-500/70 group-focus-visible:bg-brand-500/70 group-data-[separator=active]:bg-brand-500',
                 vertical ? 'h-1 w-12' : 'h-12 w-1'
               )}
             />

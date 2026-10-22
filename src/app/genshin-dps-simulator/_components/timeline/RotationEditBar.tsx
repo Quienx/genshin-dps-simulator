@@ -1,11 +1,8 @@
 import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
-import * as Menu from '@radix-ui/react-dropdown-menu';
 import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
-  Minus,
-  Plus,
   Trash2,
   X,
 } from 'lucide-react';
@@ -13,10 +10,22 @@ import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Kbd } from '@/components/ui/kbd';
+import { NumberField } from '@/components/ui/number-field';
+import { Stepper } from '@/components/ui/stepper';
+import { toggleVariants } from '@/components/ui/toggle-group';
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
@@ -62,57 +71,12 @@ type RotationEditBarProps = {
   onClearSelection?: () => void;
 };
 
-const STEP_BUTTON =
-  'flex size-6 items-center justify-center rounded border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70 disabled:opacity-40';
-
-// A number the block picked holds (a Normal Attack's hits, a Wait's
-// seconds), with − and +.
-const Stepper = ({
-  label,
-  value,
-  testId,
-  onLess,
-  onMore,
-  lessDisabled,
-  moreDisabled,
-}: {
-  label: string;
-  value: string;
-  testId: string;
-  onLess: () => void;
-  onMore: () => void;
-  lessDisabled?: boolean;
-  moreDisabled?: boolean;
-}) => (
-  <span className='flex items-center gap-1'>
-    {label}
-    <button
-      type='button'
-      aria-label={`${label}: less`}
-      data-testid={`${testId}-less`}
-      disabled={lessDisabled}
-      onClick={onLess}
-      className={STEP_BUTTON}
-    >
-      <Minus className='size-3' />
-    </button>
-    <span
-      data-testid={testId}
-      className='w-8 text-center font-mono text-slate-100'
-    >
-      {value}
-    </span>
-    <button
-      type='button'
-      aria-label={`${label}: more`}
-      data-testid={`${testId}-more`}
-      disabled={moreDisabled}
-      onClick={onMore}
-      className={STEP_BUTTON}
-    >
-      <Plus className='size-3' />
-    </button>
-  </span>
+// An on/off option of the block picked (CDC, Final hit, Hold): the look of
+// a toggle group's item. A disabled one stays readable: its tooltip says
+// why.
+const TOGGLE = cn(
+  toggleVariants({ variant: 'outline', size: '2xs' }),
+  'disabled:opacity-60'
 );
 
 // A Dash block's charge cancel (Mavuika's CDC), when its member's dash has
@@ -142,53 +106,45 @@ const QuickCancelToggle = ({
     splitTeamActionId(entry.action).actionId === id;
   const between =
     isMembers(previous, quick.after) && isMembers(next, quick.into);
+  const on = between && block.quickCancel === true;
   return (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            data-testid='timeline-block-quick-cancel-tip'
-            tabIndex={between ? undefined : 0}
-            className='ml-2 inline-flex'
-          >
-            <button
-              type='button'
-              data-testid='timeline-block-quick-cancel'
-              aria-pressed={between && block.quickCancel === true}
-              disabled={!between}
-              onClick={() => onChange(!block.quickCancel)}
-              className={cn(
-                'rounded border px-2 py-0.5 text-[11px] disabled:pointer-events-none disabled:opacity-60',
-                between && block.quickCancel === true
-                  ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
-                  : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
-              )}
-            >
-              CDC
-            </button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent
-          side='top'
-          className='max-w-72 border-slate-700 bg-slate-900 text-[11px] text-slate-200'
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          data-testid='timeline-block-quick-cancel-tip'
+          tabIndex={between ? undefined : 0}
+          className='ml-2 inline-flex'
         >
-          <p className='font-semibold text-slate-50'>
-            Charge → Dash → Charge (CDC)
-          </p>
-          <p className='mt-1'>
-            This Charged Attack cancels the Dash before it: it starts{' '}
-            {quick.frames} frames into the Dash instead of waiting for it to
-            end, so the spin begins sooner and everything after it moves up. The
-            Dash still deals its hit.
-          </p>
-          <p className='mt-1 text-slate-400'>
-            {between
-              ? 'On by itself when this Charged Attack is dropped right after a Dash. Not possible when the spin before the Dash was let go at a locked angle (79–87 frames into it, then every 45): the run warns and the Dash plays in full.'
-              : 'Only after a Dash that follows another Charged Attack of this character.'}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          <button
+            type='button'
+            data-testid='timeline-block-quick-cancel'
+            data-state={on ? 'on' : 'off'}
+            aria-pressed={on}
+            disabled={!between}
+            onClick={() => onChange(!block.quickCancel)}
+            className={TOGGLE}
+          >
+            CDC
+          </button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side='top' className='max-w-72'>
+        <p className='font-semibold text-foreground'>
+          Charge → Dash → Charge (CDC)
+        </p>
+        <p className='mt-1'>
+          This Charged Attack cancels the Dash before it: it starts{' '}
+          {quick.frames} frames into the Dash instead of waiting for it to end,
+          so the spin begins sooner and everything after it moves up. The Dash
+          still deals its hit.
+        </p>
+        <p className='mt-1 text-subtle'>
+          {between
+            ? 'On by itself when this Charged Attack is dropped right after a Dash. Not possible when the spin before the Dash was let go at a locked angle (79–87 frames into it, then every 45): the run warns and the Dash plays in full.'
+            : 'Only after a Dash that follows another Charged Attack of this character.'}
+        </p>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 
@@ -265,19 +221,20 @@ const HoldControls = ({
   const canPrev = charges > fewest;
   return (
     <span className='flex items-center gap-1'>
-      <button
-        type='button'
+      <Button
+        variant='secondary'
+        size='2xs'
         data-testid='timeline-block-charge-prev'
         title='Hold until the charge before'
         disabled={!canPrev}
         onClick={() => setFrames(chargeFrame(charges - 1))}
-        className='flex h-6 items-center gap-0.5 rounded border border-slate-700/60 bg-slate-800/60 px-1.5 text-slate-200 hover:bg-slate-700/70 disabled:opacity-40'
       >
         <ChevronLeft className='size-3' />
         Prev charge
-      </button>
-      <input
-        type='number'
+      </Button>
+      <NumberField
+        variant='boxed'
+        size='xs'
         aria-label={
           closingAfter > 0
             ? 'Final hit lands at (seconds)'
@@ -296,69 +253,62 @@ const HoldControls = ({
         max={shown(longest)}
         step={0.01}
         onChange={(event) => setText(event.target.value)}
-        onBlur={() => {
+        // Typing is done (left the field, or Enter): hold until then.
+        onCommit={() => {
           const next = Number(text);
           if (text !== null && Number.isFinite(next)) {
             setFrames(next * 60 - closingAfter);
           }
           setText(null);
         }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.currentTarget.blur();
-          }
-        }}
-        className='h-6 w-14 [appearance:textfield] rounded border border-slate-700/60 bg-slate-950/60 px-1 text-center font-mono text-[11px] text-slate-100 focus:border-sky-500 focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+        className='w-14'
       />
       s{closingAfter > 0 ? ' (Final)' : ''}
-      <button
-        type='button'
+      <Button
+        variant='secondary'
+        size='2xs'
         data-testid='timeline-block-charge-next'
         title='Hold until the next charge'
         disabled={!canNext}
         onClick={() => setFrames(chargeFrame(charges + 1))}
-        className='flex h-6 items-center gap-0.5 rounded border border-slate-700/60 bg-slate-800/60 px-1.5 text-slate-200 hover:bg-slate-700/70 disabled:opacity-40'
       >
         Next charge
         <ChevronRight className='size-3' />
-      </button>
+      </Button>
       {/* How many charges: the tag opens a list to hold until one. */}
-      <Menu.Root>
-        <Menu.Trigger asChild>
-          <button
-            type='button'
-            aria-label='Charges'
-            data-testid='timeline-block-charges'
-            className='ml-1 rounded bg-sky-500/20 px-1.5 py-0.5 font-medium text-sky-100 outline-none hover:bg-sky-500/30 focus-visible:ring-1 focus-visible:ring-sky-400'
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Badge
+            variant='brand'
+            size='sm'
+            asChild
+            className='ml-1 outline-none hover:bg-brand-500/30'
           >
-            {charges} {charges === 1 ? 'charge' : 'charges'}
-          </button>
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Content
-            align='start'
-            sideOffset={4}
-            className='z-50 min-w-28 rounded-md border border-slate-700 bg-slate-900 p-1 text-[11px] text-slate-100 shadow-xl'
-          >
-            {Array.from(
-              { length: maxCharges - fewest + 1 },
-              (_, index) => index + fewest
-            ).map((n) => (
-              <Menu.Item
-                key={n}
-                data-testid={`timeline-block-charges-${n}`}
-                onSelect={() => setFrames(chargeFrame(n))}
-                className={cn(
-                  'cursor-pointer rounded px-2 py-1 outline-none select-none data-[highlighted]:bg-slate-800',
-                  n === charges && 'text-sky-200'
-                )}
-              >
-                {n} {n === 1 ? 'charge' : 'charges'}
-              </Menu.Item>
-            ))}
-          </Menu.Content>
-        </Menu.Portal>
-      </Menu.Root>
+            <button
+              type='button'
+              aria-label='Charges'
+              data-testid='timeline-block-charges'
+            >
+              {charges} {charges === 1 ? 'charge' : 'charges'}
+            </button>
+          </Badge>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='start' className='min-w-28'>
+          {Array.from(
+            { length: maxCharges - fewest + 1 },
+            (_, index) => index + fewest
+          ).map((n) => (
+            <DropdownMenuItem
+              key={n}
+              data-testid={`timeline-block-charges-${n}`}
+              onSelect={() => setFrames(chargeFrame(n))}
+              className={cn(n === charges && 'text-brand-200')}
+            >
+              {n} {n === 1 ? 'charge' : 'charges'}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       {/* Where its form ends: up to how many charges fit, or (held past
           it after a change before) a click back to that. */}
       {limit && longest < hold.maxFrames && (
@@ -375,10 +325,10 @@ const HoldControls = ({
                 )} s into it: no charge after that (the Final still comes).`
           }
           className={cn(
-            'ml-1 rounded px-1.5 py-0.5 text-[10px]',
+            'ml-1 rounded px-1.5 py-0.5 text-2xs',
             over
               ? 'bg-amber-500/25 text-amber-100 hover:bg-amber-500/35'
-              : 'text-slate-400'
+              : 'text-subtle'
           )}
         >
           {over
@@ -388,43 +338,34 @@ const HoldControls = ({
       )}
       {/* A disabled button gets no hover: the tooltip sits on a wrapper,
           so it says why the Final cannot be turned off. */}
-      <TooltipProvider delayDuration={150}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span
-              data-testid='timeline-block-keep-final-tip'
-              tabIndex={canCancel ? undefined : 0}
-              className='ml-2 inline-flex'
-            >
-              <button
-                type='button'
-                data-testid='timeline-block-keep-final'
-                aria-pressed={block.noFinal !== true}
-                disabled={!canCancel}
-                onClick={() => onChange({ noFinal: !block.noFinal })}
-                className={cn(
-                  'rounded border px-2 py-0.5 disabled:pointer-events-none disabled:opacity-60',
-                  block.noFinal !== true
-                    ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
-                    : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
-                )}
-              >
-                Final hit
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent
-            side='top'
-            className='max-w-64 border-slate-700 bg-slate-900 text-[11px] text-slate-200'
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-testid='timeline-block-keep-final-tip'
+            tabIndex={canCancel ? undefined : 0}
+            className='ml-2 inline-flex'
           >
-            {canCancel
-              ? 'The Final hit after the spin. Off: the block right after cancels the spin at the release, with no Final, and it can be let go from 0.1 s.'
-              : `Always on: nothing right after this Charged Attack cancels the spin, so the game plays its Final hit (after a 0.83 s spin at least). Put ${cancellersText(
-                  hold.cancelledBy
-                )} right after it to turn it off.`}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+            <button
+              type='button'
+              data-testid='timeline-block-keep-final'
+              data-state={block.noFinal !== true ? 'on' : 'off'}
+              aria-pressed={block.noFinal !== true}
+              disabled={!canCancel}
+              onClick={() => onChange({ noFinal: !block.noFinal })}
+              className={TOGGLE}
+            >
+              Final hit
+            </button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side='top' className='max-w-64'>
+          {canCancel
+            ? 'The Final hit after the spin. Off: the block right after cancels the spin at the release, with no Final, and it can be let go from 0.1 s.'
+            : `Always on: nothing right after this Charged Attack cancels the spin, so the game plays its Final hit (after a 0.83 s spin at least). Put ${cancellersText(
+                hold.cancelledBy
+              )} right after it to turn it off.`}
+        </TooltipContent>
+      </Tooltip>
     </span>
   );
 };
@@ -457,11 +398,11 @@ const PaletteItem = ({
       ].join('\n')}
       onClick={onAdd}
       className={cn(
-        'flex h-7 cursor-grab touch-none items-center gap-1 rounded-md border border-slate-700/60 bg-slate-800/60 pr-1.5 pl-0.5 hover:bg-slate-700/70 active:cursor-grabbing',
+        'flex h-7 cursor-grab touch-none items-center gap-1 rounded-md border border-border bg-muted/60 pr-1.5 pl-0.5 hover:bg-accent/70 active:cursor-grabbing',
         isDragging && 'opacity-40'
       )}
     >
-      <GripVertical className='size-3 text-slate-500' />
+      <GripVertical className='size-3 text-subtle' />
       <RotationActionIcon
         action={action}
         size={18}
@@ -497,7 +438,7 @@ const Trash = ({
           ? 'border-rose-400 bg-rose-500/30'
           : dragging
           ? 'border-dashed border-rose-400/70 bg-rose-500/10'
-          : 'border-dashed border-slate-600 bg-slate-800/40'
+          : 'border-dashed border-input bg-muted/40'
       )}
     >
       <Trash2 className='size-3.5' />
@@ -559,7 +500,7 @@ const RotationEditBar = ({
   return (
     <div
       data-testid='timeline-edit-bar'
-      className='flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-700/60 bg-slate-900/50 px-3 py-2 text-[11px] text-slate-300'
+      className='flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-card/50 px-3 py-2 text-2xs text-muted-foreground'
     >
       {members.map((member) => (
         <div key={member.characterId} className='flex items-center gap-1'>
@@ -568,13 +509,11 @@ const RotationEditBar = ({
             title={member.name}
             className={cn('mr-1 shrink-0 rounded-full p-px', member.color.bar)}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Avatar
               src={member.avatar}
               alt={member.name}
-              width={24}
-              height={24}
-              className='size-6 rounded-full bg-slate-700'
+              size={24}
+              shape='circle'
             />
           </span>
           {actions
@@ -597,9 +536,11 @@ const RotationEditBar = ({
       ))}
       <div
         data-testid='timeline-general-actions'
-        className='flex items-center gap-1 border-l border-slate-700/60 pl-4'
+        className='flex items-center gap-1 border-l border-border pl-4'
       >
-        <span className='mr-1 font-semibold text-slate-300'>General</span>
+        <span className='mr-1 font-semibold text-muted-foreground'>
+          General
+        </span>
         {getGeneralPaletteActions(actions).map((entry) => (
           <PaletteItem
             key={entry.id}
@@ -611,64 +552,67 @@ const RotationEditBar = ({
 
       <div className='ml-auto flex items-center gap-2'>
         <SectionHelp section='editBar' />
-        <span
+        <Badge
+          variant='muted'
+          size='sm'
           data-testid='timeline-block-count'
           title='Blocks in the rotation'
-          className='rounded bg-slate-800/80 px-1.5 py-0.5 text-slate-400 tabular-nums'
+          className='tabular-nums'
         >
           {rotation.blocks.length} blocks
-        </span>
+        </Badge>
         {many ? (
           <>
             <span
               data-testid='timeline-selection-count'
-              className='font-semibold text-slate-100'
+              className='font-semibold text-foreground'
             >
               {selection.length} selected
             </span>
-            <span className='text-slate-500'>
-              drag one to move them together
-            </span>
-            <button
-              type='button'
+            <span className='text-subtle'>drag one to move them together</span>
+            <Button
+              variant='secondary'
+              size='icon-xs'
               aria-label='Clear the selection'
               title='Clear the selection (Esc)'
               onClick={() => onClearSelection?.()}
-              className={STEP_BUTTON}
+              className='rounded'
             >
               <X className='size-3.5' />
-            </button>
+            </Button>
           </>
         ) : block && action ? (
           <>
-            <span className='font-semibold text-slate-100'>
+            <span className='font-semibold text-foreground'>
               {action.label.replace(/^[^:]+:\s*/, '')}
             </span>
             {/* What it costs: its Energy, cheaper forms, what it needs. */}
             {describeActionCost(
               getActionCost(splitTeamActionId(action.id).characterId, action.id)
             ).map((line) => (
-              <span
+              <Badge
                 key={line}
+                variant='muted'
+                size='sm'
                 data-testid='timeline-block-cost'
-                className='rounded bg-slate-800/80 px-1.5 py-0.5 text-[10px] text-sky-200'
+                className='text-brand-200'
               >
                 {line}
-              </span>
+              </Badge>
             ))}
             {action.kind === 'normal' && (
               <Stepper
                 label='Hits'
-                testId='timeline-block-hits'
+                data-testid='timeline-block-hits'
                 value={`N${block.hits}`}
-                lessDisabled={block.hits <= 1}
-                moreDisabled={block.hits >= (action.maxHits ?? 1)}
-                onLess={() =>
+                canDecrement={block.hits > 1}
+                canIncrement={block.hits < (action.maxHits ?? 1)}
+                onDecrement={() =>
                   onChange(
                     updateBlock(rotation, block.uid, { hits: block.hits - 1 })
                   )
                 }
-                onMore={() =>
+                onIncrement={() =>
                   onChange(
                     updateBlock(rotation, block.uid, { hits: block.hits + 1 })
                   )
@@ -710,16 +654,16 @@ const RotationEditBar = ({
             {action.count && !action.count.hold && (
               <Stepper
                 label={action.count.label}
-                testId='timeline-block-count'
+                data-testid='timeline-block-count'
                 value={String(block.hits)}
-                lessDisabled={block.hits <= 1}
-                moreDisabled={block.hits >= action.count.max}
-                onLess={() =>
+                canDecrement={block.hits > 1}
+                canIncrement={block.hits < action.count.max}
+                onDecrement={() =>
                   onChange(
                     updateBlock(rotation, block.uid, { hits: block.hits - 1 })
                   )
                 }
-                onMore={() =>
+                onIncrement={() =>
                   onChange(
                     updateBlock(rotation, block.uid, { hits: block.hits + 1 })
                   )
@@ -731,6 +675,7 @@ const RotationEditBar = ({
               <button
                 type='button'
                 data-testid='timeline-block-hold'
+                data-state={block.hold ? 'on' : 'off'}
                 aria-pressed={Boolean(block.hold)}
                 title='Hold the button (the hold version of this action)'
                 onClick={() =>
@@ -738,12 +683,7 @@ const RotationEditBar = ({
                     updateBlock(rotation, block.uid, { hold: !block.hold })
                   )
                 }
-                className={cn(
-                  'rounded border px-2 py-0.5',
-                  block.hold
-                    ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
-                    : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
-                )}
+                className={TOGGLE}
               >
                 Hold
               </button>
@@ -751,10 +691,10 @@ const RotationEditBar = ({
             {action.kind === 'wait' && (
               <Stepper
                 label='Seconds'
-                testId='timeline-block-seconds'
+                data-testid='timeline-block-seconds'
                 value={block.seconds.toFixed(1)}
-                lessDisabled={block.seconds <= 0.1}
-                onLess={() =>
+                canDecrement={block.seconds > 0.1}
+                onDecrement={() =>
                   onChange(
                     updateBlock(rotation, block.uid, {
                       seconds: Math.max(
@@ -764,7 +704,7 @@ const RotationEditBar = ({
                     })
                   )
                 }
-                onMore={() =>
+                onIncrement={() =>
                   onChange(
                     updateBlock(rotation, block.uid, {
                       seconds: Math.round((block.seconds + 0.1) * 10) / 10,
@@ -773,19 +713,20 @@ const RotationEditBar = ({
                 }
               />
             )}
-            <button
-              type='button'
+            <Button
+              variant='secondary'
+              size='icon-xs'
               aria-label='Unpick the block'
               onClick={() => onSelect(null)}
-              className={STEP_BUTTON}
+              className='rounded'
             >
               <X className='size-3.5' />
-            </button>
+            </Button>
           </>
         ) : (
-          <span className='text-slate-500'>
-            Click a block to change it · Ctrl/Shift + click or Shift + drag to
-            pick several
+          <span className='text-subtle'>
+            Click a block to change it · <Kbd>Ctrl</Kbd>/<Kbd>Shift</Kbd> +
+            click or <Kbd>Shift</Kbd> + drag to pick several
           </span>
         )}
         {/* A block dropped here leaves the rotation; a click removes the

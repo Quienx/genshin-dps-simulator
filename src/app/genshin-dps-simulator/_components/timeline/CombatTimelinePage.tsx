@@ -9,10 +9,16 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { Pencil, RotateCcw } from 'lucide-react';
+import { Dices, Pencil, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Panel } from '@/components/ui/panel';
 
 import CharacterSheet from './CharacterSheet';
 import CombatLog from './CombatLog';
@@ -21,6 +27,7 @@ import EnemyPanel from './EnemyPanel';
 import EventPanel from './EventPanel';
 import { buildMemberColors, MemberColor } from './memberColors';
 import { useIsDesktop, useMediaQuery, useMinimizedPanels } from './panelLayout';
+import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
 import ResizableSplit from './ResizableSplit';
 import { payloadOf } from './rotationDnd';
@@ -33,7 +40,6 @@ import {
   storeSavedRotations,
   storeTeamNames,
 } from './savedRotations';
-import SectionHelp from './SectionHelp';
 import {
   decodeSharedRotation,
   SHARE_PARAM,
@@ -397,6 +403,8 @@ const CombatTimelinePage = () => {
   // the user to say the draft can be replaced (its members).
   const [extras, setExtras] = useState<string[]>([]);
   const [pendingTeam, setPendingTeam] = useState<PendingTeam | null>(null);
+  // Why the shared link the page was opened from could not be loaded.
+  const [shareProblem, setShareProblem] = useState<string | null>(null);
   // Each run rolls the CRITs again; without builds, with the defaults.
   // (Run outside the state update, so it runs once.)
   const version = useRef(0);
@@ -489,14 +497,10 @@ const CombatTimelinePage = () => {
         .then((shared) => {
           const problem = applyShared(shared);
           if (problem) {
-            window.alert(`The shared rotation could not be loaded: ${problem}`);
+            setShareProblem(problem);
           }
         })
-        .catch((failure: Error) =>
-          window.alert(
-            `The shared rotation could not be loaded: ${failure.message}`
-          )
-        );
+        .catch((failure: Error) => setShareProblem(failure.message));
     }
   }, [simulate, applyShared, refreshExtras]);
   const handleScenarioChange = useCallback(
@@ -603,8 +607,10 @@ const CombatTimelinePage = () => {
   };
   if (!state) {
     return (
-      <main className='min-h-screen bg-[#070b14] p-4 text-sm text-slate-400'>
-        Simulating…
+      <main className='flex min-h-screen items-center justify-center bg-background p-4'>
+        <EmptyState icon={<Dices className='animate-spin' aria-hidden />}>
+          Simulating…
+        </EmptyState>
       </main>
     );
   }
@@ -724,6 +730,15 @@ const CombatTimelinePage = () => {
           onCancel={() => setPendingTeam(null)}
         />
       )}
+      <ConfirmDialog
+        open={shareProblem !== null}
+        onOpenChange={(open) => !open && setShareProblem(null)}
+        data-testid='timeline-share-problem'
+        title='The shared rotation could not be loaded'
+        description={shareProblem}
+        cancelLabel={null}
+        confirmLabel='OK'
+      />
     </>
   );
 };
@@ -752,73 +767,49 @@ const TeamChangeDialog = ({
   onOpenDraft?: () => void;
   onCancel: () => void;
 }) => (
-  <div
-    role='dialog'
-    aria-modal='true'
-    aria-labelledby='team-change-title'
+  <ConfirmDialog
+    open
+    onOpenChange={(open) => !open && onCancel()}
     data-testid='timeline-team-change'
-    className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4'
-    onKeyDown={(event) => event.key === 'Escape' && onCancel()}
+    confirmTestId='timeline-team-change-confirm'
+    title={draft ? 'Replace the team in edition?' : 'Remove their blocks?'}
+    confirmLabel={draft ? 'Replace it' : 'Remove them'}
+    destructive
+    onConfirm={onConfirm}
+    actions={
+      onOpenDraft && (
+        <Button
+          variant='outline'
+          size='xs'
+          data-testid='timeline-draft-open'
+          onClick={onOpenDraft}
+          className='border-brand-500/60 text-brand-100 hover:not-disabled:bg-brand-500/20'
+        >
+          Open the draft
+        </Button>
+      )
+    }
   >
-    <div className='w-full max-w-sm rounded-lg border border-slate-700 bg-slate-900 p-4 text-[12px] text-slate-200 shadow-xl'>
-      <h2
-        id='team-change-title'
-        className='text-sm font-semibold text-slate-50'
-      >
-        {draft ? 'Replace the team in edition?' : 'Remove their blocks?'}
-      </h2>
-      {lost.length > 0 && (
-        <div data-testid='timeline-team-change-lost' className='mt-2'>
-          <p className='text-slate-300'>
-            These blocks are removed from the rotation with their members:
-          </p>
-          <ul className='mt-1 list-disc pl-5 text-amber-200'>
-            {lost.map((member) => (
-              <li key={member.name}>
-                {member.name}: {member.blocks}{' '}
-                {member.blocks === 1 ? 'block' : 'blocks'}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {draft && (
-        <p className='mt-2 text-slate-300'>
-          You are editing <span className='font-medium'>{draft}</span>. A new
-          team replaces it, with its rotation. Save it first (Save as team) to
-          keep it.
-        </p>
-      )}
-      <div className='mt-4 flex flex-wrap justify-end gap-1.5'>
-        <button
-          type='button'
-          autoFocus
-          onClick={onCancel}
-          className='h-7 rounded-md border border-slate-700/60 px-3 text-[11px] text-slate-300 hover:bg-slate-800'
-        >
-          Cancel
-        </button>
-        {onOpenDraft && (
-          <button
-            type='button'
-            data-testid='timeline-draft-open'
-            onClick={onOpenDraft}
-            className='h-7 rounded-md border border-sky-500/60 px-3 text-[11px] text-sky-100 hover:bg-sky-500/20'
-          >
-            Open the draft
-          </button>
-        )}
-        <button
-          type='button'
-          data-testid='timeline-team-change-confirm'
-          onClick={onConfirm}
-          className='h-7 rounded-md bg-rose-600 px-3 text-[11px] font-medium text-white hover:bg-rose-500'
-        >
-          {draft ? 'Replace it' : 'Remove them'}
-        </button>
+    {lost.length > 0 && (
+      <div data-testid='timeline-team-change-lost'>
+        <p>These blocks are removed from the rotation with their members:</p>
+        <ul className='mt-1 list-disc pl-5 text-amber-200'>
+          {lost.map((member) => (
+            <li key={member.name}>
+              {member.name}: {member.blocks}{' '}
+              {member.blocks === 1 ? 'block' : 'blocks'}
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
-  </div>
+    )}
+    {draft && (
+      <p>
+        You are editing <span className='font-medium'>{draft}</span>. A new team
+        replaces it, with its rotation. Save it first (Save as team) to keep it.
+      </p>
+    )}
+  </ConfirmDialog>
 );
 
 const CombatTimeline = ({
@@ -1114,10 +1105,10 @@ const CombatTimeline = ({
   );
 
   const chartPanel = (
-    <section
+    <Panel
       data-testid='timeline-panel'
       className={cn(
-        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950',
+        'flex min-h-0 flex-col overflow-hidden bg-sunken',
         panels.chart
           ? 'flex-none'
           : desktop
@@ -1127,44 +1118,38 @@ const CombatTimeline = ({
     >
       <div
         className={cn(
-          'flex shrink-0 items-center justify-between bg-slate-900/70 px-3 py-1.5',
-          !panels.chart && 'border-b border-slate-700/60'
+          'flex shrink-0 items-center justify-between bg-panel px-3 py-1.5',
+          !panels.chart && 'border-b border-border'
         )}
       >
-        <h2 className='flex items-center gap-1.5 text-sm font-semibold text-slate-50'>
-          Timeline
-          <SectionHelp section='timeline' />
-        </h2>
+        <PanelTitle section='timeline'>Timeline</PanelTitle>
         {!panels.chart && (
           <SourceLegend className='mr-auto ml-4 hidden md:flex' />
         )}
         {onResetRotation && (
-          <button
-            type='button'
+          <Button
+            variant='secondary'
+            size='xs'
             data-testid='timeline-reset-rotation'
             title='Drop your edits and go back to the scenario rotation'
             onClick={onResetRotation}
-            className='mr-2 flex h-7 items-center gap-1.5 rounded-md border border-slate-700/60 bg-slate-800/60 px-2.5 text-[11px] font-medium text-slate-300 hover:bg-slate-700/70'
+            className='mr-2 font-medium'
           >
-            <RotateCcw className='size-3.5' />
+            <RotateCcw />
             Reset rotation
-          </button>
+          </Button>
         )}
-        <button
-          type='button'
+        <Button
+          variant='secondary'
+          size='xs'
           data-testid='timeline-edit-rotation'
           aria-pressed={editing}
           onClick={onEditToggle}
-          className={cn(
-            'mr-2 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium',
-            editing
-              ? 'border-sky-500/60 bg-sky-600 text-white hover:bg-sky-500'
-              : 'border-slate-700/60 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'
-          )}
+          className='mr-2 font-medium'
         >
-          <Pencil className='size-3.5' />
+          <Pencil />
           {editing ? 'Done editing' : 'Edit rotation'}
-        </button>
+        </Button>
         <PanelToggle
           label='timeline'
           collapsed={panels.chart}
@@ -1261,7 +1246,7 @@ const CombatTimeline = ({
           modifiers={[liftOverlay]}
         >
           {draggedAction && (
-            <span className='flex h-7 items-center gap-1 rounded-md border border-sky-400 bg-slate-800 px-1.5 text-[11px] text-slate-100 shadow-lg'>
+            <span className='flex h-7 items-center gap-1 rounded-md border border-brand-400 bg-muted px-1.5 text-2xs text-foreground shadow-lg'>
               <RotationActionIcon
                 action={draggedAction}
                 size={18}
@@ -1270,18 +1255,19 @@ const CombatTimeline = ({
               {draggedAction.shortLabel}
               {dragging?.kind === 'move' &&
                 (dragging.blockUids?.length ?? 0) > 1 && (
-                  <span
+                  <Badge
+                    size='sm'
                     data-testid='timeline-drag-count'
-                    className='ml-0.5 rounded bg-sky-600 px-1 text-[10px] font-semibold text-white'
+                    className='ml-0.5'
                   >
                     +{(dragging.blockUids?.length ?? 1) - 1}
-                  </span>
+                  </Badge>
                 )}
             </span>
           )}
         </DragOverlay>
       </DndContext>
-    </section>
+    </Panel>
   );
   const logPanel = (
     <CombatLog
@@ -1329,7 +1315,7 @@ const CombatTimeline = ({
     // on its own. Narrow screens stack the panels and scroll.
     <main
       data-testid='combat-timeline'
-      className='h-dvh overflow-auto bg-[#070b14] p-4 text-slate-100 lg:overflow-hidden'
+      className='h-dvh overflow-auto bg-background p-4 text-foreground lg:overflow-hidden'
     >
       <div className='flex flex-col gap-4 lg:h-full'>
         <TimelineHeader

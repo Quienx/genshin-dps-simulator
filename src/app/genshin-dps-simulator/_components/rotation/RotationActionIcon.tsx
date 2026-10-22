@@ -41,7 +41,7 @@ const RotationActionIcon = ({
     <span
       data-testid={`rotation-icon-${action.id}`}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-800 p-0.5 ring-1 ring-white/10',
+        'inline-flex shrink-0 items-center justify-center rounded-full bg-muted p-0.5 ring-1 ring-white/10',
         className
       )}
       style={{ width: size, height: size }}
@@ -55,7 +55,7 @@ const RotationActionIcon = ({
           height={size - 4}
         />
       ) : (
-        <FallbackIcon className='size-full text-zinc-200' aria-hidden />
+        <FallbackIcon className='size-full text-muted-foreground' aria-hidden />
       )}
     </span>
   );

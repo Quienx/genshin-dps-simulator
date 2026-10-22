@@ -1,6 +1,5 @@
 import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
 import {
-  ChevronDown,
   HeartPulse,
   LucideIcon,
   Plus,
@@ -24,6 +23,10 @@ import {
 import { createPortal } from 'react-dom';
 
 import { cn } from '@/lib/utils';
+
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { DisclosureButton } from '@/components/ui/disclosure';
 
 import { MemberColor } from './memberColors';
 import {
@@ -220,7 +223,7 @@ const RowIcon = ({ src, size = 18 }: { src: string | null; size?: number }) =>
   ) : (
     <Sparkle
       style={{ width: size, height: size }}
-      className='text-slate-400'
+      className='text-subtle'
       aria-hidden
     />
   );
@@ -481,7 +484,7 @@ const buildGroups = (
         className='bg-transparent p-0 ring-0'
       />
     ) : (
-      <Swords className='size-5 text-slate-400' />
+      <Swords className='size-5 text-subtle' />
     );
   };
   // The cost in the character file (`energyCost` of the talent).
@@ -508,7 +511,7 @@ const buildGroups = (
           <p
             key={warning}
             data-testid='timeline-action-warning'
-            className='mt-1 flex items-start gap-1 text-[11px] text-amber-300'
+            className='mt-1 flex items-start gap-1 text-2xs text-amber-300'
           >
             <TriangleAlert className='mt-px size-3 shrink-0' />
             {warning}
@@ -530,7 +533,7 @@ const buildGroups = (
                   }${row.max === null ? '' : ` / ${formatNumber(row.max)}`}${
                     row.format === 'percent' ? '%' : ''
                   }`}
-                  className='text-sky-200'
+                  className='text-brand-200'
                 />
               ))
             : null;
@@ -560,7 +563,7 @@ const buildGroups = (
             />
           </>
         ) : (
-          <TipStat label='Hits' value='None' className='text-slate-400' />
+          <TipStat label='Hits' value='None' className='text-subtle' />
         )}
       </TipCard>
     );
@@ -581,16 +584,7 @@ const buildGroups = (
     return {
       id: `action-${member.characterId}`,
       label: member.name,
-      icon: (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={member.avatar}
-          alt=''
-          width={22}
-          height={22}
-          className='size-[22px] rounded-full bg-slate-700'
-        />
-      ),
+      icon: <Avatar src={member.avatar} size={22} shape='circle' />,
       content: actions.map((action) => {
         const rotationAction = displayAction(action, actionsById);
         tips.set(`a:${action.key}`, () => actionTip(action));
@@ -621,9 +615,9 @@ const buildGroups = (
                 member.color.chip,
               // Not performed (on cooldown…): kept in its place, on top.
               skipped &&
-                'z-10 rounded-full border-dashed border-amber-400 bg-slate-900',
+                'z-10 rounded-full border-dashed border-amber-400 bg-card',
               selected.has(action.blockUid) &&
-                'ring-2 ring-sky-400 ring-offset-1 ring-offset-slate-950'
+                'ring-2 ring-brand-400 ring-offset-1 ring-offset-sunken'
             )}
             // The ruler leaves a gap before the next action; `from` is
             // on its far side, so back-to-back blocks never touch.
@@ -670,7 +664,7 @@ const buildGroups = (
                     }
                     className={cn(
                       'absolute inset-y-0 flex items-center justify-center',
-                      index > 0 && 'border-l-2 border-slate-950/70',
+                      index > 0 && 'border-l-2 border-sunken/70',
                       // Its own animation going on past its state: the same
                       // action, faded and striped.
                       segment.past &&
@@ -761,7 +755,7 @@ const buildGroups = (
             <span
               aria-hidden
               data-testid='timeline-drop-placeholder'
-              className='pointer-events-none absolute top-1/2 z-20 flex h-6 -translate-y-1/2 items-center justify-center rounded-md border-2 border-dashed border-sky-400 bg-sky-500/25 shadow-[0_0_8px_rgb(56_189_248/0.6)]'
+              className='pointer-events-none absolute top-1/2 z-20 flex h-6 -translate-y-1/2 items-center justify-center rounded-md border-2 border-dashed border-brand-400 bg-brand-500/25 shadow-[0_0_8px_rgb(56_189_248/0.6)]'
               style={{ left, width }}
             >
               <RotationActionIcon
@@ -790,7 +784,7 @@ const buildGroups = (
           <span
             aria-hidden
             data-testid='timeline-drop-placeholder'
-            className='pointer-events-none absolute top-1/2 z-20 flex h-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border-2 border-dashed border-sky-400 bg-sky-500/25 shadow-[0_0_8px_rgb(56_189_248/0.6)]'
+            className='pointer-events-none absolute top-1/2 z-20 flex h-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border-2 border-dashed border-brand-400 bg-brand-500/25 shadow-[0_0_8px_rgb(56_189_248/0.6)]'
             style={{ left: ruler.toX(slot.time), width: PLACEHOLDER_PX }}
           >
             <RotationActionIcon
@@ -855,7 +849,7 @@ const buildGroups = (
                 value={`${chip.meter.label} ${
                   meterAt(chip.meter, part.start).bound
                 }`}
-                className='text-sky-300'
+                className='text-brand-300'
               />
             )}
             {part.count > 1 && (
@@ -927,7 +921,7 @@ const buildGroups = (
         >
           <TipTime start={chip.start} />
           {describeTrigger(chip.characterId, chip.blockId).map((line) => (
-            <p key={line} className='text-[11px] text-slate-300'>
+            <p key={line} className='text-2xs text-muted-foreground'>
               {line}
             </p>
           ))}
@@ -976,7 +970,7 @@ const buildGroups = (
           <TipStat
             label='Caught'
             value={seconds(chip.end ?? chip.start)}
-            className='text-sky-300'
+            className='text-brand-300'
           />
           <TipStat
             label='Flight time'
@@ -1011,11 +1005,11 @@ const buildGroups = (
     {
       id: 'energy-gain',
       label: 'Energy Gain',
-      icon: <Zap className='size-[18px] text-sky-400' aria-hidden />,
+      icon: <Zap className='size-[18px] text-brand-400' aria-hidden />,
       content: (
         <Marks marks={gains} prefix='g:' ruler={ruler}>
           <MarkDot
-            className='bg-sky-500/30 text-sky-300 ring-sky-400/60'
+            className='bg-brand-500/30 text-brand-300 ring-brand-400/60'
             Icon={Zap}
           />
         </Marks>
@@ -1234,18 +1228,18 @@ const buildGroups = (
       icon: chip?.iconUrl ? (
         <RowIcon src={chip.iconUrl} />
       ) : (
-        <Target className='size-[18px] text-sky-300' aria-hidden />
+        <Target className='size-[18px] text-brand-300' aria-hidden />
       ),
       content: (
         <>
           <Bars
             bars={spans}
             ruler={ruler}
-            colorClass='border border-sky-400/40 bg-sky-500/10'
+            colorClass='border border-brand-400/40 bg-brand-500/10'
           />
           <Marks marks={marks} prefix='k:' ruler={ruler}>
             <MarkDot
-              className='bg-sky-500/30 text-sky-100 ring-sky-400/60'
+              className='bg-brand-500/30 text-brand-100 ring-brand-400/60'
               Icon={Target}
             />
           </Marks>
@@ -1345,7 +1339,7 @@ const TimelineRows = memo(function TimelineRows({
       {ticks.major.map((tick) => (
         <span
           key={tick}
-          className='absolute inset-y-0 border-l border-slate-700/30'
+          className='absolute inset-y-0 border-l border-border/50'
           style={{ left: ruler.toX(tick) }}
         />
       ))}
@@ -1359,29 +1353,29 @@ const TimelineRows = memo(function TimelineRows({
       <div className='sticky top-0 z-30 flex' style={{ height: AXIS_PX }}>
         {labelPx > 0 && (
           <div
-            className='sticky left-0 z-40 shrink-0 border-r border-slate-700/50 bg-slate-950'
+            className='sticky left-0 z-40 shrink-0 border-r border-border bg-sunken'
             style={{ width: labelPx }}
           />
         )}
         <div
           data-ruler
-          className='relative cursor-ew-resize border-b border-slate-700/60 bg-slate-900/80'
+          className='relative cursor-ew-resize border-b border-border bg-card/80'
           style={{ width: trackWidth }}
         >
           {ticks.minor.map((tick) => (
             <span
               key={tick}
-              className='absolute bottom-0 h-1 border-l border-slate-600/60'
+              className='absolute bottom-0 h-1 border-l border-input/60'
               style={{ left: ruler.toX(tick) }}
             />
           ))}
           {ticks.major.map((tick) => (
             <span
               key={tick}
-              className='absolute bottom-0 h-2 border-l border-slate-400/80'
+              className='absolute bottom-0 h-2 border-l border-subtle/80'
               style={{ left: ruler.toX(tick) }}
             >
-              <span className='absolute bottom-2 left-1 font-mono text-[9px] leading-none whitespace-nowrap text-slate-400 tabular-nums'>
+              <span className='absolute bottom-2 left-1 font-mono text-3xs leading-none whitespace-nowrap text-subtle tabular-nums'>
                 {tickLabel(tick)}
               </span>
             </span>
@@ -1395,31 +1389,25 @@ const TimelineRows = memo(function TimelineRows({
           <div
             key={group.id}
             data-testid={`timeline-group-${group.id}`}
-            className='border-t border-slate-700/50'
+            className='border-t border-border'
           >
             <div className='flex h-10'>
               {labelPx > 0 && (
-                <button
-                  type='button'
-                  aria-expanded={open}
-                  onClick={() => toggle(group.id)}
-                  className='sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-r border-slate-700/50 bg-slate-950 px-2 text-xs font-medium text-slate-100 hover:text-white'
+                <DisclosureButton
+                  open={open}
+                  onOpenChange={() => toggle(group.id)}
+                  className='sticky left-0 z-20 shrink-0 border-r border-border bg-sunken px-2 text-xs font-medium text-foreground hover:text-white'
+                  chevronClassName='size-3.5'
                   style={{ width: labelPx }}
                 >
-                  <ChevronDown
-                    className={cn(
-                      'size-3.5 text-slate-400 transition-transform',
-                      !open && '-rotate-90'
-                    )}
-                  />
                   <group.Icon
-                    className='size-3.5 shrink-0 text-sky-400'
+                    className='size-3.5 shrink-0 text-brand-400'
                     aria-hidden
                   />
                   <span className='truncate'>{group.title}</span>
                   {/* At the column's right edge, the same for every group. */}
                   <SectionHelp section={group.help} className='ml-auto' />
-                </button>
+                </DisclosureButton>
               )}
               <div className='relative' style={{ width: trackWidth }}>
                 {gridLines}
@@ -1435,11 +1423,11 @@ const TimelineRows = memo(function TimelineRows({
                   data-row-member={
                     row.id.startsWith('action-') ? row.id.slice(7) : undefined
                   }
-                  className='flex h-8 hover:bg-slate-800/30'
+                  className='flex h-8 hover:bg-muted/30'
                 >
                   {labelPx > 0 && (
                     <div
-                      className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-slate-700/50 bg-slate-950 pr-2 pl-8 text-xs text-slate-300'
+                      className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
                       style={{ width: labelPx }}
                       title={row.label}
                     >
@@ -1458,7 +1446,7 @@ const TimelineRows = memo(function TimelineRows({
               <div aria-hidden className='flex h-3'>
                 {labelPx > 0 && (
                   <div
-                    className='sticky left-0 z-20 shrink-0 border-r border-slate-700/50 bg-slate-950'
+                    className='sticky left-0 z-20 shrink-0 border-r border-border bg-sunken'
                     style={{ width: labelPx }}
                   />
                 )}
@@ -1472,10 +1460,10 @@ const TimelineRows = memo(function TimelineRows({
       })}
       {/* The room left under the rows: the grid (and the labels column)
           go on to the bottom. */}
-      <div aria-hidden className='flex flex-1 border-t border-slate-700/50'>
+      <div aria-hidden className='flex flex-1 border-t border-border'>
         {labelPx > 0 && (
           <div
-            className='sticky left-0 z-20 shrink-0 border-r border-slate-700/50 bg-slate-950'
+            className='sticky left-0 z-20 shrink-0 border-r border-border bg-sunken'
             style={{ width: labelPx }}
           />
         )}
@@ -1536,7 +1524,7 @@ const TimeScrollbar = ({
             aria-valuemin={0}
             aria-valuemax={Math.round(maxLeft)}
             aria-valuenow={Math.round(scroll.left)}
-            className='absolute top-1/2 h-1 -translate-y-1/2 cursor-pointer rounded-full bg-slate-600/70 transition-[height,background-color] group-hover:h-1.5 group-hover:bg-slate-500/90'
+            className='absolute top-1/2 h-1 -translate-y-1/2 cursor-pointer rounded-full bg-input/70 transition-[height,background-color] group-hover:h-1.5 group-hover:bg-subtle/80'
             style={{ left: thumbLeft, width: thumb }}
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId);
@@ -1620,7 +1608,7 @@ const HoverTip = ({
       onPointerEnter={onEnter}
       onPointerLeave={onLeave}
       className={cn(
-        'fixed z-50 rounded-md border border-slate-700 bg-slate-900/95 text-slate-100 shadow-2xl shadow-black/50 backdrop-blur transition-opacity duration-100',
+        'fixed z-50 rounded-md border border-border bg-card/95 text-foreground shadow-2xl shadow-black/50 backdrop-blur transition-opacity duration-100',
         place ? 'opacity-100' : 'opacity-0'
       )}
       style={place ?? { left: -9999, top: -9999 }}
@@ -2130,7 +2118,7 @@ const TimelineChart = ({
 
   return (
     <>
-      <div className='flex h-full min-h-0 flex-col bg-slate-950'>
+      <div className='flex h-full min-h-0 flex-col bg-sunken'>
         <div
           ref={scrollRef}
           id='timeline-chart'
@@ -2141,7 +2129,7 @@ const TimelineChart = ({
             measure();
             hideTip();
           }}
-          className='relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-slate-950 pb-1 outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60'
+          className='relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-sunken pb-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60'
           onKeyDown={(event) => {
             if (event.key === ' ') {
               event.preventDefault();
@@ -2384,7 +2372,7 @@ const TimelineChart = ({
               <div
                 aria-hidden
                 data-testid='timeline-marquee'
-                className='pointer-events-none absolute z-40 rounded-sm border border-sky-400 bg-sky-400/15'
+                className='pointer-events-none absolute z-40 rounded-sm border border-brand-400 bg-brand-400/15'
                 style={marquee}
               />
             )}
@@ -2392,9 +2380,11 @@ const TimelineChart = ({
               tracks scroll), under the labels' corner. */}
             {headX >= scroll.left && (
               <div className='pointer-events-none sticky top-0 z-[35] h-0'>
-                <span
+                {/* No border: the arrow under it sits at its bottom. */}
+                <Badge
+                  size='xs'
                   className={cn(
-                    'absolute top-0 rounded-sm bg-sky-500 px-1 py-px font-mono text-[9px] leading-none whitespace-nowrap text-white shadow',
+                    'absolute top-0 border-0 bg-brand-500 font-mono shadow',
                     !headAtStart && '-translate-x-1/2'
                   )}
                   style={{
@@ -2402,9 +2392,9 @@ const TimelineChart = ({
                   }}
                 >
                   {playheadLabel(time)}
-                </span>
+                </Badge>
                 <span
-                  className='absolute top-[11px] size-0 -translate-x-1/2 border-x-[4px] border-t-[5px] border-x-transparent border-t-sky-500'
+                  className='absolute top-[11px] size-0 -translate-x-1/2 border-x-[4px] border-t-[5px] border-x-transparent border-t-brand-500'
                   style={{ left: labelPx + headX }}
                 />
               </div>
@@ -2435,7 +2425,7 @@ const TimelineChart = ({
               <span
                 aria-hidden
                 data-testid='timeline-drop-guide'
-                className='pointer-events-none absolute inset-y-0 z-30 w-0.5 -translate-x-1/2 bg-sky-400 shadow-[0_0_6px_rgb(56_189_248/0.8)]'
+                className='pointer-events-none absolute inset-y-0 z-30 w-0.5 -translate-x-1/2 bg-brand-400 shadow-[0_0_6px_rgb(56_189_248/0.8)]'
                 style={{ left: labelPx + ruler.toX(slot.time) }}
               />
             )}
@@ -2446,10 +2436,10 @@ const TimelineChart = ({
               <div
                 aria-hidden
                 data-testid='timeline-not-counted'
-                className='pointer-events-none absolute inset-y-0 right-0 z-[15] border-l border-dashed border-amber-400/70 bg-slate-950/60'
+                className='pointer-events-none absolute inset-y-0 right-0 z-[15] border-l border-dashed border-amber-400/70 bg-sunken/60'
                 style={{ left: labelPx + ruler.toX(view.countedDuration) }}
               >
-                <span className='sticky top-6 ml-1 inline-block rounded-sm bg-slate-900/90 px-1 py-px text-[9px] leading-none whitespace-nowrap text-amber-300'>
+                <span className='sticky top-6 ml-1 inline-block rounded-sm bg-card/90 px-1 py-px text-3xs leading-none whitespace-nowrap text-amber-300'>
                   Not counted after {view.countedDuration} s
                 </span>
               </div>
@@ -2459,7 +2449,7 @@ const TimelineChart = ({
             <span
               aria-hidden
               data-testid='timeline-cursor'
-              className='pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-sky-400 shadow-[0_0_6px_var(--color-sky-400)]'
+              className='pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-brand-400 shadow-[0_0_6px_var(--color-brand-400)]'
               style={{ left: labelPx + ruler.toX(time) }}
             />
           </div>

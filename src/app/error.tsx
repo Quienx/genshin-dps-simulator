@@ -1,7 +1,7 @@
 'use client'; // Error components must be Client Components
 
+import { TriangleAlert } from 'lucide-react';
 import * as React from 'react';
-import { RiAlarmWarningFill } from 'react-icons/ri';
 
 import { Button } from '@/components/ui/button';
 
@@ -18,21 +18,15 @@ export default function Error({
   }, [error]);
 
   return (
-    <main>
-      <section className='bg-white'>
-        <div className='layout flex min-h-screen flex-col items-center justify-center text-center text-black'>
-          <RiAlarmWarningFill
-            size={60}
-            className='drop-shadow-glow animate-flicker text-red-500'
-          />
-          <h1 className='mt-8 text-4xl md:text-6xl'>
-            Oops, something went wrong!
-          </h1>
-          <Button variant='outline' onClick={reset} className='mt-4'>
-            Try again
-          </Button>
-        </div>
-      </section>
+    <main className='flex h-dvh flex-col items-center justify-center gap-4 bg-background p-4 text-center'>
+      <TriangleAlert className='size-12 text-rose-400' aria-hidden />
+      <h1 className='text-2xl font-semibold text-foreground'>
+        Something went wrong
+      </h1>
+      <p className='max-w-sm text-sm text-subtle'>
+        The page hit an error. Trying again usually brings it back.
+      </p>
+      <Button onClick={reset}>Try again</Button>
     </main>
   );
 }

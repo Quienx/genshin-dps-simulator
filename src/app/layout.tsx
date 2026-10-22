@@ -4,6 +4,8 @@ import * as React from 'react';
 
 import '@/styles/globals.css';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { siteConfig } from '@/constant/config';
 
 // The favicon (icon.svg, apple-icon.png) and manifest.ts in this folder are
@@ -44,7 +46,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en' className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
     </html>
   );
 }
