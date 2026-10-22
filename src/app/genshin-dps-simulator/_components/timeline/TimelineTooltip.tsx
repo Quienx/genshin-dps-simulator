@@ -221,7 +221,7 @@ export const BlockTipCard = ({
       {chip.parts && chip.parts.length > 0 && (
         <StatList className='gap-1'>
           {chip.parts.map((part) => (
-            <StatRow key={part.label} label={part.label} value={part.value} />
+            <StatRow key={part.key} label={part.label} value={part.value} />
           ))}
         </StatList>
       )}

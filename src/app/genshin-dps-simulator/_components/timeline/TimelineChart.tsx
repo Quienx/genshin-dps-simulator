@@ -920,11 +920,14 @@ const buildGroups = (
           accentClass={accentOf(chip.characterId)}
         >
           <TipTime start={chip.start} />
-          {describeTrigger(chip.characterId, chip.blockId).map((line) => (
-            <p key={line} className='text-2xs text-muted-foreground'>
-              {line}
-            </p>
-          ))}
+          {/* Two of its steps can read the same (two ops, each +1 stack). */}
+          {describeTrigger(chip.characterId, chip.blockId).map(
+            (line, index) => (
+              <p key={index} className='text-2xs text-muted-foreground'>
+                {line}
+              </p>
+            )
+          )}
           {chip.sourceText && (
             <TipText title={chip.sourceName}>{chip.sourceText}</TipText>
           )}

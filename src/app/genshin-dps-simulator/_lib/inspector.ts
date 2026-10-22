@@ -134,6 +134,8 @@ export type BlockChip = {
   renewals?: Renewal[];
   // An artifact set's block: each of its bonuses, with its own span.
   parts?: {
+    // Its bonus' block id: one line per bonus, however often it was up.
+    key: string;
     label: string;
     value: string;
     start: number;
@@ -1131,6 +1133,7 @@ export const buildInspectorView = (
     .sort((a, b) => a.start - b.start)
     .forEach((chip) => {
       const part = {
+        key: chip.blockId ?? chip.key,
         label: chip.label,
         value: chip.value ?? chip.label,
         start: chip.start,
@@ -1139,7 +1142,19 @@ export const buildInspectorView = (
       };
       const open = openSets.get(chip.characterId);
       if (open && (open.end === null || open.end > chip.start)) {
-        open.parts?.push(part);
+        // A bonus up again while the block lasts (Scroll's 15 s buff ran
+        // out, its 20 s one kept the block open) stays its one line, with
+        // every application.
+        const same = open.parts?.find((entry) => entry.key === part.key);
+        if (same) {
+          same.end =
+            same.end === null || chip.end === null
+              ? null
+              : Math.max(same.end, chip.end);
+          same.renewals = [...(same.renewals ?? []), ...(chip.renewals ?? [])];
+        } else {
+          open.parts?.push(part);
+        }
         open.end =
           open.end === null || chip.end === null
             ? null
