@@ -25,8 +25,9 @@ export const SECTION_HELP = {
       'The whole run on one time axis, like a video editor: what every member did, and everything that was up or happened because of it.',
     shows: [
       '`Character Actions`: each member’s blocks, as they were performed.',
-      '`Buffs & Debuffs`: every bonus, debuff and state while it was up.',
+      '`Reactions`: the elemental reactions on the enemy, one row per kind.',
       '`Coordinated Attacks`: hits that statuses and triggers make on their own.',
+      '`Buffs & Debuffs`: every bonus, debuff and state while it was up.',
       '`Energy & Particles` and `Healing & Other Events`.',
       'The playhead (blue line): every other panel shows the run at that moment.',
     ],
@@ -35,7 +36,7 @@ export const SECTION_HELP = {
       'Drag the tracks to pan; `Shift` + wheel or a sideways swipe also pans.',
       '`Ctrl` / `Alt` + wheel zooms around the pointer; `Fit` shows the whole run.',
       'Click or drag the ruler to move the playhead. Anywhere on the page (not while typing): `Space` plays, `←` `→` step a frame (`Shift`: a second), `Home` / `End` go to either end, `+` / `-` zoom.',
-      'Hover a block or a bar for its details; click a group’s name to fold it; drag the names column’s edge to widen it.',
+      'Hover a block or a bar for its details; click a group’s name to fold it, or a member’s name inside it to fold just their rows; drag the names column’s edge to widen it.',
       'Colors: everything in the color of its member: their blocks (lightest for the Normal Attack, darkest for the Burst) and the effects they give.',
       '`Edit rotation` turns the blocks into a rotation you can change (see the edit bar’s `?`).',
       EDIT_KEYS,
@@ -74,7 +75,7 @@ export const SECTION_HELP = {
   event: {
     title: 'Selected Event',
     summary:
-      'Everything about one moment of the run: the action at the playhead, the block you picked, or an event you pinned.',
+      'Everything about one moment of the run: the action at the playhead, the block you picked, an event you pinned, or the action of the character you pinned.',
     shows: [
       'Who did it and how they were then: their E and Q, special system and weapon, and their stats (ATK, CRIT, DMG Bonus) with what changed from their screen totals.',
       '`Hit Details`, then the `Damage Breakdown` and `Bonuses on this hit` of the hit you pick.',
@@ -82,7 +83,8 @@ export const SECTION_HELP = {
     ],
     use: [
       'Move the playhead (or click a block) to change what it shows.',
-      'The pin keeps the current event while you move the playhead.',
+      'The pin keeps the current event while you move the playhead: it is live while it plays (from its start to its last hit), then stops at its end (`stopped`).',
+      'The person button pins the character instead: the panel follows that member, showing their action at the playhead, live.',
       'The arrows in a card’s corner focus on that card (the others hide).',
     ],
     note: 'The enemy and its aura are in the `Enemy` panel.',
@@ -145,12 +147,25 @@ export const SECTION_HELP = {
     ],
     use: ['Hover a bar for what it gives, who gave it and how long it lasted.'],
   },
+  reactions: {
+    title: 'Reactions',
+    summary:
+      'Every elemental reaction on the enemy. They are the enemy’s, so they sit under no member: one row per kind, in the order they first came up.',
+    shows: [
+      'Overloaded, Melt and Vaporize, each on its own row.',
+      'A dot per reaction, where it happened.',
+    ],
+    use: [
+      'Hover a dot for who triggered it and with which hit, its element and its DMG: Overloaded’s own hit, or the hit that reacted (Melt and Vaporize deal none of their own).',
+    ],
+    note: 'Auras are only simulated in team runs; a solo run shows only the reactions its options make (Varesa’s own Overloaded, Mualani’s Vaporize). Bloom and Lunar-Bloom have no hit of their own: they are counted in the `Enemy` panel, not drawn here.',
+  },
   coordinated: {
     title: 'Coordinated Attacks',
     summary:
       'Hits that a status or a trigger makes on its own, not as part of an action: they go on while the member does something else, or is off the field.',
     shows: [
-      'One row per source (Escoffier’s Mek, Citlali’s Itzpapa, Mavuika’s Ring, Nicole’s projections…).',
+      'One row per source (Escoffier’s Mek, Citlali’s Itzpapa, Mavuika’s Ring, Nicole’s projections…), under the member who made it and in their color.',
       'A bar for the time it was up, and a dot per hit.',
     ],
     use: ['Hover a dot for that hit’s DMG and element.'],
@@ -184,9 +199,9 @@ export const SECTION_HELP = {
       'The E and the Q as the game’s buttons: cooldown left (and charges), and what fills the Q against its cost.',
       'Their special system when the kit has one: Nightsoul points (Natlan), Bond of Life as % of Max HP (Arlecchino) or the party’s Verdant Dew (Nefer, Columbina).',
       'Their weapon’s stacks when it counts some, with the time they have left.',
-      'The stats of the hit shown (ATK, CRIT, DMG Bonus), with what they gain over the character screen.',
+      'Their stats at the playhead (ATK, CRIT, DMG Bonus): those of their latest hit up to it, with every buff up then, and what they gain over the character screen.',
     ],
-    note: 'The buttons, the system and the weapon follow the playhead (a pinned event too); the stats are the hit’s. The kit’s other resources are in `Active Effects` and the timeline’s `Buffs & Debuffs`.',
+    note: 'The buttons, the system, the weapon and the stats follow the playhead (a pinned event too); the DMG, `Hit Details`, `Damage Breakdown` and `Bonuses on this hit` are the event’s. The kit’s other resources are in `Active Effects` and the timeline’s `Buffs & Debuffs`.',
   },
   hits: {
     title: 'Hit Details',
@@ -224,7 +239,10 @@ export const SECTION_HELP = {
       '`Special mechanics`, `Buffs & debuffs`, `Coordinated attacks`, `Mechanics` and `Resources` (each lane has its own `?`).',
       'Each effect with who gave it and the time it has left.',
     ],
-    use: ['Click the title to fold the lanes.'],
+    use: [
+      'Click the title to fold the lanes.',
+      'In a team, `All` or a member’s face shows everyone’s effects or only the ones that member gave.',
+    ],
   },
 
   // -------------------------------------------------- Active Effects lanes

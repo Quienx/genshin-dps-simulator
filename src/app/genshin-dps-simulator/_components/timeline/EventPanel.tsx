@@ -4,6 +4,8 @@ import {
   Pin,
   PinOff,
   Sparkle,
+  UserRound,
+  UserRoundX,
   Users,
 } from 'lucide-react';
 import {
@@ -29,6 +31,7 @@ import { Meter, SegmentedMeter } from '@/components/ui/meter';
 import { Panel } from '@/components/ui/panel';
 import { SectionLabel } from '@/components/ui/section-label';
 import { StatList, StatRow } from '@/components/ui/stat-row';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Tooltip,
   TooltipContent,
@@ -47,6 +50,7 @@ import {
   actionAt,
   actionTitle,
   changesSpecialSystem,
+  countUpTo,
   displayAction,
   eventCharacterState,
   EventPin,
@@ -303,13 +307,20 @@ const Card = ({
 const BlockMeter = ({
   chip,
   quantum,
+  at,
   barClass,
 }: {
   chip: BlockChip;
   quantum: number;
+  // A pinned event past its end: that time, no longer the playhead's.
+  at?: number;
   barClass: string;
 }) => {
-  const time = useQuantizedTime(usePlayheadStore(), quantum);
+  const live = useQuantizedTime(
+    usePlayheadStore(),
+    at === undefined ? quantum : Number.POSITIVE_INFINITY
+  );
+  const time = at ?? live;
   // A bonus while a resource meets a bound: the resource is its timer,
   // full far from the bound, empty at it.
   if (chip.meter) {
@@ -400,9 +411,17 @@ const PulseRow = forwardRef<
 // A row's tooltip, reading the playhead itself like the meter.
 const LiveBlockTipCard = ({
   quantum,
+  at,
   ...props
-}: Omit<ComponentProps<typeof BlockTipCard>, 'time'> & { quantum: number }) => {
-  const time = useQuantizedTime(usePlayheadStore(), quantum);
+}: Omit<ComponentProps<typeof BlockTipCard>, 'time'> & {
+  quantum: number;
+  at?: number;
+}) => {
+  const live = useQuantizedTime(
+    usePlayheadStore(),
+    at === undefined ? quantum : Number.POSITIVE_INFINITY
+  );
+  const time = at ?? live;
   return <BlockTipCard {...props} time={time} />;
 };
 
@@ -422,12 +441,55 @@ const coordinatedText = (
           : ''
       }`;
 
+// Whose Active Effects: everyone's, or one member's (`value`, 'all').
+// Its own memo: it redraws when picked, not with the panel's playhead.
+const EffectsFilter = memo(function EffectsFilter({
+  members,
+  value,
+  onChange,
+}: {
+  members: TimelineMember[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <ToggleGroup
+      type='single'
+      size='2xs'
+      variant='outline'
+      aria-label='Effects of'
+      data-testid='timeline-event-effects-of'
+      value={value}
+      onValueChange={(next) => {
+        if (next) {
+          onChange(next);
+        }
+      }}
+      className='self-start'
+    >
+      <ToggleGroupItem value='all'>All</ToggleGroupItem>
+      {members.map((member) => (
+        <ToggleGroupItem
+          key={member.characterId}
+          value={member.characterId}
+          aria-label={member.name}
+          title={member.name}
+          className='px-1'
+        >
+          <Avatar src={member.avatar} size={16} shape='circle' />
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+});
+
 // An Active Effects row: drawn again only when what it shows changes (it
 // joining or being renewed, hovered on the chart, leaving), not when
 // another row does, nor as the playhead moves: its meter and tip read it.
 const EffectRow = memo(function EffectRow({
   chip,
   quantum,
+  frozenAt,
   giver,
   leaving,
   hovered,
@@ -438,8 +500,10 @@ const EffectRow = memo(function EffectRow({
   healedName,
 }: {
   chip: BlockChip;
-  // How often its meter and tip follow the playhead (s).
+  // How often its meter and tip follow the playhead (s), or the time they
+  // stopped at (a pinned event past its end).
   quantum: number;
+  frozenAt?: number;
   giver: TimelineMember | undefined;
   leaving: boolean;
   hovered: boolean;
@@ -510,7 +574,12 @@ const EffectRow = memo(function EffectRow({
           </span>
         )}
         <span className='mt-1 flex justify-end'>
-          <BlockMeter chip={chip} quantum={quantum} barClass={giverBar} />
+          <BlockMeter
+            chip={chip}
+            quantum={quantum}
+            at={frozenAt}
+            barClass={giverBar}
+          />
         </span>
       </span>
     </PulseRow>
@@ -531,6 +600,7 @@ const EffectRow = memo(function EffectRow({
             <LiveBlockTipCard
               chip={chip}
               quantum={quantum}
+              at={frozenAt}
               owner={giver ?? null}
               holderName={holderName}
               healedName={healedName}
@@ -764,7 +834,7 @@ const EventPanel = ({
   run,
   members,
   actionsById,
-  time,
+  time: playheadTime,
   playing = false,
   builds,
   collapsed,
@@ -777,6 +847,13 @@ const EventPanel = ({
   // edit makes (a Wait's seconds, a block moved…) and while other blocks
   // are picked. Without one, the picked block is shown.
   const [pinned, setPinned] = useState<EventPin | null>(null);
+  // A pinned character instead: the panel follows that member, showing
+  // their action at the playhead, all of it live. One pin at a time.
+  const [followed, setFollowed] = useState<string | null>(null);
+  const pinEvent = (pin: EventPin | null) => {
+    setPinned(pin);
+    setFollowed(null);
+  };
   const resolvedPin = pinned ? resolvePin(view, pinned) : null;
   const resolved = shownEvent(view, pinned, pickedBlock);
   // Its block is gone (removed, another scenario): back to the playhead.
@@ -785,6 +862,42 @@ const EventPanel = ({
       setPinned(null);
     }
   }, [view, pinned]);
+  // A followed member who left the team: back to the playhead.
+  const followedId =
+    followed && members.some((member) => member.characterId === followed)
+      ? followed
+      : null;
+  const followedActions = useMemo(
+    () =>
+      followedId
+        ? view.actions.filter((entry) => entry.characterId === followedId)
+        : view.actions,
+    [view, followedId]
+  );
+
+  // The event: the ability a character (the followed one, if any) used at
+  // the playhead (the action playing, else the latest started). Its hits
+  // are known from the moment it is used, even those that land seconds
+  // later (Iansan's E, a grenade): each shows when it lands.
+  const atCursor = actionAt(followedActions, playheadTime);
+  const action: ActionPiece | undefined = resolved ? resolved.action : atCursor;
+  const hits = useMemo(
+    () => (action ? hitsOfAction(view, action) : []),
+    [view, action]
+  );
+  // The panel's moment. A pinned event is live only while it plays, from
+  // its start to its last hit: before or after, the panel shows it at that
+  // edge (its state, the stats and Active Effects stop there). Otherwise,
+  // the playhead.
+  const time =
+    resolvedPin && action
+      ? Math.min(
+          Math.max(playheadTime, action.start - action.waited),
+          Math.max(action.end, ...hits.map((entry) => entry.time))
+        )
+      : playheadTime;
+  // Stopped there: the effects' meters stop following the playhead too.
+  const frozenAt = time === playheadTime ? undefined : time;
   const { queued, exiting, upNow } = useBlockQueue(view.chips, time);
   // Each coordinated attack's hits and DMG so far, by member and block.
   const coordinated = useMemo(
@@ -798,6 +911,16 @@ const EventPanel = ({
     [view, time]
   );
   const [openLanes, setOpenLanes] = useState(true);
+  // Active Effects of one member only (the one who gave them), or all; a
+  // member who left the team falls back to all.
+  const [effectsOf, setEffectsOf] = useState('all');
+  const shownGiver = members.some((member) => member.characterId === effectsOf)
+    ? effectsOf
+    : 'all';
+  const shownChips =
+    shownGiver === 'all'
+      ? queued
+      : queued.filter((chip) => chip.characterId === shownGiver);
   const [openFormula, setOpenFormula] = useState(false);
   const [openBonuses, setOpenBonuses] = useState(false);
   const [openHits, setOpenHits] = useState(false);
@@ -819,16 +942,6 @@ const EventPanel = ({
     focused !== null && focused !== id;
 
   const now = time + 1e-6;
-  // The event: the ability a character used at the playhead (the action
-  // playing, else the latest started). Its hits are known from the moment
-  // it is used, even those that land seconds later (Iansan's E, a
-  // grenade): each shows when it lands.
-  const atCursor = actionAt(view.actions, time);
-  const action: ActionPiece | undefined = resolved ? resolved.action : atCursor;
-  const hits = useMemo(
-    () => (action ? hitsOfAction(view, action) : []),
-    [view, action]
-  );
   const landed = hits.filter((hit) => hit.time <= now);
   const pending = hits.filter((hit) => hit.time > now);
   const nextHit = pending[0] ?? null;
@@ -856,7 +969,28 @@ const EventPanel = ({
       logEntry && memberRun ? getHitBonuses(run, memberRun, logEntry) : [],
     [logEntry, memberRun, run]
   );
-  // The hit's stats against the character screen's (the build's totals).
+  const ownerRun = run.members.find((entry) => entry.characterId === ownerId);
+  // The owner's stats at the playhead, even with an event pinned: those of
+  // their latest hit up to it, from any action (the engine works stats
+  // out on each hit, with every buff up then); before their first hit,
+  // that first one. The hit's own DMG, breakdown and bonuses stay the
+  // event's (logEntry).
+  const ownerHits = useMemo(
+    () =>
+      view.hits
+        .filter((entry) => entry.characterId === ownerId)
+        .sort((a, b) => a.time - b.time),
+    [view, ownerId]
+  );
+  const ownerHitTimes = useMemo(
+    () => ownerHits.map((entry) => entry.time),
+    [ownerHits]
+  );
+  const latestOwnHit =
+    ownerHits[countUpTo(ownerHitTimes, now) - 1] ?? ownerHits[0] ?? null;
+  const statsEntry =
+    latestOwnHit && ownerRun ? ownerRun.hitLog[latestOwnHit.index] : undefined;
+  // Those stats against the character screen's (the build's totals).
   const hitStats = useMemo(() => {
     const build = builds.find((values) => values.character === ownerId);
     const screen = build ? parseValues(build) : null;
@@ -887,7 +1021,7 @@ const EventPanel = ({
           value === null || Math.abs(delta) < 0.05 ? '' : signed(delta, suffix),
       };
     };
-    const entry = logEntry ?? null;
+    const entry = statsEntry ?? null;
     const ownBonus =
       (entry && character && entry.element === character.element
         ? read('elementalBonus')
@@ -921,7 +1055,7 @@ const EventPanel = ({
         '%'
       ),
     ];
-  }, [builds, ownerId, character, logEntry]);
+  }, [builds, ownerId, character, statsEntry]);
   const damage = landed.reduce((sum, entry) => sum + entry.damage, 0);
   const rounded = landed.map((entry) => Math.round(entry.damage));
   const same = rounded.length > 1 && rounded.every((d) => d === rounded[0]);
@@ -936,7 +1070,6 @@ const EventPanel = ({
   );
   // The owner's state at the playhead (cooldowns run down as it moves,
   // a pinned event too), with what the event changed since it was used.
-  const ownerRun = run.members.find((entry) => entry.characterId === ownerId);
   const ownerState =
     ownerRun && action ? eventCharacterState(ownerRun, action, time) : null;
   const memberOf = (id: string) =>
@@ -952,28 +1085,63 @@ const EventPanel = ({
     >
       <div className='flex shrink-0 items-center gap-2 px-3 py-2'>
         <PanelTitle section='event'>Selected Event</PanelTitle>
-        <span className='text-2xs text-subtle'>
+        <span className='min-w-0 truncate text-2xs text-subtle'>
           {resolvedPin
-            ? 'pinned'
+            ? frozenAt === undefined
+              ? 'pinned event'
+              : 'pinned event · stopped'
+            : followedId
+            ? `follows ${memberOf(followedId)?.name ?? followedId}`
             : resolved
             ? 'selected block'
             : 'follows the playhead'}
         </span>
+        {/* Pin the event (live only while it plays), or its character
+            (their actions, live as the playhead moves). */}
         <Button
           variant='ghost'
           size='icon-sm'
+          data-testid='timeline-event-pin'
           aria-pressed={resolvedPin !== null}
-          aria-label={resolvedPin ? 'Unpin' : 'Pin'}
-          title={resolvedPin ? 'Unpin' : 'Pin this event'}
+          aria-label={resolvedPin ? 'Unpin the event' : 'Pin the event'}
+          title={
+            resolvedPin
+              ? 'Unpin the event'
+              : 'Pin this event: it stays, live while it plays, then stops at its end'
+          }
           disabled={!action}
           onClick={() =>
-            setPinned((current) =>
-              current || !action ? null : pinOf(view, action, hit)
-            )
+            pinEvent(pinned || !action ? null : pinOf(view, action, hit))
           }
           className='ml-auto text-subtle'
         >
           {resolvedPin ? <PinOff /> : <Pin />}
+        </Button>
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          data-testid='timeline-event-follow'
+          aria-pressed={followedId !== null}
+          aria-label={
+            followedId
+              ? `Stop following ${memberOf(followedId)?.name ?? followedId}`
+              : `Pin ${owner?.name ?? 'the character'}`
+          }
+          title={
+            followedId
+              ? `Stop following ${memberOf(followedId)?.name ?? followedId}`
+              : `Pin ${
+                  owner?.name ?? 'the character'
+                }: follow their actions as the playhead moves`
+          }
+          disabled={!followedId && !ownerId}
+          onClick={() => {
+            setFollowed(followedId ? null : ownerId);
+            setPinned(null);
+          }}
+          className='text-subtle'
+        >
+          {followedId ? <UserRoundX /> : <UserRound />}
         </Button>
         <PanelToggle label='event' collapsed={collapsed} onToggle={onToggle} />
       </div>
@@ -982,7 +1150,11 @@ const EventPanel = ({
         <div className='flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pb-2.5 text-xs'>
           {!action || !owner || !character ? (
             <EmptyState>
-              Nothing played yet: play or move the playhead.
+              {followedId && !action
+                ? `${
+                    memberOf(followedId)?.name ?? followedId
+                  } has not acted yet: play or move the playhead.`
+                : 'Nothing played yet: play or move the playhead.'}
             </EmptyState>
           ) : (
             <>
@@ -1231,7 +1403,7 @@ const EventPanel = ({
                               <button
                                 type='button'
                                 onClick={() => {
-                                  setPinned(pinOf(view, action, entry));
+                                  pinEvent(pinOf(view, action, entry));
                                   onSeek?.(entry.time);
                                 }}
                                 className={cn(
@@ -1445,8 +1617,15 @@ const EventPanel = ({
                 data-testid='timeline-event-blocks'
                 className='flex flex-col gap-2'
               >
+                {members.length > 1 && (
+                  <EffectsFilter
+                    members={members}
+                    value={shownGiver}
+                    onChange={setEffectsOf}
+                  />
+                )}
                 {LANES.map((lane) => {
-                  const chips = queued.filter(
+                  const chips = shownChips.filter(
                     (chip) => laneOf(chip) === lane.id
                   );
                   if (chips.length === 0) {
@@ -1470,6 +1649,7 @@ const EventPanel = ({
                               quantum={
                                 playing ? PLAYING_QUANTUM : PANEL_QUANTUM
                               }
+                              frozenAt={frozenAt}
                               giver={giver}
                               leaving={exiting.has(chip.key)}
                               hovered={chip.key === hoveredChip}
@@ -1501,9 +1681,13 @@ const EventPanel = ({
                     </div>
                   );
                 })}
-                {queued.length === 0 && (
+                {shownChips.length === 0 && (
                   <EmptyState className='py-2 text-2xs'>
-                    Nothing up at this moment.
+                    {shownGiver === 'all'
+                      ? 'Nothing up at this moment.'
+                      : `Nothing from ${
+                          memberOf(shownGiver)?.name ?? shownGiver
+                        } at this moment.`}
                   </EmptyState>
                 )}
               </div>

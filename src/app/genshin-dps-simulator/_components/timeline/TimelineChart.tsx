@@ -1,5 +1,6 @@
 import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
 import {
+  FlaskConical,
   HeartPulse,
   LucideIcon,
   Plus,
@@ -273,6 +274,8 @@ type Row = {
   // color; or a row's stripe in the color of the member it belongs to.
   heading?: string;
   stripe?: string;
+  // The heading it sits under: folding that heading hides it.
+  under?: string;
 };
 
 type Group = {
@@ -1158,8 +1161,10 @@ const buildGroups = (
         ),
       }))
     );
+  // One mark per kind and moment: the hit that reacts and the reaction's
+  // own hit (Overloaded's) are one.
   const seen = new Set<string>();
-  const reactions: Mark[] = view.hits
+  const reactions: (Mark & { kind: string })[] = view.hits
     .filter((hit) => hit.reaction !== 'None')
     .filter((hit) => {
       const key = `${hit.time}|${hit.reaction}`;
@@ -1170,6 +1175,7 @@ const buildGroups = (
       return true;
     })
     .map((hit) => ({
+      kind: hit.reaction,
       key: `${hit.characterId}-${hit.index}`,
       time: hit.time,
       title: (
@@ -1218,28 +1224,36 @@ const buildGroups = (
       ),
       count: heals.length,
     },
-    {
-      id: 'reactions',
-      label: 'Reactions',
-      icon: <Zap className='size-[18px] text-violet-400' aria-hidden />,
-      content: (
-        <Marks marks={reactions} prefix='r:' ruler={ruler}>
-          <MarkDot
-            className='bg-violet-500/30 text-violet-200 ring-violet-400/60'
-            Icon={Zap}
-          />
-        </Marks>
-      ),
-      count: reactions.length,
-    },
   ]
     .filter((row) => row.count > 0)
     .map(({ count: _count, ...row }) => row);
+  // Reactions are the enemy's, not one member's: one row per kind
+  // (Overloaded, Melt, Vaporize), in the order they first came up.
+  const reactionRows: Row[] = Array.from(
+    new Set(reactions.map((mark) => mark.kind))
+  ).map((kind) => ({
+    id: `reactions-${kind.toLowerCase()}`,
+    label: kind,
+    icon: <Zap className='size-[18px] text-violet-400' aria-hidden />,
+    content: (
+      <Marks
+        marks={reactions.filter((mark) => mark.kind === kind)}
+        prefix='r:'
+        ruler={ruler}
+      >
+        <MarkDot
+          className='bg-violet-500/30 text-violet-200 ring-violet-400/60'
+          Icon={Zap}
+        />
+      </Marks>
+    ),
+  }));
 
   // Coordinated attacks: hits made by a block, not by an action's own row
   // (Escoffier's Mek, Nicole's Arcane Projections), one row per source:
-  // its time up (a status's span) behind a dot per hit.
-  const coordinatedRows: Row[] = coordinatedUntil(
+  // its time up (a status's span) behind a dot per hit, in the color of
+  // the member who made them (as their effects).
+  const coordinatedRows: (Row & { characterId: string })[] = coordinatedUntil(
     view,
     Number.POSITIVE_INFINITY
   ).map((source) => {
@@ -1315,8 +1329,10 @@ const buildGroups = (
             title: null,
           }))
         : [];
+    const memberChip = slotOf.get(source.characterId)?.color.chip;
     return {
       id: `coordinated-${source.characterId}-${source.sourceId}`,
+      characterId: source.characterId,
       label: source.label,
       icon: chip?.iconUrl ? (
         <RowIcon src={chip.iconUrl} />
@@ -1328,11 +1344,17 @@ const buildGroups = (
           <Bars
             bars={spans}
             ruler={ruler}
-            colorClass='border border-brand-400/40 bg-brand-500/10'
+            colorClass={cn(
+              'border',
+              memberChip ?? 'border-brand-400/40 bg-brand-500/10'
+            )}
           />
           <Marks marks={marks} prefix='k:' ruler={ruler}>
             <MarkDot
-              className='bg-brand-500/30 text-brand-100 ring-brand-400/60'
+              className={cn(
+                memberChip ?? 'bg-brand-500/30 text-brand-100',
+                'ring-current'
+              )}
               Icon={Target}
             />
           </Marks>
@@ -1341,28 +1363,37 @@ const buildGroups = (
     };
   });
 
-  // Each member's effects together, in the party's order (each in the
-  // order it first came up), under the member's name when there are
-  // several; each row striped in its member's color.
-  const byGiver = (rows: (Row & { characterId: string })[]): Row[] =>
-    members.flatMap((member) => {
+  // Each member's rows together (their effects, their coordinated
+  // attacks), in the party's order (each in the order it first came up),
+  // under the member's name when there are several; each row striped in
+  // its member's color. `group` keeps the headings' ids apart.
+  const byGiver = (
+    rows: (Row & { characterId: string })[],
+    group = 'giver'
+  ): Row[] =>
+    members.flatMap((member): Row[] => {
       const own = rows.filter((row) => row.characterId === member.characterId);
       if (own.length === 0) {
         return [];
       }
-      const striped = own.map((row) => ({ ...row, stripe: member.color.bar }));
-      return members.length > 1
-        ? [
-            {
-              id: `giver-${member.characterId}`,
-              label: member.name,
-              icon: <Avatar src={member.avatar} size={16} shape='circle' />,
-              content: null,
-              heading: member.color.text,
-            },
-            ...striped,
-          ]
-        : striped;
+      if (members.length === 1) {
+        return own.map((row) => ({ ...row, stripe: member.color.bar }));
+      }
+      const heading = `${group}-${member.characterId}`;
+      return [
+        {
+          id: heading,
+          label: member.name,
+          icon: <Avatar src={member.avatar} size={16} shape='circle' />,
+          content: null,
+          heading: member.color.text,
+        },
+        ...own.map((row) => ({
+          ...row,
+          stripe: member.color.bar,
+          under: heading,
+        })),
+      ];
     });
 
   const groups: Group[] = [
@@ -1374,18 +1405,25 @@ const buildGroups = (
       rows: actionRows,
     },
     {
-      id: 'buffs',
-      help: 'buffs' as const,
-      title: 'Buffs & Debuffs',
-      Icon: ShieldPlus,
-      rows: byGiver([...buffRows, ...systemRows]),
+      id: 'reactions',
+      help: 'reactions' as const,
+      title: 'Reactions',
+      Icon: FlaskConical,
+      rows: reactionRows,
     },
     {
       id: 'coordinated',
       help: 'coordinated' as const,
       title: 'Coordinated Attacks',
       Icon: Target,
-      rows: coordinatedRows,
+      rows: byGiver(coordinatedRows, 'coordinated-giver'),
+    },
+    {
+      id: 'buffs',
+      help: 'buffs' as const,
+      title: 'Buffs & Debuffs',
+      Icon: ShieldPlus,
+      rows: byGiver([...buffRows, ...systemRows]),
     },
     {
       id: 'energy',
@@ -1531,66 +1569,85 @@ const TimelineRows = memo(function TimelineRows({
               </div>
             </div>
             {open &&
-              group.rows.map((row) =>
-                row.heading !== undefined ? (
-                  <div
-                    key={row.id}
-                    data-testid={`timeline-row-${row.id}`}
-                    className='flex h-6'
-                  >
-                    {labelPx > 0 && (
-                      <div
-                        className={cn(
-                          'sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-r border-border bg-sunken pr-2 pl-6 text-2xs font-medium',
-                          row.heading
-                        )}
-                        style={{ width: labelPx }}
-                      >
-                        {row.icon}
-                        <span className='truncate'>{row.label}</span>
+              group.rows
+                // A folded member's rows are hidden; its heading stays.
+                .filter((row) => !row.under || !collapsed.has(row.under))
+                .map((row) =>
+                  row.heading !== undefined ? (
+                    <div
+                      key={row.id}
+                      data-testid={`timeline-row-${row.id}`}
+                      className='flex h-6'
+                    >
+                      {labelPx > 0 && (
+                        // Click a member's name to fold their rows (folded:
+                        // how many there are).
+                        <DisclosureButton
+                          open={!collapsed.has(row.id)}
+                          onOpenChange={() => toggle(row.id)}
+                          className={cn(
+                            'sticky left-0 z-20 shrink-0 gap-1.5 border-r border-border bg-sunken pr-2 pl-4 text-2xs font-medium',
+                            row.heading
+                          )}
+                          chevronClassName='size-3'
+                          style={{ width: labelPx }}
+                        >
+                          {row.icon}
+                          <span className='truncate'>{row.label}</span>
+                          {collapsed.has(row.id) && (
+                            <span className='ml-auto font-normal text-subtle tabular-nums'>
+                              {
+                                group.rows.filter(
+                                  (entry) => entry.under === row.id
+                                ).length
+                              }
+                            </span>
+                          )}
+                        </DisclosureButton>
+                      )}
+                      <div className='relative' style={{ width: trackWidth }}>
+                        {gridLines}
                       </div>
-                    )}
-                    <div className='relative' style={{ width: trackWidth }}>
-                      {gridLines}
                     </div>
-                  </div>
-                ) : (
-                  <div
-                    key={row.id}
-                    data-testid={`timeline-row-${row.id}`}
-                    // A member's actions row: what a Dash or Wait dropped on
-                    // it belongs to.
-                    data-row-member={
-                      row.id.startsWith('action-') ? row.id.slice(7) : undefined
-                    }
-                    className='flex h-8 hover:bg-muted/30'
-                  >
-                    {labelPx > 0 && (
-                      <div
-                        className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
-                        style={{ width: labelPx }}
-                        title={row.label}
-                      >
-                        {row.stripe && (
-                          <span
-                            aria-hidden
-                            className={cn(
-                              'absolute inset-y-1.5 left-6 w-0.5 rounded-full opacity-70',
-                              row.stripe
-                            )}
-                          />
-                        )}
-                        {row.icon}
-                        <span className='truncate'>{row.label}</span>
+                  ) : (
+                    <div
+                      key={row.id}
+                      data-testid={`timeline-row-${row.id}`}
+                      // A member's actions row: what a Dash or Wait dropped on
+                      // it belongs to.
+                      data-row-member={
+                        row.id.startsWith('action-')
+                          ? row.id.slice(7)
+                          : undefined
+                      }
+                      className='flex h-8 hover:bg-muted/30'
+                    >
+                      {labelPx > 0 && (
+                        <div
+                          className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
+                          style={{ width: labelPx }}
+                          title={row.label}
+                        >
+                          {row.stripe && (
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'absolute inset-y-1.5 left-6 w-0.5 rounded-full opacity-70',
+                                row.stripe
+                              )}
+                            />
+                          )}
+                          {row.icon}
+                          <span className='truncate'>{row.label}</span>
+                        </div>
+                      )}
+                      <div className='relative' style={{ width: trackWidth }}>
+                        {gridLines}
+                        {row.content}
                       </div>
-                    )}
-                    <div className='relative' style={{ width: trackWidth }}>
-                      {gridLines}
-                      {row.content}
                     </div>
-                  </div>
-                )
-              )}
+                  )
+                )}
             {/* Room after a section's rows, so sections stand apart. */}
             {open && group.rows.length > 0 && (
               <div aria-hidden className='flex h-3'>
