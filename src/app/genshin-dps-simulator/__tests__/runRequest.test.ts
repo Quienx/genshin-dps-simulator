@@ -40,13 +40,29 @@ describe('a run request', () => {
       executeRun({ kind: 'solo', values, critMode: 'expected' }),
       runSolo(values, 'expected')
     );
-    // The inspector test rolls its CRITs: the same timings, not DMG.
+    // The inspector test, with average CRITs (rolled ones move its
+    // timings: random particles change when a Q has its Energy).
     const members = INSPECTOR_TEST_IDS.map(buildMemberValues);
+    sameRun(
+      executeRun({ kind: 'inspector', members, critMode: 'expected' }),
+      runInspectorTest(members, 'expected')
+    );
+  });
+
+  it('says how its CRITs were played; Average gives the same total each run', () => {
+    const average = executeRun({ kind: 'team', team, critMode: 'expected' });
+    expect(average.critMode).toBe('expected');
     expect(
-      executeRun({ kind: 'inspector', members }).trace.map(
-        (entry) => entry.startTime
-      )
-    ).toEqual(runInspectorTest(members).trace.map((entry) => entry.startTime));
+      executeRun({ kind: 'team', team, critMode: 'expected' }).totalDamage
+    ).toBe(average.totalDamage);
+    expect(
+      executeRun({ kind: 'team', team, critMode: 'random' }).critMode
+    ).toBe('random');
+    const members = INSPECTOR_TEST_IDS.map(buildMemberValues);
+    expect(executeRun({ kind: 'inspector', members }).critMode).toBe('random');
+    expect(
+      executeRun({ kind: 'inspector', members, critMode: 'expected' }).critMode
+    ).toBe('expected');
   });
 
   it('is plain data, and so is its run (they cross to the worker)', () => {

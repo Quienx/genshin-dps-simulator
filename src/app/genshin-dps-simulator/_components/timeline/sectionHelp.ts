@@ -25,31 +25,40 @@ export const SECTION_HELP = {
       'The whole run on one time axis, like a video editor: what every member did, and everything that was up or happened because of it.',
     shows: [
       '`Character Actions`: each member’s blocks, as they were performed.',
-      '`Buffs & Debuffs`: every bonus, debuff and state while it was up.',
+      '`Reactions`: the elemental reactions on the enemy, one row per kind.',
       '`Coordinated Attacks`: hits that statuses and triggers make on their own.',
+      '`Buffs & Debuffs`: every bonus, debuff and state while it was up.',
       '`Energy & Particles` and `Healing & Other Events`.',
       'The playhead (blue line): every other panel shows the run at that moment.',
     ],
     use: [
+      'Its bar plays the run: go to the start, the previous event, play, the next event, the end; the speed, the clock, a slider that drags the playhead through the run like a video’s, `Zoom` and `Fit`.',
       'Drag the tracks to pan; `Shift` + wheel or a sideways swipe also pans.',
       '`Ctrl` / `Alt` + wheel zooms around the pointer; `Fit` shows the whole run.',
-      'Click or drag the ruler to move the playhead; `←` `→` step a frame (`Shift`: a second), `Space` plays.',
-      'Hover a block or a bar for its details; click a group’s name to fold it.',
+      'Click or drag the ruler to move the playhead. Anywhere on the page (not while typing): `Space` plays, `←` `→` step a frame (`Shift`: a second), `Home` / `End` go to either end, `+` / `-` zoom.',
+      'Hover a block or a bar for its details; click a group’s name to fold it, or a member’s name inside it to fold just their rows; drag the names column’s edge to widen it.',
+      'Colors: everything in the color of its member: their blocks (lightest for the Normal Attack, darkest for the Burst) and the effects they give.',
       '`Edit rotation` turns the blocks into a rotation you can change (see the edit bar’s `?`).',
       EDIT_KEYS,
-      'The `Team` button picks the members: the team becomes the one `In edition` in the menu (kept as you edit), which `Save as team` keeps in `My teams`.',
+      'The team menu picks a team, a saved one or one character; its `Build a team…` picks the members: the team becomes the one `In edition` in the menu (kept as you edit), which `Save as team` keeps in `My teams`.',
       '`Share` copies a short link or code with the team, its builds and its rotation.',
     ],
     note: 'Hits after the counted duration (60 s) are drawn dimmed: they are played but not counted.',
   },
   damage: {
-    title: 'Damage',
-    summary: 'How much DMG the team has dealt up to the playhead.',
+    title: 'Results',
+    summary:
+      'The whole run’s result, in the top bar: its DPS and DMG over the counted duration, wherever the playhead is.',
     shows: [
-      'DPS so far: DMG dealt ÷ time elapsed.',
-      'DMG dealt so far / the whole run’s DMG, and that share in %.',
+      'DPS: the run’s DMG ÷ the counted duration (60 s by default).',
+      'With `Average` CRIT: how the total moved against the last run of this team (an edited rotation or build).',
+      '`Breakdown` (its bar: each member’s share) opens each member’s share, then DPS and share by member or by kind of hit (talents, coordinated attacks, reactions).',
+      'At its bottom: the DMG dealt up to the playhead, and its share of the run’s.',
     ],
-    note: 'Only the counted duration (60 s by default) adds up: past it, both numbers stay where they were.',
+    use: [
+      '`CRIT`, next to it: `Average` deals each hit’s average CRIT, so a rotation always gives the same total and two can be compared; `Rolled` makes each hit crit or not, and `Roll again` rolls them anew.',
+    ],
+    note: 'Only the counted duration adds up: hits after it are drawn but add nothing.',
   },
   enemy: {
     title: 'Enemy',
@@ -58,25 +67,27 @@ export const SECTION_HELP = {
       'Its level and HP bar. When its HP reaches 0 it comes back at full HP; `Defeated ×n` counts how many times.',
       'The element aura on it now (with the units left): what the next hit of another element reacts with.',
       'The last reaction it took.',
-      '`Simulation Stats`: total DMG, DPS, reactions so far (by kind, with their DMG) and the time.',
+      '`Defeats & Reactions`: how many times its HP ran out, and the reactions so far (by kind, with their DMG).',
+      'RES and DEF debuffs on it: in `Active Effects` and each hit’s `Damage Breakdown`.',
     ],
     note: 'Auras and reactions are only simulated in team runs (Overloaded, Melt, Vaporize, and Bloom, which a Nod-Krai member turns into Lunar-Bloom).',
   },
   event: {
     title: 'Selected Event',
     summary:
-      'Everything about one moment of the run: the action at the playhead, the block you picked, or an event you pinned.',
+      'Everything about one moment of the run: the action at the playhead, the block you picked, an event you pinned, or the action of the character you pinned.',
     shows: [
-      'Who did it, and their stats then (ATK, CRIT, DMG Bonus) with what changed from their screen totals.',
-      '`Character state`, `Special mechanic` and `Target` at that moment.',
+      'Who did it and how they were then: their E and Q, special system and weapon, and their stats (ATK, CRIT, DMG Bonus) with what changed from their screen totals.',
       '`Hit Details`, then the `Damage Breakdown` and `Bonuses on this hit` of the hit you pick.',
       '`Active Effects`: everything that was up then, by lane.',
     ],
     use: [
       'Move the playhead (or click a block) to change what it shows.',
-      'The pin keeps the current event while you move the playhead.',
+      'The pin keeps the current event while you move the playhead: it is live while it plays (from its start to its last hit), then stops at its end (`stopped`).',
+      'The person button pins the character instead: the panel follows that member, showing their action at the playhead, live.',
       'The arrows in a card’s corner focus on that card (the others hide).',
     ],
+    note: 'The enemy and its aura are in the `Enemy` panel.',
   },
   combatLog: {
     title: 'Combat Log',
@@ -128,7 +139,7 @@ export const SECTION_HELP = {
   buffs: {
     title: 'Buffs & Debuffs',
     summary:
-      'Every effect while it was up, one bar per effect, by the member who gave it.',
+      'Every effect while it was up, one bar per effect, under the member who gave it and in their color.',
     shows: [
       'Bonuses (ATK, DMG, CRIT…) and debuffs on the enemy (RES, DEF).',
       'States and modes (Nightsoul’s Blessing, the Flamestrider, a Q’s field) and their stacks.',
@@ -136,12 +147,25 @@ export const SECTION_HELP = {
     ],
     use: ['Hover a bar for what it gives, who gave it and how long it lasted.'],
   },
+  reactions: {
+    title: 'Reactions',
+    summary:
+      'Every elemental reaction on the enemy. They are the enemy’s, so they sit under no member: one row per kind, in the order they first came up.',
+    shows: [
+      'Overloaded, Melt and Vaporize, each on its own row.',
+      'A dot per reaction, where it happened.',
+    ],
+    use: [
+      'Hover a dot for who triggered it and with which hit, its element and its DMG: Overloaded’s own hit, or the hit that reacted (Melt and Vaporize deal none of their own).',
+    ],
+    note: 'Auras are only simulated in team runs; a solo run shows only the reactions its options make (Varesa’s own Overloaded, Mualani’s Vaporize). Bloom and Lunar-Bloom have no hit of their own: they are counted in the `Enemy` panel, not drawn here.',
+  },
   coordinated: {
     title: 'Coordinated Attacks',
     summary:
       'Hits that a status or a trigger makes on its own, not as part of an action: they go on while the member does something else, or is off the field.',
     shows: [
-      'One row per source (Escoffier’s Mek, Citlali’s Itzpapa, Mavuika’s Ring, Nicole’s projections…).',
+      'One row per source (Escoffier’s Mek, Citlali’s Itzpapa, Mavuika’s Ring, Nicole’s projections…), under the member who made it and in their color.',
       'A bar for the time it was up, and a dot per hit.',
     ],
     use: ['Hover a dot for that hit’s DMG and element.'],
@@ -154,7 +178,7 @@ export const SECTION_HELP = {
       'Particles: who made them, their element and when they are caught (the member on the field gets more).',
       'Each member’s Energy over the run, against their Q’s cost.',
     ],
-    note: 'Random particles (Favonius, 2 or 3 particles) are averaged in expected runs and rolled with `Simulate again`.',
+    note: 'Random particles (Favonius, 2 or 3 particles) are averaged with `Average` CRIT and rolled with `Rolled` (`Roll again` rolls them anew).',
   },
   other: {
     title: 'Healing & Other Events',
@@ -167,31 +191,17 @@ export const SECTION_HELP = {
   },
 
   // ---------------------------------------------------- Selected Event cards
-  characterState: {
-    title: 'Character state',
-    summary: 'The member’s buttons at that moment, as the game shows them.',
+  character: {
+    title: 'Character',
+    summary: 'The member who used the action, as they were at that moment.',
     shows: [
-      'The E and the Q: their cooldown left (and charges), and the Q’s Energy against its cost.',
-      'The weapon’s passive: whether it is up and for how long.',
+      'Who used it, their constellations, when, and the action with its elements.',
+      'The E and the Q as the game’s buttons: cooldown left (and charges), and what fills the Q against its cost.',
+      'Their special system when the kit has one: Nightsoul points (Natlan), Bond of Life as % of Max HP (Arlecchino) or the party’s Verdant Dew (Nefer, Columbina).',
+      'Their weapon’s stacks when it counts some, with the time they have left.',
+      'Their stats at the playhead (ATK, CRIT, DMG Bonus): those of their latest hit up to it, with every buff up then, and what they gain over the character screen.',
     ],
-  },
-  specialMechanic: {
-    title: 'Special mechanic',
-    summary:
-      'The character’s special system at that moment, when the kit has one.',
-    shows: [
-      'Its value as a bar: Nightsoul points out of the max (Natlan characters) or Bond of Life as a % of Max HP (Arlecchino).',
-    ],
-    note: 'The kit’s other resources (Fighting Spirit, stacks) are in `Active Effects` and in the timeline’s `Buffs & Debuffs`.',
-  },
-  target: {
-    title: 'Target',
-    summary: 'The enemy at that moment.',
-    shows: [
-      'Its name and level.',
-      'The aura on it (element and units left), or `No aura`.',
-    ],
-    note: 'RES and DEF debuffs on it are in `Active Effects` (Buffs & debuffs) and in each hit’s `Damage Breakdown`.',
+    note: 'The buttons, the system, the weapon and the stats follow the playhead (a pinned event too); the DMG, `Hit Details`, `Damage Breakdown` and `Bonuses on this hit` are the event’s. The kit’s other resources are in `Active Effects` and the timeline’s `Buffs & Debuffs`.',
   },
   hits: {
     title: 'Hit Details',
@@ -229,7 +239,10 @@ export const SECTION_HELP = {
       '`Special mechanics`, `Buffs & debuffs`, `Coordinated attacks`, `Mechanics` and `Resources` (each lane has its own `?`).',
       'Each effect with who gave it and the time it has left.',
     ],
-    use: ['Click the title to fold the lanes.'],
+    use: [
+      'Click the title to fold the lanes.',
+      'In a team, `All` or a member’s face shows everyone’s effects or only the ones that member gave.',
+    ],
   },
 
   // -------------------------------------------------- Active Effects lanes

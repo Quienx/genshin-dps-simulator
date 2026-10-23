@@ -1,5 +1,6 @@
 import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
 import {
+  FlaskConical,
   HeartPulse,
   LucideIcon,
   Plus,
@@ -29,6 +30,14 @@ import { Badge } from '@/components/ui/badge';
 import { DisclosureButton } from '@/components/ui/disclosure';
 
 import { MemberColor } from './memberColors';
+import { LABEL_WIDTH, useLabelWidth } from './panelLayout';
+import {
+  createValueStore,
+  PlayheadStore,
+  useStoreEffect,
+  useStoreValue,
+  ValueStore,
+} from './playhead';
 import {
   currentPointerX,
   memberRowAtPointer,
@@ -38,7 +47,6 @@ import {
 import { Ruler } from './ruler';
 import SectionHelp from './SectionHelp';
 import { SectionHelpKey } from './sectionHelp';
-import { SOURCE_STYLES, SourceKind, sourceKindOfChip } from './sourceStyles';
 import {
   ActionGroup,
   actionTitle,
@@ -67,7 +75,6 @@ import {
   splitTeamActionId,
 } from '../../_lib/engine/simulateTeam';
 import formatNumber from '../../_lib/formatNumber';
-import { FRAMES_PER_SECOND } from '../../_lib/frames';
 import { elementIconUrl } from '../../_lib/genshinIcons';
 import {
   ActionPiece,
@@ -78,7 +85,6 @@ import {
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { TeamMemberRun } from '../../_lib/team';
 
-export const LABEL_PX = 200;
 const AXIS_PX = 20;
 const ICON_PX = 20;
 // Room an icon needs around it in a block (or a stretch of one) to show.
@@ -134,11 +140,11 @@ type TimelineChartProps = {
   actions: ActionGroup[];
   members: TimelineMember[];
   actionsById: Map<string, RotationAction>;
-  time: number;
+  // The playhead's time: only the playhead's marks redraw as it moves.
+  playhead: PlayheadStore;
   ruler: Ruler;
   pxPerSecond: number;
   onSeek: (time: number) => void;
-  onTogglePlay: () => void;
   // Zoom by a factor (the chart keeps the point under the pointer, or the
   // playhead, where it was).
   onZoom: (factor: number) => void;
@@ -181,6 +187,71 @@ const tickLabel = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)}s`;
 const playheadLabel = (value: number) => `${value.toFixed(3)}s`;
 
+// The playhead's head, on the ruler (it stays there while the tracks
+// scroll), under the labels' corner: centered on the line, but never
+// under the labels column (at the start it sits at the tracks' left
+// edge). It reads the playhead and the view itself, so it is the only
+// part of the chart redrawn on each frame of a playback.
+const PlayheadHead = memo(function PlayheadHead({
+  playhead,
+  scroll,
+  ruler,
+  labelPx,
+}: {
+  playhead: PlayheadStore;
+  scroll: ValueStore<number>;
+  ruler: Ruler;
+  labelPx: number;
+}) {
+  const time = useStoreValue(playhead);
+  const left = useStoreValue(scroll);
+  const headX = ruler.toX(time);
+  if (headX < left) {
+    return null;
+  }
+  const atStart = headX - left < HEAD_HALF_PX;
+  return (
+    <div className='pointer-events-none sticky top-0 z-[35] h-0'>
+      {/* No border: the arrow under it sits at its bottom. */}
+      <Badge
+        size='xs'
+        className={cn(
+          'absolute top-0 border-0 bg-brand-500 font-mono shadow',
+          !atStart && '-translate-x-1/2'
+        )}
+        style={{ left: labelPx + (atStart ? left : headX) }}
+      >
+        {playheadLabel(time)}
+      </Badge>
+      <span
+        className='absolute top-[11px] size-0 -translate-x-1/2 border-x-[4px] border-t-[5px] border-x-transparent border-t-brand-500'
+        style={{ left: labelPx + headX }}
+      />
+    </div>
+  );
+});
+
+// The playhead's line through every track.
+const PlayheadLine = memo(function PlayheadLine({
+  playhead,
+  ruler,
+  labelPx,
+}: {
+  playhead: PlayheadStore;
+  ruler: Ruler;
+  labelPx: number;
+}) {
+  const time = useStoreValue(playhead);
+  return (
+    <span
+      aria-hidden
+      data-testid='timeline-cursor'
+      className='pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-brand-400 shadow-[0_0_6px_var(--color-brand-400)]'
+      style={{ left: labelPx + ruler.toX(time) }}
+    />
+  );
+});
+
 const seconds = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)} s`;
 
@@ -199,6 +270,12 @@ type Row = {
   label: string;
   icon: ReactNode;
   content: ReactNode;
+  // A member's heading over their rows (no track of its own), in their
+  // color; or a row's stripe in the color of the member it belongs to.
+  heading?: string;
+  stripe?: string;
+  // The heading it sits under: folding that heading hides it.
+  under?: string;
 };
 
 type Group = {
@@ -366,8 +443,7 @@ type ActionBlockProps = {
 
 // An action on the chart. In edit mode it drags (dnd-kit): to move its
 // block, or onto the trash; the chart stays in place under it. Out of it,
-// a plain block: it does not follow the drag context, which changes on
-// every frame of a playback.
+// a plain block, with no drag hooks to run.
 const DraggableAction = (props: ActionBlockProps) =>
   props.editing ? <EditableAction {...props} /> : <ShownAction {...props} />;
 
@@ -462,15 +538,6 @@ const buildGroups = (
   const slotOf = new Map(members.map((member) => [member.characterId, member]));
   const nameOf = (id: string) => slotOf.get(id)?.name ?? id;
   const ownerOf = (id: string) => slotOf.get(id) ?? null;
-  // The talent of the action that made a block (its play's cause id).
-  const kindByCause = new Map(
-    view.actions.map((action) => [
-      action.causeId,
-      actionsById.get(action.actionId)?.kind,
-    ])
-  );
-  const causeKindOf = (cause: string | null | undefined) =>
-    cause ? kindByCause.get(cause) : undefined;
   const accentOf = (id: string) => slotOf.get(id)?.color.bar ?? 'bg-slate-400';
   // "Chevreuse: Elemental Burst" → "Elemental Burst" (the card shows whose).
   const actionName = (action: ActionPiece | ActionGroup) =>
@@ -554,7 +621,11 @@ const buildGroups = (
             />
             <TipStat
               label='CRITs'
-              value={`${crits} / ${hits.length}`}
+              value={
+                view.critMode === 'expected'
+                  ? 'Averaged'
+                  : `${crits} / ${hits.length}`
+              }
               className={crits > 0 ? 'text-rose-300' : undefined}
             />
             <TipStat
@@ -585,6 +656,7 @@ const buildGroups = (
       id: `action-${member.characterId}`,
       label: member.name,
       icon: <Avatar src={member.avatar} size={22} shape='circle' />,
+      stripe: member.color.bar,
       content: actions.map((action) => {
         const rotationAction = displayAction(action, actionsById);
         tips.set(`a:${action.key}`, () => actionTip(action));
@@ -720,7 +792,8 @@ const buildGroups = (
             {warned && (
               <TriangleAlert
                 data-testid='timeline-action-warned'
-                aria-label='Warning'
+                role='img'
+                aria-label={`Warning: ${warningsOf(action).join(' · ')}`}
                 className='absolute top-0 right-0 size-2.5 fill-amber-400 text-slate-950'
               />
             )}
@@ -801,7 +874,12 @@ const buildGroups = (
   // One row per block (owner and name), with every time it was up.
   const spans = new Map<
     string,
-    { label: string; iconUrl: string | null; kind: SourceKind; bars: Bar[] }
+    {
+      characterId: string;
+      label: string;
+      iconUrl: string | null;
+      bars: Bar[];
+    }
   >();
   view.chips.forEach((chip) => {
     if (
@@ -813,9 +891,9 @@ const buildGroups = (
     }
     const rowKey = `${chip.characterId}|${chip.label}`;
     const row = spans.get(rowKey) ?? {
+      characterId: chip.characterId,
       label: chip.label,
       iconUrl: chip.iconUrl,
-      kind: sourceKindOfChip(chip, causeKindOf(chip.cause)),
       bars: [],
     };
     // Renewed while up, it is one stretch (mergeSpans).
@@ -886,28 +964,33 @@ const buildGroups = (
   spans.forEach((row) =>
     row.bars.forEach((bar) => tips.set(`b:${bar.key}`, bar.title))
   );
-  const buffRows: Row[] = Array.from(spans.entries()).map(([key, row]) => ({
+  const buffRows: (Row & { characterId: string })[] = Array.from(
+    spans.entries()
+  ).map(([key, row]) => ({
     id: `buff-${key}`,
+    characterId: row.characterId,
     label: row.label,
     icon: <RowIcon src={row.iconUrl} />,
     content: (
       <Bars
         bars={row.bars}
         ruler={ruler}
-        colorClass={SOURCE_STYLES[row.kind].track}
+        // The giver's color, as their blocks.
+        colorClass={cn(
+          'border',
+          slotOf.get(row.characterId)?.color.chip ?? 'border-input bg-muted'
+        )}
       />
     ),
   }));
 
   // A weapon's, set's or constellation's change to a special system (Crimson
   // Moon's Semblance granting Bond of Life): a row of its own, a mark each
-  // time, in the source's color.
-  const systemRows: Row[] = systemEventRows(view).map((row) => {
+  // time, in its member's color.
+  const systemRows: (Row & { characterId: string })[] = systemEventRows(
+    view
+  ).map((row) => {
     const prefix = `s:${row.key}:`;
-    const kind = sourceKindOfChip(
-      row.chips[0],
-      causeKindOf(row.chips[0].cause)
-    );
     const marks: Mark[] = row.chips.map((chip) => ({
       key: chip.key,
       time: chip.start,
@@ -937,12 +1020,16 @@ const buildGroups = (
     marks.forEach((mark) => tips.set(`${prefix}${mark.key}`, mark.title));
     return {
       id: `system-${row.key}`,
+      characterId: row.characterId,
       label: row.label,
       icon: <RowIcon src={row.iconUrl} />,
       content: (
         <Marks marks={marks} prefix={prefix} ruler={ruler}>
           <MarkDot
-            className={cn(SOURCE_STYLES[kind].chip, 'ring-current')}
+            className={cn(
+              slotOf.get(row.characterId)?.color.chip ?? 'bg-muted',
+              'ring-current'
+            )}
             Icon={Sparkle}
           />
         </Marks>
@@ -1074,8 +1161,10 @@ const buildGroups = (
         ),
       }))
     );
+  // One mark per kind and moment: the hit that reacts and the reaction's
+  // own hit (Overloaded's) are one.
   const seen = new Set<string>();
-  const reactions: Mark[] = view.hits
+  const reactions: (Mark & { kind: string })[] = view.hits
     .filter((hit) => hit.reaction !== 'None')
     .filter((hit) => {
       const key = `${hit.time}|${hit.reaction}`;
@@ -1086,6 +1175,7 @@ const buildGroups = (
       return true;
     })
     .map((hit) => ({
+      kind: hit.reaction,
       key: `${hit.characterId}-${hit.index}`,
       time: hit.time,
       title: (
@@ -1134,28 +1224,36 @@ const buildGroups = (
       ),
       count: heals.length,
     },
-    {
-      id: 'reactions',
-      label: 'Reactions',
-      icon: <Zap className='size-[18px] text-violet-400' aria-hidden />,
-      content: (
-        <Marks marks={reactions} prefix='r:' ruler={ruler}>
-          <MarkDot
-            className='bg-violet-500/30 text-violet-200 ring-violet-400/60'
-            Icon={Zap}
-          />
-        </Marks>
-      ),
-      count: reactions.length,
-    },
   ]
     .filter((row) => row.count > 0)
     .map(({ count: _count, ...row }) => row);
+  // Reactions are the enemy's, not one member's: one row per kind
+  // (Overloaded, Melt, Vaporize), in the order they first came up.
+  const reactionRows: Row[] = Array.from(
+    new Set(reactions.map((mark) => mark.kind))
+  ).map((kind) => ({
+    id: `reactions-${kind.toLowerCase()}`,
+    label: kind,
+    icon: <Zap className='size-[18px] text-violet-400' aria-hidden />,
+    content: (
+      <Marks
+        marks={reactions.filter((mark) => mark.kind === kind)}
+        prefix='r:'
+        ruler={ruler}
+      >
+        <MarkDot
+          className='bg-violet-500/30 text-violet-200 ring-violet-400/60'
+          Icon={Zap}
+        />
+      </Marks>
+    ),
+  }));
 
   // Coordinated attacks: hits made by a block, not by an action's own row
   // (Escoffier's Mek, Nicole's Arcane Projections), one row per source:
-  // its time up (a status's span) behind a dot per hit.
-  const coordinatedRows: Row[] = coordinatedUntil(
+  // its time up (a status's span) behind a dot per hit, in the color of
+  // the member who made them (as their effects).
+  const coordinatedRows: (Row & { characterId: string })[] = coordinatedUntil(
     view,
     Number.POSITIVE_INFINITY
   ).map((source) => {
@@ -1191,7 +1289,13 @@ const buildGroups = (
             />
             <TipStat
               label='CRIT'
-              value={hit.isCrit ? 'Yes' : 'No'}
+              value={
+                view.critMode === 'expected'
+                  ? 'Averaged'
+                  : hit.isCrit
+                  ? 'Yes'
+                  : 'No'
+              }
               className={hit.isCrit ? 'text-rose-300' : undefined}
             />
             {!hit.counted && (
@@ -1225,8 +1329,10 @@ const buildGroups = (
             title: null,
           }))
         : [];
+    const memberChip = slotOf.get(source.characterId)?.color.chip;
     return {
       id: `coordinated-${source.characterId}-${source.sourceId}`,
+      characterId: source.characterId,
       label: source.label,
       icon: chip?.iconUrl ? (
         <RowIcon src={chip.iconUrl} />
@@ -1238,11 +1344,17 @@ const buildGroups = (
           <Bars
             bars={spans}
             ruler={ruler}
-            colorClass='border border-brand-400/40 bg-brand-500/10'
+            colorClass={cn(
+              'border',
+              memberChip ?? 'border-brand-400/40 bg-brand-500/10'
+            )}
           />
           <Marks marks={marks} prefix='k:' ruler={ruler}>
             <MarkDot
-              className='bg-brand-500/30 text-brand-100 ring-brand-400/60'
+              className={cn(
+                memberChip ?? 'bg-brand-500/30 text-brand-100',
+                'ring-current'
+              )}
               Icon={Target}
             />
           </Marks>
@@ -1250,6 +1362,39 @@ const buildGroups = (
       ),
     };
   });
+
+  // Each member's rows together (their effects, their coordinated
+  // attacks), in the party's order (each in the order it first came up),
+  // under the member's name when there are several; each row striped in
+  // its member's color. `group` keeps the headings' ids apart.
+  const byGiver = (
+    rows: (Row & { characterId: string })[],
+    group = 'giver'
+  ): Row[] =>
+    members.flatMap((member): Row[] => {
+      const own = rows.filter((row) => row.characterId === member.characterId);
+      if (own.length === 0) {
+        return [];
+      }
+      if (members.length === 1) {
+        return own.map((row) => ({ ...row, stripe: member.color.bar }));
+      }
+      const heading = `${group}-${member.characterId}`;
+      return [
+        {
+          id: heading,
+          label: member.name,
+          icon: <Avatar src={member.avatar} size={16} shape='circle' />,
+          content: null,
+          heading: member.color.text,
+        },
+        ...own.map((row) => ({
+          ...row,
+          stripe: member.color.bar,
+          under: heading,
+        })),
+      ];
+    });
 
   const groups: Group[] = [
     {
@@ -1260,18 +1405,25 @@ const buildGroups = (
       rows: actionRows,
     },
     {
-      id: 'buffs',
-      help: 'buffs' as const,
-      title: 'Buffs & Debuffs',
-      Icon: ShieldPlus,
-      rows: [...buffRows, ...systemRows],
+      id: 'reactions',
+      help: 'reactions' as const,
+      title: 'Reactions',
+      Icon: FlaskConical,
+      rows: reactionRows,
     },
     {
       id: 'coordinated',
       help: 'coordinated' as const,
       title: 'Coordinated Attacks',
       Icon: Target,
-      rows: coordinatedRows,
+      rows: byGiver(coordinatedRows, 'coordinated-giver'),
+    },
+    {
+      id: 'buffs',
+      help: 'buffs' as const,
+      title: 'Buffs & Debuffs',
+      Icon: ShieldPlus,
+      rows: byGiver([...buffRows, ...systemRows]),
     },
     {
       id: 'energy',
@@ -1417,33 +1569,85 @@ const TimelineRows = memo(function TimelineRows({
               </div>
             </div>
             {open &&
-              group.rows.map((row) => (
-                <div
-                  key={row.id}
-                  data-testid={`timeline-row-${row.id}`}
-                  // A member's actions row: what a Dash or Wait dropped on
-                  // it belongs to.
-                  data-row-member={
-                    row.id.startsWith('action-') ? row.id.slice(7) : undefined
-                  }
-                  className='flex h-8 hover:bg-muted/30'
-                >
-                  {labelPx > 0 && (
+              group.rows
+                // A folded member's rows are hidden; its heading stays.
+                .filter((row) => !row.under || !collapsed.has(row.under))
+                .map((row) =>
+                  row.heading !== undefined ? (
                     <div
-                      className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
-                      style={{ width: labelPx }}
-                      title={row.label}
+                      key={row.id}
+                      data-testid={`timeline-row-${row.id}`}
+                      className='flex h-6'
                     >
-                      {row.icon}
-                      <span className='truncate'>{row.label}</span>
+                      {labelPx > 0 && (
+                        // Click a member's name to fold their rows (folded:
+                        // how many there are).
+                        <DisclosureButton
+                          open={!collapsed.has(row.id)}
+                          onOpenChange={() => toggle(row.id)}
+                          className={cn(
+                            'sticky left-0 z-20 shrink-0 gap-1.5 border-r border-border bg-sunken pr-2 pl-4 text-2xs font-medium',
+                            row.heading
+                          )}
+                          chevronClassName='size-3'
+                          style={{ width: labelPx }}
+                        >
+                          {row.icon}
+                          <span className='truncate'>{row.label}</span>
+                          {collapsed.has(row.id) && (
+                            <span className='ml-auto font-normal text-subtle tabular-nums'>
+                              {
+                                group.rows.filter(
+                                  (entry) => entry.under === row.id
+                                ).length
+                              }
+                            </span>
+                          )}
+                        </DisclosureButton>
+                      )}
+                      <div className='relative' style={{ width: trackWidth }}>
+                        {gridLines}
+                      </div>
                     </div>
-                  )}
-                  <div className='relative' style={{ width: trackWidth }}>
-                    {gridLines}
-                    {row.content}
-                  </div>
-                </div>
-              ))}
+                  ) : (
+                    <div
+                      key={row.id}
+                      data-testid={`timeline-row-${row.id}`}
+                      // A member's actions row: what a Dash or Wait dropped on
+                      // it belongs to.
+                      data-row-member={
+                        row.id.startsWith('action-')
+                          ? row.id.slice(7)
+                          : undefined
+                      }
+                      className='flex h-8 hover:bg-muted/30'
+                    >
+                      {labelPx > 0 && (
+                        <div
+                          className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
+                          style={{ width: labelPx }}
+                          title={row.label}
+                        >
+                          {row.stripe && (
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'absolute inset-y-1.5 left-6 w-0.5 rounded-full opacity-70',
+                                row.stripe
+                              )}
+                            />
+                          )}
+                          {row.icon}
+                          <span className='truncate'>{row.label}</span>
+                        </div>
+                      )}
+                      <div className='relative' style={{ width: trackWidth }}>
+                        {gridLines}
+                        {row.content}
+                      </div>
+                    </div>
+                  )
+                )}
             {/* Room after a section's rows, so sections stand apart. */}
             {open && group.rows.length > 0 && (
               <div aria-hidden className='flex h-3'>
@@ -1477,82 +1681,6 @@ const TimelineRows = memo(function TimelineRows({
     </>
   );
 });
-
-// The horizontal scrollbar, under the tracks only (it starts where time
-// starts, not under the labels column).
-const TimeScrollbar = ({
-  scroll,
-  onScrollTo,
-  labelPx,
-}: {
-  scroll: { left: number; client: number; width: number };
-  onScrollTo: (left: number) => void;
-  labelPx: number;
-}) => {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; left: number } | null>(null);
-  const visible = scroll.client - labelPx;
-  const content = scroll.width - labelPx;
-  const maxLeft = Math.max(0, scroll.width - scroll.client);
-  const trackWidth = trackRef.current?.clientWidth ?? visible;
-  const thumb = Math.max(
-    32,
-    content > 0 ? (trackWidth * visible) / content : trackWidth
-  );
-  const room = Math.max(1, trackWidth - thumb);
-  const thumbLeft = maxLeft > 0 ? (scroll.left / maxLeft) * room : 0;
-  const pxPerScroll = maxLeft / room;
-
-  return (
-    <div className='group flex h-2.5 shrink-0 items-center'>
-      <div className='shrink-0' style={{ width: labelPx }} />
-      <div
-        ref={trackRef}
-        className='relative h-full flex-1 touch-none'
-        // A click on the track jumps there (the thumb centered on it).
-        onPointerDown={(event) => {
-          if (event.target !== event.currentTarget) {
-            return;
-          }
-          const x =
-            event.clientX - event.currentTarget.getBoundingClientRect().left;
-          onScrollTo((x - thumb / 2) * pxPerScroll);
-        }}
-      >
-        {maxLeft > 0 && (
-          <span
-            role='scrollbar'
-            aria-orientation='horizontal'
-            aria-controls='timeline-chart'
-            aria-valuemin={0}
-            aria-valuemax={Math.round(maxLeft)}
-            aria-valuenow={Math.round(scroll.left)}
-            className='absolute top-1/2 h-1 -translate-y-1/2 cursor-pointer rounded-full bg-input/70 transition-[height,background-color] group-hover:h-1.5 group-hover:bg-subtle/80'
-            style={{ left: thumbLeft, width: thumb }}
-            onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId);
-              drag.current = { x: event.clientX, left: scroll.left };
-            }}
-            onPointerMove={(event) => {
-              if (drag.current) {
-                onScrollTo(
-                  drag.current.left +
-                    (event.clientX - drag.current.x) * pxPerScroll
-                );
-              }
-            }}
-            onPointerUp={() => {
-              drag.current = null;
-            }}
-            onPointerCancel={() => {
-              drag.current = null;
-            }}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
 
 // How long the pointer rests on a block before its tip opens, and how
 // long a tip stays once the pointer leaves (to reach it and scroll it).
@@ -1649,11 +1777,10 @@ const TimelineChart = ({
   actions,
   members,
   actionsById,
-  time,
+  playhead,
   ruler,
   pxPerSecond,
   onSeek,
-  onTogglePlay,
   onZoom,
   onTrackWidthChange,
   selectedBlocks = NO_BLOCKS,
@@ -1666,8 +1793,13 @@ const TimelineChart = ({
   memberRuns = NO_MEMBER_RUNS,
 }: TimelineChartProps) => {
   const editing = onSelectBlock !== undefined;
-  // The labels column on the left (in edit mode too).
-  const labelPx = LABEL_PX;
+  // The labels column on the left (in edit mode too): its right edge
+  // drags it wider or narrower.
+  const {
+    width: labelPx,
+    resize: resizeLabels,
+    save: saveLabels,
+  } = useLabelWidth();
   // Edit mode: the slot a drag would drop in (its moment) and what is
   // dragged: the guide line and the placeholder go there.
   const [slot, setSlot] = useState<DropSlot | null>(null);
@@ -1717,25 +1849,36 @@ const TimelineChart = ({
   );
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The view's width (px), kept from its observer: following the playhead
+  // reads it without asking the browser for a layout.
+  const viewWidth = useRef(0);
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) {
       return undefined;
     }
-    const observer = new ResizeObserver(([entry]) =>
-      onTrackWidthChange(entry.contentRect.width - labelPx)
-    );
+    const observer = new ResizeObserver(([entry]) => {
+      viewWidth.current = entry.contentRect.width;
+      onTrackWidthChange(entry.contentRect.width - labelPx);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, [onTrackWidthChange, labelPx]);
 
   // Where a point of the tracks is on screen, from the tracks' left edge.
+  // A gesture keeps the view's edge from its start (`gestureLeft`), so a
+  // scrub or a pan asks the browser for no layout on each move.
+  const gestureLeft = useRef<number | null>(null);
   const viewX = (clientX: number) =>
-    clientX - (scrollRef.current?.getBoundingClientRect().left ?? 0) - labelPx;
+    clientX -
+    (gestureLeft.current ??
+      scrollRef.current?.getBoundingClientRect().left ??
+      0) -
+    labelPx;
   // The pointer's x over the tracks (null: not over them), for pastes.
   const hoverClientX = useRef<number | null>(null);
   const timeAtClient = (clientX: number) =>
-    ruler.toTime(viewX(clientX) + (scrollRef.current?.scrollLeft ?? 0));
+    ruler.toTime(viewX(clientX) + scroll.get());
 
   // A zoom keeps one moment where it was on screen: the one under the
   // pointer (wheel), else the playhead. Any other new ruler (a new run, a
@@ -1743,8 +1886,6 @@ const TimelineChart = ({
   const anchor = useRef<{ time: number; offset: number } | null>(null);
   const previousRuler = useRef(ruler);
   const previousScale = useRef(pxPerSecond);
-  const timeRef = useRef(time);
-  timeRef.current = time;
   useLayoutEffect(() => {
     const element = scrollRef.current;
     const previous = previousRuler.current;
@@ -1756,26 +1897,49 @@ const TimelineChart = ({
       return;
     }
     const kept = anchor.current ?? {
-      time: timeRef.current,
-      offset: previous.toX(timeRef.current) - element.scrollLeft,
+      time: playhead.get(),
+      offset: previous.toX(playhead.get()) - element.scrollLeft,
     };
     anchor.current = null;
     element.scrollLeft = Math.max(0, ruler.toX(kept.time) - kept.offset);
-  }, [ruler, pxPerSecond]);
+  }, [ruler, pxPerSecond, playhead]);
+
+  // Where the view is (its scrollLeft): the playhead's marks and the names
+  // column's edge follow it, each on its own, so a scroll redraws only them.
+  const [scroll] = useState(() => createValueStore(0));
+  const measure = () => {
+    const element = scrollRef.current;
+    if (element) {
+      scroll.set(element.scrollLeft);
+    }
+  };
+  useLayoutEffect(measure, [ruler, labelPx, scroll]);
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // While the playhead moves, the view follows it smoothly: once it nears
   // an edge, the view moves with it, so it stays there (no page jumps). A
   // far jump (a step, a log row) scrolls there animated. Dragging (the
-  // tracks or the playhead) leaves the view to the gesture.
-  useEffect(() => {
+  // tracks or the playhead) leaves the view to the gesture. It runs as
+  // the playhead moves, outside React's render, and reads no layout: the
+  // view's width and scroll are kept (viewWidth, scroll).
+  useStoreEffect(playhead, (time) => {
     const element = scrollRef.current;
     if (!element || gesture.current) {
       return;
     }
     const x = ruler.toX(time);
-    const visible = element.clientWidth - labelPx;
+    const visible = viewWidth.current - labelPx;
     const margin = Math.min(FOLLOW_MARGIN_PX, visible * 0.2);
-    const left = element.scrollLeft;
+    const left = scroll.get();
     const target =
       x > left + visible - margin
         ? x - (visible - margin)
@@ -1783,7 +1947,7 @@ const TimelineChart = ({
         ? x - margin
         : left;
     const clamped = Math.min(
-      element.scrollWidth - element.clientWidth,
+      Math.max(0, labelPx + trackWidth - viewWidth.current),
       Math.max(0, target)
     );
     if (Math.abs(clamped - left) < 0.5) {
@@ -1793,9 +1957,9 @@ const TimelineChart = ({
       element.scrollTo({ left: clamped, behavior: 'smooth' });
     } else {
       element.scrollLeft = clamped;
+      scroll.set(clamped);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time]);
+  });
 
   // The wheel: scrolls (Shift: pans), or zooms with Ctrl/Alt/⌘ (a pinch
   // is Ctrl + wheel).
@@ -1820,9 +1984,9 @@ const TimelineChart = ({
         zoomRef.current(Math.exp(-event.deltaY * WHEEL_ZOOM * 2));
         return;
       }
-      // A sideways swipe pans (the native horizontal scroll is off, see
-      // TimeScrollbar); up and down scroll the tracks when they do not
-      // fit, else (or with Shift) pan.
+      // A sideways swipe pans (the native horizontal scroll is off); up
+      // and down scroll the tracks when they do not fit, else (or with
+      // Shift) pan.
       const sideways = Math.abs(event.deltaX) > Math.abs(event.deltaY);
       const scrollsDown = element.scrollHeight > element.clientHeight + 1;
       if (!sideways && scrollsDown && !event.shiftKey) {
@@ -1834,30 +1998,6 @@ const TimelineChart = ({
     element.addEventListener('wheel', handleWheel, { passive: false });
     return () => element.removeEventListener('wheel', handleWheel);
   }, [labelPx]);
-
-  // Where the view is: the time scrollbar and the playhead's label follow
-  // it.
-  const [scroll, setScroll] = useState({ left: 0, client: 0, width: 0 });
-  const measure = () => {
-    const element = scrollRef.current;
-    if (element) {
-      setScroll({
-        left: element.scrollLeft,
-        client: element.clientWidth,
-        width: element.scrollWidth,
-      });
-    }
-  };
-  useLayoutEffect(measure, [ruler]);
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (!element) {
-      return undefined;
-    }
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
 
   const gesture = useRef<Gesture | null>(null);
   const [panning, setPanning] = useState(false);
@@ -1961,6 +2101,20 @@ const TimelineChart = ({
   const edgeFrame = useRef(0);
   const seekRef = useRef(onSeek);
   seekRef.current = onSeek;
+  // Pans the view to `left` (kept within the tracks), and keeps where it
+  // is (`scroll`) without reading it back from the browser.
+  const panTo = (left: number) => {
+    const element = scrollRef.current;
+    if (!element) {
+      return;
+    }
+    const next = Math.min(
+      Math.max(0, labelPx + trackWidth - viewWidth.current),
+      Math.max(0, left)
+    );
+    element.scrollLeft = next;
+    scroll.set(next);
+  };
   const panAtEdges = () => {
     const element = scrollRef.current;
     const mode = gesture.current?.mode;
@@ -1968,7 +2122,7 @@ const TimelineChart = ({
       return;
     }
     const x = viewX(pointerX.current);
-    const visible = element.clientWidth - labelPx;
+    const visible = viewWidth.current - labelPx;
     const into =
       x > visible - EDGE_PX
         ? (x - (visible - EDGE_PX)) / EDGE_PX
@@ -1976,8 +2130,10 @@ const TimelineChart = ({
         ? -(EDGE_PX - x) / EDGE_PX
         : 0;
     if (into !== 0) {
-      element.scrollLeft +=
-        Math.sign(into) * Math.min(1, Math.abs(into)) ** 2 * EDGE_SPEED_PX;
+      panTo(
+        scroll.get() +
+          Math.sign(into) * Math.min(1, Math.abs(into)) ** 2 * EDGE_SPEED_PX
+      );
       if (mode === 'marquee') {
         updateMarquee();
       } else {
@@ -2025,6 +2181,8 @@ const TimelineChart = ({
     if (current?.mode === 'pan' && !current.moved) {
       onSeek(blockStartOf(current.blockTip) ?? timeAtClient(clientX));
     }
+    // Measured again from now on (the layout may change between gestures).
+    gestureLeft.current = null;
   };
 
   // Edit mode (dnd-kit): the tracks take drops; while a drag is over them,
@@ -2114,10 +2272,33 @@ const TimelineChart = ({
     },
   });
 
-  // The playhead's label: centered on the line, but never under the
-  // labels column (at the start it sits at the tracks' left edge).
-  const headX = ruler.toX(time);
-  const headAtStart = headX - scroll.left < HEAD_HALF_PX;
+  // Where particles are caught (their Energy lands there), one faint line
+  // each, in their element's color: built once per run and zoom.
+  const particleLines = useMemo(
+    () =>
+      particleArrivals(view).map((arrival) => (
+        <span
+          key={arrival.key}
+          aria-hidden
+          data-testid='timeline-particle-line'
+          className={cn(
+            'pointer-events-none absolute inset-y-0 z-[5] w-0 -translate-x-1/2 border-l border-dashed',
+            PARTICLE_LINES[arrival.element] ?? PARTICLE_LINES.clear
+          )}
+          style={{ left: labelPx + ruler.toX(arrival.time) }}
+        />
+      )),
+    [view, ruler, labelPx]
+  );
+
+  // The names column's edge stays at the column as the tracks scroll: it
+  // moves with the view, without redrawing the chart.
+  const resizeHandle = useRef<HTMLDivElement>(null);
+  useStoreEffect(scroll, (left) => {
+    if (resizeHandle.current) {
+      resizeHandle.current.style.left = `${labelPx + left}px`;
+    }
+  });
 
   return (
     <>
@@ -2132,29 +2313,11 @@ const TimelineChart = ({
             measure();
             hideTip();
           }}
-          className='relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-sunken pb-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60'
+          className='relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-sunken outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60'
+          // The player's keys (Space, the arrows, Home, End, + and −) are
+          // the page's (usePlayerShortcuts); edit mode's are the chart's.
           onKeyDown={(event) => {
-            if (event.key === ' ') {
-              event.preventDefault();
-              onTogglePlay();
-            } else if (
-              event.key === 'ArrowRight' ||
-              event.key === 'ArrowLeft'
-            ) {
-              event.preventDefault();
-              const step = event.shiftKey ? 1 : 1 / FRAMES_PER_SECOND;
-              onSeek(time + (event.key === 'ArrowRight' ? step : -step));
-            } else if (event.key === 'Home') {
-              event.preventDefault();
-              onSeek(0);
-            } else if (event.key === 'End') {
-              event.preventDefault();
-              onSeek(view.duration);
-            } else if (event.key === '+' || event.key === '=') {
-              onZoom(1.25);
-            } else if (event.key === '-') {
-              onZoom(0.8);
-            } else if (editing && event.key === 'Escape') {
+            if (editing && event.key === 'Escape') {
               onSelectionKey?.('clear');
             } else if (
               editing &&
@@ -2244,6 +2407,9 @@ const TimelineChart = ({
               ) {
                 return;
               }
+              // The view's edge, once for the whole gesture.
+              gestureLeft.current =
+                scrollRef.current?.getBoundingClientRect().left ?? null;
               const onRuler =
                 event.button === 0 &&
                 (event.target as HTMLElement).closest('[data-ruler]') !== null;
@@ -2275,7 +2441,7 @@ const TimelineChart = ({
               gesture.current = {
                 mode: onRuler ? 'scrub' : 'pan',
                 startX: event.clientX,
-                startScroll: scrollRef.current?.scrollLeft ?? 0,
+                startScroll: scroll.get(),
                 moved: false,
                 blockTip:
                   (event.target as HTMLElement).closest<HTMLElement>(
@@ -2319,12 +2485,13 @@ const TimelineChart = ({
                 current.moved = true;
                 setPanning(true);
               }
-              element.scrollLeft = current.startScroll - delta;
+              panTo(current.startScroll - delta);
             }}
             onPointerUp={(event) => {
               const current = gesture.current;
               if (current?.mode === 'marquee') {
                 gesture.current = null;
+                gestureLeft.current = null;
                 cancelAnimationFrame(edgeFrame.current);
                 setMarquee(null);
                 // Every block the rectangle touches (in the tracks'
@@ -2367,6 +2534,7 @@ const TimelineChart = ({
             onPointerCancel={() => {
               setMarquee(null);
               gesture.current = null;
+              gestureLeft.current = null;
               cancelAnimationFrame(edgeFrame.current);
               setPanning(false);
             }}
@@ -2379,29 +2547,12 @@ const TimelineChart = ({
                 style={marquee}
               />
             )}
-            {/* The playhead's head, on the ruler (it stays there while the
-              tracks scroll), under the labels' corner. */}
-            {headX >= scroll.left && (
-              <div className='pointer-events-none sticky top-0 z-[35] h-0'>
-                {/* No border: the arrow under it sits at its bottom. */}
-                <Badge
-                  size='xs'
-                  className={cn(
-                    'absolute top-0 border-0 bg-brand-500 font-mono shadow',
-                    !headAtStart && '-translate-x-1/2'
-                  )}
-                  style={{
-                    left: labelPx + (headAtStart ? scroll.left : headX),
-                  }}
-                >
-                  {playheadLabel(time)}
-                </Badge>
-                <span
-                  className='absolute top-[11px] size-0 -translate-x-1/2 border-x-[4px] border-t-[5px] border-x-transparent border-t-brand-500'
-                  style={{ left: labelPx + headX }}
-                />
-              </div>
-            )}
+            <PlayheadHead
+              playhead={playhead}
+              scroll={scroll}
+              ruler={ruler}
+              labelPx={labelPx}
+            />
             <TimelineRows
               groups={groups}
               trackWidth={trackWidth}
@@ -2409,20 +2560,7 @@ const TimelineChart = ({
               ruler={ruler}
               labelPx={labelPx}
             />
-            {/* Where particles are caught (their Energy lands there), one
-              faint line each, in their element's color. */}
-            {particleArrivals(view).map((arrival) => (
-              <span
-                key={arrival.key}
-                aria-hidden
-                data-testid='timeline-particle-line'
-                className={cn(
-                  'pointer-events-none absolute inset-y-0 z-[5] w-0 -translate-x-1/2 border-l border-dashed',
-                  PARTICLE_LINES[arrival.element] ?? PARTICLE_LINES.clear
-                )}
-                style={{ left: labelPx + ruler.toX(arrival.time) }}
-              />
-            ))}
+            {particleLines}
             {/* Edit mode: where the block being dragged would go. */}
             {slot !== null && (
               <span
@@ -2448,24 +2586,57 @@ const TimelineChart = ({
               </div>
             )}
 
-            {/* The playhead's line through every track. */}
-            <span
-              aria-hidden
-              data-testid='timeline-cursor'
-              className='pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-brand-400 shadow-[0_0_6px_var(--color-brand-400)]'
-              style={{ left: labelPx + ruler.toX(time) }}
+            {/* The names column's edge: drag it (or arrow keys) to make
+              the column wider or narrower. */}
+            <div
+              role='separator'
+              aria-orientation='vertical'
+              aria-label='Names column width'
+              aria-valuenow={labelPx}
+              aria-valuemin={LABEL_WIDTH.min}
+              aria-valuemax={LABEL_WIDTH.max}
+              tabIndex={0}
+              data-testid='timeline-label-resize'
+              title='Drag to resize the names'
+              ref={resizeHandle}
+              className='absolute inset-y-0 z-[45] w-2 -translate-x-1/2 cursor-col-resize outline-none hover:bg-brand-500/30 focus-visible:bg-brand-500/40 active:bg-brand-500/50'
+              style={{ left: labelPx + scroll.get() }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                hideTip();
+                const startX = event.clientX;
+                const startWidth = labelPx;
+                const handle = event.currentTarget;
+                handle.setPointerCapture(event.pointerId);
+                const move = (moved: PointerEvent) =>
+                  resizeLabels(startWidth + moved.clientX - startX);
+                const end = () => {
+                  handle.removeEventListener('pointermove', move);
+                  handle.removeEventListener('pointerup', end);
+                  handle.removeEventListener('pointercancel', end);
+                  saveLabels();
+                };
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', end);
+                handle.addEventListener('pointercancel', end);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  resizeLabels(
+                    labelPx + (event.key === 'ArrowRight' ? 16 : -16)
+                  );
+                  saveLabels();
+                }
+              }}
+              onClick={(event) => event.stopPropagation()}
             />
+
+            <PlayheadLine playhead={playhead} ruler={ruler} labelPx={labelPx} />
           </div>
         </div>
-        <TimeScrollbar
-          labelPx={labelPx}
-          scroll={scroll}
-          onScrollTo={(left) => {
-            if (scrollRef.current) {
-              scrollRef.current.scrollLeft = left;
-            }
-          }}
-        />
       </div>
       <HoverTip
         hover={hover}

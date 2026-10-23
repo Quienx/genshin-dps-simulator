@@ -256,7 +256,7 @@ const EnemyPanel = ({
 
       <Inset className='p-0'>
         <CollapsibleSection
-          title='Simulation Stats'
+          title='Defeats & Reactions'
           // Its state is the panel's, so it outlives minimizing the panel.
           open={statsOpen}
           onOpenChange={setStatsOpen}
@@ -264,12 +264,10 @@ const EnemyPanel = ({
           chevronClassName='size-4'
         >
           <StatList className='px-2.5 pb-2.5'>
+            {/* The run's DMG and DPS are in Results. */}
             {[
-              ['Total Damage', formatNumber(Math.round(taken))],
               ['Defeated', formatNumber(defeated)],
-              ['DPS', formatNumber(Math.round(time > 0 ? taken / time : 0))],
               ['Reactions', formatNumber(reactions)],
-              ['Time', `${time.toFixed(1)} s`],
             ].map(([label, value]) => (
               <StatRow key={label} label={label} value={value} />
             ))}

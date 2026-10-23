@@ -6,7 +6,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -383,6 +383,17 @@ const PaletteItem = ({
     id: `new:${action.id}`,
     data: { kind: 'new', actionId: action.id } satisfies DragPayload,
   });
+  // Its cost only changes with the action.
+  const title = useMemo(
+    () =>
+      [
+        `Drag ${action.label} onto the chart (a click adds it at the end)`,
+        ...describeActionCost(
+          getActionCost(splitTeamActionId(action.id).characterId, action.id)
+        ),
+      ].join('\n'),
+    [action]
+  );
   return (
     <button
       ref={setNodeRef}
@@ -390,12 +401,7 @@ const PaletteItem = ({
       {...listeners}
       {...attributes}
       data-testid={`timeline-add-${action.id}`}
-      title={[
-        `Drag ${action.label} onto the chart (a click adds it at the end)`,
-        ...describeActionCost(
-          getActionCost(splitTeamActionId(action.id).characterId, action.id)
-        ),
-      ].join('\n')}
+      title={title}
       onClick={onAdd}
       className={cn(
         'flex h-7 cursor-grab touch-none items-center gap-1 rounded-md border border-border bg-muted/60 pr-1.5 pl-0.5 hover:bg-accent/70 active:cursor-grabbing',
@@ -747,4 +753,6 @@ const RotationEditBar = ({
   );
 };
 
-export default RotationEditBar;
+// Drawn again only when the rotation, the picked blocks or the team
+// change, not as the playhead moves.
+export default memo(RotationEditBar);

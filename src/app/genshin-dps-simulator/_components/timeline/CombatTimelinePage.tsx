@@ -22,14 +22,21 @@ import { Panel } from '@/components/ui/panel';
 
 import CharacterSheet from './CharacterSheet';
 import CombatLog from './CombatLog';
-import DamageSummary from './DamageSummary';
 import EnemyPanel from './EnemyPanel';
 import EventPanel from './EventPanel';
 import { buildMemberColors, MemberColor } from './memberColors';
-import { useIsDesktop, useMediaQuery, useMinimizedPanels } from './panelLayout';
+import {
+  loadCritMode,
+  storeCritMode,
+  useIsDesktop,
+  useMediaQuery,
+  useMinimizedPanels,
+} from './panelLayout';
 import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
+import { PlayheadProvider, withPlayheadTime } from './playhead';
 import ResizableSplit from './ResizableSplit';
+import ResultsPanel from './ResultsPanel';
 import { payloadOf } from './rotationDnd';
 import RotationEditBar from './RotationEditBar';
 import { buildRuler, fitPxPerSecond } from './ruler';
@@ -45,7 +52,6 @@ import {
   SHARE_PARAM,
   SharedRotation,
 } from './shareRotation';
-import { SourceLegend } from './sourceStyles';
 import TimelineChart, { TimelineMember } from './TimelineChart';
 import {
   applyDrop,
@@ -62,7 +68,8 @@ import TimelineHeader, {
   TeamActions,
   TimelineScenario,
 } from './TimelineHeader';
-import usePlayback from './usePlayback';
+import TimelinePlayer from './TimelinePlayer';
+import usePlayback, { usePlayerShortcuts } from './usePlayback';
 import RotationActionIcon from '../rotation/RotationActionIcon';
 import {
   getLoadedCharacter,
@@ -95,7 +102,7 @@ import {
   TeamRun,
   TeamState,
 } from '../../_lib/team';
-import { SimulationValues } from '../../_lib/types';
+import { CritMode, SimulationValues } from '../../_lib/types';
 import { getWeaponRefinement } from '../../_lib/weapons';
 
 const ZOOM_STEP = 1.25;
@@ -107,18 +114,21 @@ const DEFAULT_PX_PER_SECOND = 60;
 const MIN_PX_PER_SECOND = 1;
 const MAX_PX_PER_SECOND = 400;
 
-// `version` counts the runs (an open build sheet starts over on each).
+// `version` counts the runs (an open build sheet starts over on each);
+// `change` is its total against the scenario's last run with the same
+// CRIT mode (null: the first).
 type ScenarioRun = {
   members: SimulationValues[];
   run: TeamRun;
   version: number;
+  change: number | null;
 };
 
 type Scenario = TimelineScenario & {
   // Its members' default builds, and its run with any builds (as a request
   // the simulation worker plays: see runRequest).
   defaults: () => SimulationValues[];
-  request: (members: SimulationValues[]) => RunRequest;
+  request: (members: SimulationValues[], critMode: CritMode) => RunRequest;
   // How its run plays, for a rotation of one's own (edit mode).
   setup: Pick<TeamState, 'fillWhileWaiting' | 'swapDelayFrames' | 'auras'>;
 };
@@ -128,6 +138,19 @@ const liftOverlay: Modifier = ({ transform }) => ({
   ...transform,
   y: transform.y - 34,
 });
+const OVERLAY_MODIFIERS = [liftOverlay];
+
+// The panels that follow the playhead read it themselves, at their
+// quantum: a frame of playback does not redraw the page around them.
+const LiveCombatLog = withPlayheadTime(CombatLog);
+const LiveEventPanel = withPlayheadTime(EventPanel);
+const LiveResultsPanel = withPlayheadTime(ResultsPanel);
+const LiveEnemyPanel = withPlayheadTime(EnemyPanel);
+
+// A drag starts past 5 px, so a click still picks a block or adds one.
+// One object for every render: new options would make new sensors, and
+// with them a new drag context that redraws every draggable.
+const DRAG_SENSOR_OPTIONS = { activationConstraint: { distance: 5 } };
 
 // A rotation of one's own, and how it plays.
 type OwnSetup = Omit<TeamState, 'members'>;
@@ -150,10 +173,10 @@ const SCENARIOS: Scenario[] = [
     group: 'team',
     avatars: buildDefaultTeam().members.map((values) => values.character),
     defaults: () => buildDefaultTeam().members,
-    request: (members) => ({
+    request: (members, critMode) => ({
       kind: 'team',
       team: { ...buildDefaultTeam(), members },
-      critMode: 'random',
+      critMode,
     }),
     setup: TEAM_SETUP,
   },
@@ -164,10 +187,10 @@ const SCENARIOS: Scenario[] = [
       group: 'team',
       avatars: preset.members,
       defaults: () => buildPresetTeam(preset).members,
-      request: (members) => ({
+      request: (members, critMode) => ({
         kind: 'team',
         team: { ...buildPresetTeam(preset), members },
-        critMode: 'random',
+        critMode,
       }),
       setup: TEAM_SETUP,
     })
@@ -178,7 +201,7 @@ const SCENARIOS: Scenario[] = [
     group: 'team',
     avatars: INSPECTOR_TEST_IDS,
     defaults: () => INSPECTOR_TEST_IDS.map(buildMemberValues),
-    request: (members) => ({ kind: 'inspector', members }),
+    request: (members, critMode) => ({ kind: 'inspector', members, critMode }),
     setup: TEAM_SETUP,
   },
   ...CHARACTER_LIST.map(
@@ -188,7 +211,7 @@ const SCENARIOS: Scenario[] = [
       group: 'solo',
       avatars: [character.id],
       defaults: () => [buildMemberValues(character.id)],
-      request: ([values]) => ({ kind: 'solo', values, critMode: 'random' }),
+      request: ([values], critMode) => ({ kind: 'solo', values, critMode }),
       // As runSolo plays it.
       setup: { fillWhileWaiting: false, swapDelayFrames: 0, auras: false },
     })
@@ -240,7 +263,7 @@ const customScenario = (ids: string[]): Scenario => ({
   group: 'team',
   avatars: ids,
   defaults: () => ids.map(buildMemberValues),
-  request: (members) => {
+  request: (members, critMode) => {
     const inPreset = ids.every((id) =>
       TEAM_PRESET_ROTATION.some(([characterId]) => characterId === id)
     );
@@ -251,7 +274,7 @@ const customScenario = (ids: string[]): Scenario => ({
         rotation: inPreset ? buildPresetRotation(ids) : null,
         ...TEAM_SETUP,
       },
-      critMode: 'random',
+      critMode,
     };
   },
   setup: TEAM_SETUP,
@@ -405,9 +428,16 @@ const CombatTimelinePage = () => {
   const [pendingTeam, setPendingTeam] = useState<PendingTeam | null>(null);
   // Why the shared link the page was opened from could not be loaded.
   const [shareProblem, setShareProblem] = useState<string | null>(null);
-  // Each run rolls the CRITs again; without builds, with the defaults.
-  // (Run outside the state update, so it runs once.)
+  // Each hit's average CRIT (the default: every run of a rotation gives
+  // the same total) or rolled, each run again. The latest is in the ref,
+  // for the runs asked from callbacks made before it changed.
+  const [critMode, setCritMode] = useState<CritMode>('expected');
+  const critModeRef = useRef<CritMode>('expected');
+  // Without builds, with the defaults. (Run outside the state update, so
+  // it runs once.)
   const version = useRef(0);
+  // Each scenario's last total, per CRIT mode: what a new run compares to.
+  const lastTotals = useRef<Record<string, number>>({});
   // Played in the simulation worker: the page stays responsive meanwhile
   // (it shows the last run), and a run asked for after another one wins.
   const [simulating, setSimulating] = useState(false);
@@ -426,16 +456,27 @@ const CombatTimelinePage = () => {
           ? {
               kind: 'own',
               team: { ...ownSetup, members: builds },
-              critMode: 'random',
+              critMode: critModeRef.current,
             }
-          : scenarioOf(id).request(builds)
+          : scenarioOf(id).request(builds, critModeRef.current)
       ).then((run) => {
         if (asked !== version.current) {
           return;
         }
         // What the inspector and team snapshots read: each build's gear.
         showBuilds(builds);
-        setState({ members: builds, run, version: asked });
+        const key = `${id}|${run.critMode}`;
+        const previous = lastTotals.current[key];
+        lastTotals.current[key] = run.totalDamage;
+        setState({
+          members: builds,
+          run,
+          version: asked,
+          change:
+            previous !== undefined && previous > 0
+              ? run.totalDamage / previous - 1
+              : null,
+        });
         setSimulating(false);
       });
     },
@@ -482,6 +523,8 @@ const CombatTimelinePage = () => {
     [simulate, refreshExtras]
   );
   useEffect(() => {
+    critModeRef.current = loadCritMode();
+    setCritMode(critModeRef.current);
     teamNames = loadTeamNames();
     saved.current = loadSavedRotations(scenarioActions);
     refreshExtras();
@@ -540,8 +583,9 @@ const CombatTimelinePage = () => {
     const blocks =
       carried.length > 0
         ? carried
-        : buildRotationFromRun(executeRun(scenarioOf(id).request(builds)))
-            .blocks;
+        : buildRotationFromRun(
+            executeRun(scenarioOf(id).request(builds, critModeRef.current))
+          ).blocks;
     const next: OwnSetup = {
       ...scenarioOf(id).setup,
       rotation: { ...source, blocks },
@@ -649,6 +693,7 @@ const CombatTimelinePage = () => {
             : null
         }
         version={state.version}
+        change={state.change}
         share={{
           current: {
             // A draft or a saved team is only in this browser: shared as
@@ -698,6 +743,13 @@ const CombatTimelinePage = () => {
         // Again with the same builds (edited ones stay).
         onSimulate={() => simulate(scenario, state.members, own)}
         simulating={simulating}
+        critMode={critMode}
+        onCritModeChange={(mode) => {
+          critModeRef.current = mode;
+          setCritMode(mode);
+          storeCritMode(mode);
+          simulate(scenario, state.members, own);
+        }}
         onSaveBuild={(build) =>
           simulate(
             scenario,
@@ -822,7 +874,10 @@ const CombatTimeline = ({
   teamActions,
   onSimulate,
   simulating,
+  critMode,
+  onCritModeChange,
   version,
+  change,
   onSaveBuild,
   share,
   edit,
@@ -841,7 +896,10 @@ const CombatTimeline = ({
   onSimulate: () => void;
   // A run is being played in the worker (the last one is shown meanwhile).
   simulating: boolean;
+  critMode: CritMode;
+  onCritModeChange: (mode: CritMode) => void;
   version: number;
+  change: number | null;
   onSaveBuild: (build: SimulationValues) => void;
   // Import / Export: what is on screen, and loading a friend's.
   share: {
@@ -961,7 +1019,20 @@ const CombatTimeline = ({
     return picked.filter((uid) => uids.has(uid));
   }, [picked, edit?.rotation.blocks]);
   const selectedBlock = selection[selection.length - 1] ?? null;
-  const setSelectedBlock = (uid: string | null) => setPicked(uid ? [uid] : []);
+  // Stable, for the memoized edit bar.
+  const setSelectedBlock = useCallback(
+    (uid: string | null) => setPicked(uid ? [uid] : []),
+    []
+  );
+  const clearPicked = useCallback(() => setPicked([]), []);
+  const editActions = useMemo(
+    () => Array.from(actionsById.values()),
+    [actionsById]
+  );
+  const holdLimit = useMemo(
+    () => holdLimitOf(view.actions, selectedBlock),
+    [view.actions, selectedBlock]
+  );
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   // The buff or debuff bar hovered on the chart (lit in the Event panel).
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
@@ -1058,10 +1129,7 @@ const CombatTimeline = ({
     selection.includes(payload.blockUid)
       ? { ...payload, blockUids: selection }
       : payload;
-  // A drag starts past 5 px, so a click still picks a block or adds one.
-  const dragSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const dragSensors = useSensors(useSensor(PointerSensor, DRAG_SENSOR_OPTIONS));
   const draggedAction = !dragging
     ? undefined
     : actionsById.get(
@@ -1099,6 +1167,15 @@ const CombatTimeline = ({
       ),
     []
   );
+  // Space, the arrows, Home, End, + and − wherever the focus is (not in a
+  // field, a dialog or a menu).
+  usePlayerShortcuts({
+    playhead: playback.playhead,
+    duration: view.duration,
+    onTogglePlay: playback.togglePlay,
+    onSeek: playback.seek,
+    onZoom: zoomBy,
+  });
   const handleTrackWidth = useCallback(
     (width: number) => setTrackWidth(width),
     []
@@ -1116,45 +1193,62 @@ const CombatTimeline = ({
           : 'h-[60vh] lg:h-auto lg:flex-[2]'
       )}
     >
+      {/* The timeline's bar: its player (the timeline drives the
+          playhead) and editing. */}
       <div
         className={cn(
-          'flex shrink-0 items-center justify-between bg-panel px-3 py-1.5',
+          'flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 bg-panel px-3 py-1.5',
           !panels.chart && 'border-b border-border'
         )}
       >
         <PanelTitle section='timeline'>Timeline</PanelTitle>
-        {!panels.chart && (
-          <SourceLegend className='mr-auto ml-4 hidden md:flex' />
-        )}
-        {onResetRotation && (
+        <TimelinePlayer
+          duration={view.duration}
+          playhead={playback.playhead}
+          playing={playback.playing}
+          speed={playback.speed}
+          onTogglePlay={playback.togglePlay}
+          onStep={playback.stepTo}
+          onSpeedChange={playback.setSpeed}
+          onSeek={playback.seek}
+          onZoom={(direction) =>
+            zoomBy(direction === 1 ? ZOOM_STEP : 1 / ZOOM_STEP)
+          }
+          onFit={() => setPxPerSecond(fitted)}
+          zoomable={!panels.chart}
+          className='flex-1 border-l border-border pl-3'
+        />
+        <div className='ml-auto flex items-center gap-2'>
+          {onResetRotation && (
+            <Button
+              variant='secondary'
+              size='xs'
+              data-testid='timeline-reset-rotation'
+              title='Drop your edits and go back to the scenario rotation'
+              onClick={onResetRotation}
+              className='font-medium'
+            >
+              <RotateCcw />
+              Reset rotation
+            </Button>
+          )}
           <Button
             variant='secondary'
             size='xs'
-            data-testid='timeline-reset-rotation'
-            title='Drop your edits and go back to the scenario rotation'
-            onClick={onResetRotation}
-            className='mr-2 font-medium'
+            data-testid='timeline-edit-rotation'
+            aria-pressed={editing}
+            onClick={onEditToggle}
+            className='font-medium'
           >
-            <RotateCcw />
-            Reset rotation
+            <Pencil />
+            {editing ? 'Done editing' : 'Edit rotation'}
           </Button>
-        )}
-        <Button
-          variant='secondary'
-          size='xs'
-          data-testid='timeline-edit-rotation'
-          aria-pressed={editing}
-          onClick={onEditToggle}
-          className='mr-2 font-medium'
-        >
-          <Pencil />
-          {editing ? 'Done editing' : 'Edit rotation'}
-        </Button>
-        <PanelToggle
-          label='timeline'
-          collapsed={panels.chart}
-          onToggle={() => togglePanel('chart')}
-        />
+          <PanelToggle
+            label='timeline'
+            collapsed={panels.chart}
+            onToggle={() => togglePanel('chart')}
+          />
+        </div>
       </div>
       {/* Edit mode's drag and drop: the palette and the chart's
           blocks drag onto the chart's tracks or the trash. */}
@@ -1177,14 +1271,14 @@ const CombatTimeline = ({
         {!panels.chart && edit && (
           <RotationEditBar
             members={members}
-            actions={Array.from(actionsById.values())}
+            actions={editActions}
             rotation={edit.rotation}
             selected={selectedBlock}
             selection={selection}
-            holdLimit={holdLimitOf(view.actions, selectedBlock)}
+            holdLimit={holdLimit}
             onChange={edit.onChange}
             onSelect={setSelectedBlock}
-            onClearSelection={() => setPicked([])}
+            onClearSelection={clearPicked}
           />
         )}
         {!panels.chart && (
@@ -1194,11 +1288,10 @@ const CombatTimeline = ({
               actions={chartActions}
               members={members}
               actionsById={actionsById}
-              time={playback.time}
+              playhead={playback.playhead}
               ruler={ruler}
               pxPerSecond={pxPerSecond}
               onSeek={playback.seek}
-              onTogglePlay={playback.togglePlay}
               onZoom={zoomBy}
               onTrackWidthChange={handleTrackWidth}
               selectedBlocks={edit ? selection : undefined}
@@ -1243,7 +1336,7 @@ const CombatTimeline = ({
           dropAnimation={null}
           // Above the pointer, so the placeholder in the row (where
           // it will land) stays in sight.
-          modifiers={[liftOverlay]}
+          modifiers={OVERLAY_MODIFIERS}
         >
           {draggedAction && (
             <span className='flex h-7 items-center gap-1 rounded-md border border-brand-400 bg-muted px-1.5 text-2xs text-foreground shadow-lg'>
@@ -1270,11 +1363,11 @@ const CombatTimeline = ({
     </Panel>
   );
   const logPanel = (
-    <CombatLog
+    <LiveCombatLog
       view={view}
       members={members}
       actionsById={actionsById}
-      time={playback.time}
+      playhead={playback.playhead}
       playing={playback.playing}
       onSeek={playback.seek}
       collapsed={panels.log}
@@ -1282,14 +1375,13 @@ const CombatTimeline = ({
     />
   );
   const eventPanel = (
-    <EventPanel
+    <LiveEventPanel
       view={view}
       run={run}
       members={members}
       actionsById={actionsById}
-      time={playback.time}
+      playhead={playback.playhead}
       playing={playback.playing}
-      enemyLevel={enemy.level}
       builds={builds}
       collapsed={panels.event}
       onToggle={() => togglePanel('event')}
@@ -1298,10 +1390,19 @@ const CombatTimeline = ({
       onSeek={playback.seek}
     />
   );
-  const enemyPanel = (
-    <EnemyPanel
+  const resultsPanel = (
+    <LiveResultsPanel
       view={view}
-      time={playback.time}
+      members={members}
+      playhead={playback.playhead}
+      playing={playback.playing}
+      change={change}
+    />
+  );
+  const enemyPanel = (
+    <LiveEnemyPanel
+      view={view}
+      playhead={playback.playhead}
       playing={playback.playing}
       hp={enemy.hp}
       level={enemy.level}
@@ -1312,84 +1413,76 @@ const CombatTimeline = ({
 
   return (
     // The page always fits the window (no page scroll): each panel scrolls
-    // on its own. Narrow screens stack the panels and scroll.
-    <main
-      data-testid='combat-timeline'
-      className='h-dvh overflow-auto bg-background p-4 text-foreground lg:overflow-hidden'
-    >
-      <div className='flex flex-col gap-4 lg:h-full'>
-        <TimelineHeader
-          members={members}
-          duration={view.duration}
-          time={playback.time}
-          playing={playback.playing}
-          speed={playback.speed}
-          onTogglePlay={playback.togglePlay}
-          onStep={playback.stepTo}
-          onSpeedChange={playback.setSpeed}
-          onSeek={playback.seek}
-          onZoom={(direction) =>
-            zoomBy(direction === 1 ? ZOOM_STEP : 1 / ZOOM_STEP)
-          }
-          onFit={() => setPxPerSecond(fitted)}
-          onSimulate={onSimulate}
-          simulating={simulating}
-          scenarios={scenarios}
-          scenario={scenario}
-          onScenarioChange={onScenarioChange}
-          onTeamChange={onTeamChange}
-          teamActions={teamActions}
-          onMemberClick={setOpenMember}
-          share={share}
-        />
-        {desktop ? (
-          // Left: the timeline over the log; right: the damage so far, the
-          // selected event and the enemy. Every handle resizes.
-          <ResizableSplit
-            id='columns'
-            orientation='horizontal'
-            className='flex-1'
-            panes={[
-              {
-                id: 'main',
-                minSize: '40%',
-                node: (
-                  <ResizableSplit
-                    id='main'
-                    orientation='vertical'
-                    className='h-full'
-                    panes={[
-                      {
-                        id: 'chart',
-                        node: chartPanel,
-                        collapsed: panels.chart,
-                        // Twice the log, as before resizing.
-                        defaultSize: `${200 / 3}%`,
-                        minSize: '10rem',
-                      },
-                      {
-                        id: 'log',
-                        node: logPanel,
-                        collapsed: panels.log,
-                        minSize: '6rem',
-                      },
-                    ]}
-                  />
-                ),
-              },
-              {
-                id: 'side',
-                // As before resizing: 20rem, 22rem from Tailwind's `xl`.
-                defaultSize: wideScreen ? '22rem' : '20rem',
-                minSize: '18rem',
-                keepPixels: true,
-                node: (
-                  <div className='flex h-full min-h-0 flex-col gap-4'>
-                    <DamageSummary view={view} time={playback.time} />
+    // on its own. Narrow screens stack the panels and scroll. The playhead
+    // store is there for readers deep in a panel.
+    <PlayheadProvider value={playback.playhead}>
+      <main
+        data-testid='combat-timeline'
+        className='h-dvh overflow-auto bg-background p-4 text-foreground lg:overflow-hidden'
+      >
+        <div className='flex flex-col gap-4 lg:h-full'>
+          <TimelineHeader
+            members={members}
+            duration={view.duration}
+            results={resultsPanel}
+            onSimulate={onSimulate}
+            simulating={simulating}
+            critMode={critMode}
+            onCritModeChange={onCritModeChange}
+            scenarios={scenarios}
+            scenario={scenario}
+            onScenarioChange={onScenarioChange}
+            onTeamChange={onTeamChange}
+            teamActions={teamActions}
+            onMemberClick={setOpenMember}
+            share={share}
+          />
+          {desktop ? (
+            // Left: the timeline over the log; right: the selected event
+            // over the enemy. Every handle resizes.
+            <ResizableSplit
+              id='columns'
+              orientation='horizontal'
+              className='flex-1'
+              panes={[
+                {
+                  id: 'main',
+                  minSize: '40%',
+                  node: (
+                    <ResizableSplit
+                      id='main'
+                      orientation='vertical'
+                      className='h-full'
+                      panes={[
+                        {
+                          id: 'chart',
+                          node: chartPanel,
+                          collapsed: panels.chart,
+                          // Twice the log, as before resizing.
+                          defaultSize: `${200 / 3}%`,
+                          minSize: '10rem',
+                        },
+                        {
+                          id: 'log',
+                          node: logPanel,
+                          collapsed: panels.log,
+                          minSize: '6rem',
+                        },
+                      ]}
+                    />
+                  ),
+                },
+                {
+                  id: 'side',
+                  // As before resizing: 20rem, 22rem from Tailwind's `xl`.
+                  defaultSize: wideScreen ? '22rem' : '20rem',
+                  minSize: '18rem',
+                  keepPixels: true,
+                  node: (
                     <ResizableSplit
                       id='side'
                       orientation='vertical'
-                      className='flex-1'
+                      className='h-full'
                       panes={[
                         {
                           id: 'event',
@@ -1408,36 +1501,37 @@ const CombatTimeline = ({
                         },
                       ]}
                     />
-                  </div>
-                ),
-              },
-            ]}
-          />
-        ) : (
-          <div className='grid gap-4'>
-            <div className='flex min-w-0 flex-col gap-4'>
-              {chartPanel}
-              <div className={cn('min-h-0', !panels.log && 'h-[40vh]')}>
-                {logPanel}
+                  ),
+                },
+              ]}
+            />
+          ) : (
+            <div className='grid gap-4'>
+              <div className='flex min-w-0 flex-col gap-4'>
+                {chartPanel}
+                <div className={cn('min-h-0', !panels.log && 'h-[40vh]')}>
+                  {logPanel}
+                </div>
+              </div>
+              <div className='flex min-w-0 flex-col gap-4'>
+                <div className={cn('min-h-0', !panels.event && 'h-[70vh]')}>
+                  {eventPanel}
+                </div>
+                {enemyPanel}
               </div>
             </div>
-            <div className='flex min-w-0 flex-col gap-4'>
-              <DamageSummary view={view} time={playback.time} />
-              <div className={cn('min-h-0', !panels.event && 'h-[70vh]')}>
-                {eventPanel}
-              </div>
-              {enemyPanel}
-            </div>
-          </div>
-        )}
-      </div>
-      <CharacterSheet
-        key={`${openMember ?? ''}:${version}`}
-        onSave={onSaveBuild}
-        build={builds.find((values) => values.character === openMember) ?? null}
-        onClose={() => setOpenMember(null)}
-      />
-    </main>
+          )}
+        </div>
+        <CharacterSheet
+          key={`${openMember ?? ''}:${version}`}
+          onSave={onSaveBuild}
+          build={
+            builds.find((values) => values.character === openMember) ?? null
+          }
+          onClose={() => setOpenMember(null)}
+        />
+      </main>
+    </PlayheadProvider>
   );
 };
 

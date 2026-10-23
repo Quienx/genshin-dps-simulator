@@ -20,6 +20,13 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  useVirtualListItem,
+  VirtualList,
+  VirtualListEmpty,
+  VirtualListItems,
+  VirtualListViewport,
+} from '@/components/ui/virtual-list';
 
 import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
@@ -76,10 +83,9 @@ const TABS: {
 
 const COLUMNS =
   'grid grid-cols-[72px_130px_minmax(150px,1.5fr)_minmax(90px,1fr)_100px_minmax(150px,1.2fr)] items-center gap-2.5';
-// A row out of sight is neither laid out nor painted (a long log made
-// every move of the playhead repaint all of it); its height is kept.
-const ROW_CONTAINMENT =
-  '[content-visibility:auto] [contain-intrinsic-size:auto_29px]';
+// A row's usual height (px): one line; a long amount wraps to two, and
+// the list measures it.
+const ROW_PX = 29;
 
 // The rows are rebuilt whenever the playhead crosses an event: their
 // images are plain <img>s with the avatar's classes, not an Avatar each.
@@ -177,72 +183,68 @@ const LogFilters = memo(function LogFilters({
   );
 });
 
-// One row: drawn again only when its row, its member or being the newest
-// changes, not each time the playhead crosses an event.
+// One row of the log list: the row it draws comes from the list (only
+// the rows near the view are drawn). Drawn again only when its row or
+// its place changes, not each time the playhead crosses an event.
 const LogRowItem = memo(function LogRowItem({
-  row,
-  member,
-  newest,
+  memberOf,
   onSeek,
 }: {
-  row: LogRow;
-  member: TimelineMember | undefined;
-  newest: boolean;
+  memberOf: Map<string, TimelineMember>;
   onSeek: (time: number) => void;
 }) {
+  const { item: row, index } = useVirtualListItem<LogRow>();
+  const member = memberOf.get(row.characterId);
+  // The newest row is the first one.
+  const newest = index === 0;
   return (
-    <li className={ROW_CONTAINMENT}>
-      <button
-        type='button'
-        onClick={() => onSeek(row.time)}
-        className={cn(
-          COLUMNS,
-          'w-full border-b border-muted/80 px-3 py-1 text-left text-xs hover:bg-muted/50',
-          newest && 'bg-brand-500/5'
-        )}
-      >
-        <span className='flex items-center gap-2 font-mono text-2xs text-muted-foreground tabular-nums'>
-          <span
-            className={cn(
-              'h-3.5 w-1 rounded-full',
-              member?.color.bar ?? 'bg-slate-400'
-            )}
-          />
-          {row.time.toFixed(3)}s
-        </span>
-        <span className='flex min-w-0 items-center gap-2 text-muted-foreground'>
-          {member && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={member.avatar}
-              alt=''
-              width={20}
-              height={20}
-              className={FACE_CLASS}
-            />
-          )}
-          <span className='truncate'>{member?.name ?? row.characterId}</span>
-        </span>
-        <span className='flex min-w-0 items-center gap-2 text-muted-foreground'>
-          <span className='flex size-5 shrink-0 items-center justify-center'>
-            {row.icon}
-          </span>
-          <span className='truncate'>{row.ability}</span>
-        </span>
-        <span className='truncate text-2xs text-subtle'>{row.details}</span>
+    <button
+      type='button'
+      onClick={() => onSeek(row.time)}
+      className={cn(
+        COLUMNS,
+        'w-full border-b border-muted/80 px-3 py-1 text-left text-xs hover:bg-muted/50',
+        newest && 'bg-brand-500/5'
+      )}
+    >
+      <span className='flex items-center gap-2 font-mono text-2xs text-muted-foreground tabular-nums'>
         <span
           className={cn(
-            'text-right font-semibold tabular-nums',
-            row.amountClass
+            'h-3.5 w-1 rounded-full',
+            member?.color.bar ?? 'bg-slate-400'
           )}
-        >
-          {row.amount}
+        />
+        {row.time.toFixed(3)}s
+      </span>
+      <span className='flex min-w-0 items-center gap-2 text-muted-foreground'>
+        {member && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={member.avatar}
+            alt=''
+            width={20}
+            height={20}
+            className={FACE_CLASS}
+          />
+        )}
+        <span className='truncate'>{member?.name ?? row.characterId}</span>
+      </span>
+      <span className='flex min-w-0 items-center gap-2 text-muted-foreground'>
+        <span className='flex size-5 shrink-0 items-center justify-center'>
+          {row.icon}
         </span>
-        <span className='flex min-w-0 flex-wrap items-center gap-x-2 text-2xs tabular-nums'>
-          {row.notes}
-        </span>
-      </button>
-    </li>
+        <span className='truncate'>{row.ability}</span>
+      </span>
+      <span className='truncate text-2xs text-subtle'>{row.details}</span>
+      <span
+        className={cn('text-right font-semibold tabular-nums', row.amountClass)}
+      >
+        {row.amount}
+      </span>
+      <span className='flex min-w-0 flex-wrap items-center gap-x-2 text-2xs tabular-nums'>
+        {row.notes}
+      </span>
+    </button>
   );
 });
 
@@ -587,31 +589,21 @@ const CombatLog = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allRows, tab, words]
   );
-  const counts = useMemo(
+  // How many rows each tab keeps: the same object while the numbers stay
+  // (hits landing change a row, not the counts), so the filters are not
+  // drawn again.
+  const countList = useMemo(
     () =>
-      Object.fromEntries(
-        TABS.map(({ id }) => [
-          id,
-          allRows.filter((row) => matches(row, id)).length,
-        ])
-      ),
+      TABS.map(({ id }) => allRows.filter((row) => matches(row, id)).length),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allRows, words]
   );
-  // The rows drawn: a row is redrawn only when it changes (a new one, an
-  // action's hits landing, the newest one).
-  const rowItems = useMemo(
+  const countsKey = countList.join(',');
+  const counts = useMemo(
     () =>
-      rows.map((row, index) => (
-        <LogRowItem
-          key={row.key}
-          row={row}
-          member={memberOf.get(row.characterId)}
-          newest={index === 0}
-          onSeek={onSeek}
-        />
-      )),
-    [rows, memberOf, onSeek]
+      Object.fromEntries(TABS.map(({ id }, index) => [id, countList[index]])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [countsKey]
   );
 
   // The next event after the playhead that the filters keep (else the
@@ -697,21 +689,28 @@ const CombatLog = ({
                 <span className='text-right'>Damage / Amount</span>
                 <span>Notes</span>
               </div>
-              <ul
-                data-testid='timeline-log-rows'
-                className='min-h-0 flex-1 overflow-y-auto'
+              {/* Only the rows near the view are drawn. */}
+              <VirtualList
+                items={rows}
+                getKey={(row) => row.key}
+                estimateSize={ROW_PX}
               >
-                {rows.length === 0 && (
-                  <li>
+                <VirtualListViewport
+                  data-testid='timeline-log-rows'
+                  className='min-h-0 flex-1'
+                >
+                  <VirtualListItems>
+                    <LogRowItem memberOf={memberOf} onSeek={onSeek} />
+                  </VirtualListItems>
+                  <VirtualListEmpty>
                     <EmptyState className='px-3'>
                       {allRows.length === 0
                         ? 'Nothing happened yet: play or move the playhead.'
                         : 'No events match the filters yet.'}
                     </EmptyState>
-                  </li>
-                )}
-                {rowItems}
-              </ul>
+                  </VirtualListEmpty>
+                </VirtualListViewport>
+              </VirtualList>
             </div>
           </div>
         </>
