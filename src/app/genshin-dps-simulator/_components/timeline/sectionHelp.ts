@@ -211,6 +211,7 @@ export const SECTION_HELP = {
     ],
     use: [
       'Click a hit to see its `Damage Breakdown` and `Bonuses on this hit`.',
+      'The people icon beside the expand one (off by default) adds the coordinated attacks of other members or effects that hit while it played, among its hits by time: before or after each of them. Click one to move the playhead there.',
       'Click the title to fold the list.',
     ],
   },

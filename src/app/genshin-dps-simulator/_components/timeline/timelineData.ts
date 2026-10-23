@@ -378,21 +378,122 @@ export const hitsOfGroup = (view: InspectorView, group: ActionGroup) =>
 export const isReactionHit = (hit: EnemyHit) =>
   hit.reaction !== 'None' && hit.category === hit.reaction;
 
-// Each action's own hits: from its start until the same step's next turn
-// (a loop plays it again), as in the team inspector.
+// A reaction a hit set off, with its own DMG for a transformative one
+// (null for an amplifying one: the hit's DMG already has it).
+export type HitReaction = { reaction: string; damage: number | null };
+
+// Each hit's reactions (by `characterId#index`), once per run. An
+// amplifying one (Melt, Vaporize) is the hit's own; a transformative one
+// (Overloaded) is a hit of its own, dealt by the same member and block at
+// the same moment: it goes to the first such hit with an element.
+export const reactionsByHit = (
+  view: Pick<InspectorView, 'hits'>
+): Map<string, HitReaction[]> => {
+  const keyOf = (hit: EnemyHit) => `${hit.characterId}#${hit.index}`;
+  const momentOf = (hit: EnemyHit) =>
+    `${hit.characterId}|${hit.blockUid}|${hit.time.toFixed(4)}`;
+  const byHit = new Map<string, HitReaction[]>();
+  const add = (hit: EnemyHit, reaction: HitReaction) =>
+    byHit.set(keyOf(hit), [...(byHit.get(keyOf(hit)) ?? []), reaction]);
+  const atMoment = new Map<string, EnemyHit>();
+  view.hits.forEach((hit) => {
+    if (isReactionHit(hit)) {
+      return;
+    }
+    if (hit.reaction !== 'None') {
+      add(hit, { reaction: hit.reaction, damage: null });
+    }
+    if (hit.element !== 'Physical' && !atMoment.has(momentOf(hit))) {
+      atMoment.set(momentOf(hit), hit);
+    }
+  });
+  view.hits.filter(isReactionHit).forEach((reactionHit) => {
+    const trigger = atMoment.get(momentOf(reactionHit));
+    if (trigger) {
+      add(trigger, {
+        reaction: reactionHit.reaction,
+        damage: reactionHit.damage,
+      });
+    }
+  });
+  return byHit;
+};
+
+// The time an action's hits run until: the same step's next turn (a loop
+// plays it again), as in the team inspector.
+const nextTurnOf = (view: InspectorView, action: ActionPiece) =>
+  view.actions.find(
+    (other) => other.blockUid === action.blockUid && other.start > action.start
+  )?.start ?? Number.POSITIVE_INFINITY;
+
+// The actions an E or Q row's status ticks go with: the member's E (a
+// hold E too) or Q, by the action's own id (forms keep it).
+const TICK_TALENT_ACTIONS: Record<string, string> = {
+  elementalSkill: 'skill',
+  elementalBurst: 'burst',
+};
+
+// The ticks of a member's own status from an E or Q row go to that
+// member's latest E or Q, not to whichever action started the status:
+// Citlali's Opal Fire (Itzpapa's, an E row) is entered when her points
+// reach 50, often on points her Q gave, and its ticks are her E's. Other
+// rows keep their block's action (a Flamestrider attack uses E rows but
+// is not the E). Each tick's owner (an action's key), once per run.
+const statusTickOwners = new WeakMap<InspectorView, Map<EnemyHit, string>>();
+const tickOwnersOf = (view: InspectorView): Map<EnemyHit, string> => {
+  const cached = statusTickOwners.get(view);
+  if (cached) {
+    return cached;
+  }
+  const statuses = new Set(
+    view.chips
+      .filter((chip) => chip.kind === 'status')
+      .map((chip) => `${chip.characterId}|${chip.blockId}`)
+  );
+  const latestFirst = [...view.actions].sort((a, b) => b.start - a.start);
+  const owners = new Map<EnemyHit, string>();
+  view.hits.forEach((hit) => {
+    const prefix = TICK_TALENT_ACTIONS[hit.row?.split('/')[0] ?? ''];
+    if (
+      !hit.coordinated ||
+      !prefix ||
+      !statuses.has(`${hit.characterId}|${hit.sourceId}`)
+    ) {
+      return;
+    }
+    const owner = latestFirst.find(
+      (action) =>
+        action.characterId === hit.characterId &&
+        action.start - 1e-6 <= hit.time &&
+        splitTeamActionId(action.actionId).actionId.startsWith(prefix)
+    );
+    if (owner) {
+      owners.set(hit, owner.key);
+    }
+  });
+  statusTickOwners.set(view, owners);
+  return owners;
+};
+
+// Each action's own hits: its block's from its start until the same step's
+// next turn, plus its talent's status ticks (see tickOwnersOf).
 export const hitsOfAction = (view: InspectorView, action: ActionPiece) => {
-  const nextTurn =
-    view.actions.find(
-      (other) =>
-        other.blockUid === action.blockUid && other.start > action.start
-    )?.start ?? Number.POSITIVE_INFINITY;
-  return view.hits.filter(
-    (hit) =>
-      !isReactionHit(hit) &&
+  const nextTurn = nextTurnOf(view, action);
+  const owners = tickOwnersOf(view);
+  return view.hits.filter((hit) => {
+    if (isReactionHit(hit)) {
+      return false;
+    }
+    const owner = owners.get(hit);
+    if (owner !== undefined) {
+      return owner === action.key;
+    }
+    return (
       hit.blockUid === action.blockUid &&
       hit.time >= action.start - 1e-6 &&
       hit.time < nextTurn
-  );
+    );
+  });
 };
 
 // Where each batch of particles is caught (edit mode draws a line there),

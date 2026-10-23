@@ -14,6 +14,7 @@ import {
   forwardRef,
   memo,
   ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -28,7 +29,7 @@ import { Button } from '@/components/ui/button';
 import { DisclosureButton } from '@/components/ui/disclosure';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Meter, SegmentedMeter } from '@/components/ui/meter';
-import { Panel } from '@/components/ui/panel';
+import { Inset, Panel } from '@/components/ui/panel';
 import { SectionLabel } from '@/components/ui/section-label';
 import { StatList, StatRow } from '@/components/ui/stat-row';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -54,12 +55,15 @@ import {
   displayAction,
   eventCharacterState,
   EventPin,
+  HitReaction,
   hitsOfAction,
+  isReactionHit,
   isSystemResource,
   meterAt,
   PANEL_QUANTUM,
   pinOf,
   PLAYING_QUANTUM,
+  reactionsByHit,
   resolvePin,
   samePanelProps,
   shownEvent,
@@ -164,6 +168,158 @@ const seconds = (value: number) =>
 const hitKey = (hit: Pick<EnemyHit, 'characterId' | 'index'>) =>
   `${hit.characterId}#${hit.index}`;
 
+// One hit in Hit Details: its element and name (and who dealt it, for a
+// hit from elsewhere), when it lands (a countdown until then, no taller
+// than the text, so the row keeps its height), its CRIT, the reactions it
+// set off and its DMG.
+const HitRow = ({
+  entry,
+  time,
+  who,
+  selected = false,
+  reactions,
+  onClick,
+}: {
+  entry: EnemyHit;
+  time: number;
+  who?: string;
+  selected?: boolean;
+  reactions: HitReaction[];
+  onClick: () => void;
+}) => {
+  const landed = entry.time <= time + 1e-6;
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-2xs hover:bg-muted',
+        selected && 'bg-brand-600/20'
+      )}
+    >
+      <ElementIcon element={entry.element} size={12} />
+      <span
+        className={cn(
+          'truncate',
+          landed ? 'text-muted-foreground' : 'text-subtle'
+        )}
+      >
+        {entry.label}
+      </span>
+      {who && <span className='shrink-0 text-subtle'>· {who}</span>}
+      {landed ? (
+        <span className='shrink-0 text-2xs text-emerald-400/90 tabular-nums'>
+          ✓ {seconds(entry.time)}
+        </span>
+      ) : (
+        <Badge
+          variant='brand'
+          size='xs'
+          className='text-2xs leading-none font-normal text-brand-300 tabular-nums'
+        >
+          lands {seconds(entry.time)} · in {short(entry.time - time)}s
+        </Badge>
+      )}
+      {entry.isCrit && landed && (
+        <Badge variant='warning' size='xs' className='font-bold text-amber-300'>
+          CRIT
+        </Badge>
+      )}
+      {landed &&
+        reactions.map((reaction) => (
+          <ReactionBadge key={reaction.reaction} {...reaction} />
+        ))}
+      <span
+        className={cn(
+          'ml-auto shrink-0 font-semibold tabular-nums',
+          landed ? 'text-foreground' : 'text-subtle'
+        )}
+      >
+        {formatNumber(Math.round(entry.damage))}
+      </span>
+    </button>
+  );
+};
+
+// Hit Details' toggle for the coordinated attacks of other members or
+// effects during the event, as a small icon with its description. Its own
+// memo: the tooltip does not redraw with the panel's playhead.
+const OthersToggle = memo(function OthersToggle({
+  count,
+  shown,
+  onToggle,
+}: {
+  count: number;
+  shown: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant='ghost'
+          size='icon-xs'
+          aria-pressed={shown}
+          aria-label={`${shown ? 'Hide' : 'Show'} others during it (${count})`}
+          data-testid='timeline-event-others-toggle'
+          onClick={onToggle}
+          className={cn(
+            'size-5 rounded text-subtle',
+            shown && 'text-brand-300'
+          )}
+        >
+          <Users className='size-3' />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className='max-w-64'>
+        {shown ? 'Hide' : 'Show'} the coordinated attacks of other members or
+        effects that hit during this event ({count}), in the list by time:
+        before or after its hits.
+      </TooltipContent>
+    </Tooltip>
+  );
+});
+
+// When the action was used: the time alone, what it is in its tooltip.
+// Its own memo: the tooltip redraws only for another action, not with the
+// panel's playhead.
+const UsedAtBadge = memo(function UsedAtBadge({ start }: { start: number }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant='outline'
+          size='sm'
+          data-testid='timeline-event-used-at'
+          tabIndex={0}
+          className='ml-auto cursor-default font-mono text-muted-foreground tabular-nums'
+        >
+          {start.toFixed(3)}s
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>Used at {start.toFixed(3)} s of the run</TooltipContent>
+    </Tooltip>
+  );
+});
+
+// A reaction a hit set off, in Results' reaction color; a transformative
+// one (Overloaded) with its own DMG.
+const ReactionBadge = ({
+  reaction,
+  damage,
+  size = 'xs',
+}: HitReaction & { size?: 'xs' | 'sm' }) => (
+  <Badge
+    variant='outline'
+    size={size}
+    data-testid='timeline-event-reaction'
+    className='shrink-0 border-rose-400/40 font-medium text-rose-200 tabular-nums'
+  >
+    {reaction}
+    {damage !== null && ` +${formatNumber(Math.round(damage))}`}
+  </Badge>
+);
+
 // The panel follows the playhead: its repeated glyphs (elements, states,
 // bonuses, blocks) are plain <img>s with the avatar's classes, not an
 // Avatar each. A glyph sits on no tile.
@@ -246,42 +402,52 @@ const Card = ({
   children,
   className,
   focus,
+  actions,
   hidden = false,
 }: {
   title?: ReactNode;
   children: ReactNode;
   className?: string;
   focus?: { label: string; active: boolean; onToggle: () => void };
+  // Small icon buttons of its own, beside the focus one.
+  actions?: ReactNode;
   hidden?: boolean;
 }) =>
   hidden ? null : (
-    // Sections stand apart by a line, not a box of their own: the panel
-    // is the only box.
-    <section
+    // Each section on a box of its own.
+    <Inset
       className={cn(
-        'relative border-t border-border/70 pt-2 first:border-t-0 first:pt-0',
-        focus && 'pr-7',
+        'relative',
+        focus && (actions ? 'pr-14' : 'pr-8'),
+        focus?.active && 'border-brand-500/40',
         className
       )}
     >
-      {focus && (
-        <Button
-          variant='ghost'
-          size='icon-xs'
-          aria-pressed={focus.active}
-          aria-label={
-            focus.active ? 'Show every section' : `Focus on ${focus.label}`
-          }
-          title={focus.active ? 'Show every section' : 'Focus on this section'}
-          onClick={focus.onToggle}
-          className='absolute top-1.5 right-0 size-5 rounded text-subtle'
-        >
-          {focus.active ? (
-            <Minimize2 className='size-3' />
-          ) : (
-            <Maximize2 className='size-3' />
+      {(focus || actions) && (
+        <span className='absolute top-2 right-2 flex items-center gap-0.5'>
+          {actions}
+          {focus && (
+            <Button
+              variant='ghost'
+              size='icon-xs'
+              aria-pressed={focus.active}
+              aria-label={
+                focus.active ? 'Show every section' : `Focus on ${focus.label}`
+              }
+              title={
+                focus.active ? 'Show every section' : 'Focus on this section'
+              }
+              onClick={focus.onToggle}
+              className='size-5 rounded text-subtle'
+            >
+              {focus.active ? (
+                <Minimize2 className='size-3' />
+              ) : (
+                <Maximize2 className='size-3' />
+              )}
+            </Button>
           )}
-        </Button>
+        </span>
       )}
       {title && (
         <h3
@@ -295,7 +461,7 @@ const Card = ({
         </h3>
       )}
       {children}
-    </section>
+    </Inset>
   );
 
 // How much is left of a block, as a mini bar in its giver's color: a
@@ -753,13 +919,13 @@ const TalentHud = ({
           </span>
         </span>
       ) : (
-        <span className='block truncate text-2xs text-subtle tabular-nums'>
-          {button.cooldown.charges > 1
-            ? `${button.cooldown.ready}/${button.cooldown.charges} charges`
-            : button.cooldown.remaining > 0
-            ? `${short(button.cooldown.remaining)}s`
-            : 'ready'}
-        </span>
+        // The seconds left are on the icon, as in-game: here, only the
+        // charges of a talent that has several.
+        button.cooldown.charges > 1 && (
+          <span className='block truncate text-2xs text-subtle tabular-nums'>
+            {button.cooldown.ready}/{button.cooldown.charges} charges
+          </span>
+        )
       )}
     </span>
   </div>
@@ -885,16 +1051,22 @@ const EventPanel = ({
     () => (action ? hitsOfAction(view, action) : []),
     [view, action]
   );
+  // The reactions each hit set off (once per run).
+  const hitReactions = useMemo(() => reactionsByHit(view), [view]);
+  const reactionsOf = (entry: EnemyHit) =>
+    hitReactions.get(hitKey(entry)) ?? [];
   // The panel's moment. A pinned event is live only while it plays, from
   // its start to its last hit: before or after, the panel shows it at that
   // edge (its state, the stats and Active Effects stop there). Otherwise,
   // the playhead.
+  // The event's stretch: from its start (its wait in) to its last hit.
+  const eventStart = action ? action.start - action.waited : 0;
+  const eventEnd = action
+    ? Math.max(action.end, ...hits.map((entry) => entry.time))
+    : 0;
   const time =
     resolvedPin && action
-      ? Math.min(
-          Math.max(playheadTime, action.start - action.waited),
-          Math.max(action.end, ...hits.map((entry) => entry.time))
-        )
+      ? Math.min(Math.max(playheadTime, eventStart), eventEnd)
       : playheadTime;
   // Stopped there: the effects' meters stop following the playhead too.
   const frozenAt = time === playheadTime ? undefined : time;
@@ -924,6 +1096,32 @@ const EventPanel = ({
   const [openFormula, setOpenFormula] = useState(false);
   const [openBonuses, setOpenBonuses] = useState(false);
   const [openHits, setOpenHits] = useState(false);
+  // Hit Details' coordinated attacks from elsewhere during the event: the
+  // other members' and other effects' (off by default).
+  const [showOthers, setShowOthers] = useState(false);
+  const toggleOthers = useCallback(() => setShowOthers((shown) => !shown), []);
+  const own = useMemo(() => new Set(hits), [hits]);
+  const othersDuring = useMemo(
+    () =>
+      action
+        ? view.hits.filter(
+            (entry) =>
+              entry.coordinated &&
+              !own.has(entry) &&
+              entry.time >= eventStart - 1e-6 &&
+              entry.time <= eventEnd + 1e-6
+          )
+        : [],
+    [view, action, own, eventStart, eventEnd]
+  );
+  // The list: its hits, and with the others on, theirs among them by time.
+  const listed = useMemo(
+    () =>
+      showOthers
+        ? [...hits, ...othersDuring].sort((a, b) => a.time - b.time)
+        : hits,
+    [showOthers, hits, othersDuring]
+  );
   // The section shown alone (open), or every section.
   const [focused, setFocused] = useState<FocusId | null>(null);
   const focusOf = (id: FocusId, label: string) => ({
@@ -943,6 +1141,12 @@ const EventPanel = ({
 
   const now = time + 1e-6;
   const landed = hits.filter((hit) => hit.time <= now);
+  // The reactions its landed hits set off, once each.
+  const landedReactions = Array.from(
+    new Set(
+      landed.flatMap((entry) => reactionsOf(entry).map((r) => r.reaction))
+    )
+  );
   const pending = hits.filter((hit) => hit.time > now);
   const nextHit = pending[0] ?? null;
   // The hit shown: the one picked, else the latest landed, else the next
@@ -978,7 +1182,10 @@ const EventPanel = ({
   const ownerHits = useMemo(
     () =>
       view.hits
-        .filter((entry) => entry.characterId === ownerId)
+        // A reaction's own hit (Overloaded) has no stats of the member.
+        .filter(
+          (entry) => entry.characterId === ownerId && !isReactionHit(entry)
+        )
         .sort((a, b) => a.time - b.time),
     [view, ownerId]
   );
@@ -1084,7 +1291,9 @@ const EventPanel = ({
       )}
     >
       <div className='flex shrink-0 items-center gap-2 px-3 py-2'>
-        <PanelTitle section='event'>Selected Event</PanelTitle>
+        <PanelTitle section='event' className='shrink-0 whitespace-nowrap'>
+          Selected Event
+        </PanelTitle>
         <span className='min-w-0 truncate text-2xs text-subtle'>
           {resolvedPin
             ? frozenAt === undefined
@@ -1147,7 +1356,7 @@ const EventPanel = ({
       </div>
 
       {!collapsed && (
-        <div className='flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pb-2.5 text-xs'>
+        <div className='flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2.5 pb-2.5 text-xs'>
           {!action || !owner || !character ? (
             <EmptyState>
               {followedId && !action
@@ -1184,12 +1393,7 @@ const EventPanel = ({
                         characterId={owner.characterId}
                       />
                       <SectionHelp section='character' />
-                      <span className='ml-auto text-2xs whitespace-nowrap text-subtle tabular-nums'>
-                        used at{' '}
-                        <span className='font-mono text-muted-foreground'>
-                          {action.start.toFixed(3)} s
-                        </span>
-                      </span>
+                      <UsedAtBadge start={action.start} />
                     </div>
                     <Badge
                       variant='muted'
@@ -1259,15 +1463,27 @@ const EventPanel = ({
                         : ''}
                     </span>
                   </p>
-                  {hit?.isCrit && !upcoming && (
-                    <Badge
-                      variant='warning'
-                      size='sm'
-                      className='ml-auto font-semibold text-amber-300'
-                    >
-                      <Sparkle className='size-3' />
-                      Critical Hit
-                    </Badge>
+                  {/* The hit shown: a CRIT, the reactions it set off. */}
+                  {hit && !upcoming && (
+                    <span className='ml-auto flex shrink-0 items-center gap-1'>
+                      {hit.isCrit && (
+                        <Badge
+                          variant='warning'
+                          size='sm'
+                          className='font-semibold text-amber-300'
+                        >
+                          <Sparkle className='size-3' />
+                          Critical Hit
+                        </Badge>
+                      )}
+                      {reactionsOf(hit).map((entry) => (
+                        <ReactionBadge
+                          key={entry.reaction}
+                          size='sm'
+                          {...entry}
+                        />
+                      ))}
+                    </span>
                   )}
                 </div>
                 {ownerState && (
@@ -1341,13 +1557,28 @@ const EventPanel = ({
               <Card
                 focus={focusOf('hits', 'Hit Details')}
                 hidden={hiddenBy('hits')}
+                actions={
+                  openHits && othersDuring.length > 0 ? (
+                    <OthersToggle
+                      count={othersDuring.length}
+                      shown={showOthers}
+                      onToggle={toggleOthers}
+                    />
+                  ) : undefined
+                }
                 title={
                   <DisclosureButton open={openHits} onOpenChange={setOpenHits}>
                     Hit Details
                     <SectionHelp section='hits' />
                     {!openHits && (
-                      <span className='ml-auto text-2xs font-normal text-subtle tabular-nums'>
+                      <span className='ml-auto truncate text-2xs font-normal text-subtle tabular-nums'>
                         {landed.length}/{hits.length} landed
+                        {landedReactions.length > 0 && (
+                          <span className='text-rose-200'>
+                            {' · '}
+                            {landedReactions.join(', ')}
+                          </span>
+                        )}
                       </span>
                     )}
                   </DisclosureButton>
@@ -1394,79 +1625,48 @@ const EventPanel = ({
                         }
                       />
                     </StatList>
-                    {hits.length > 0 && (
-                      <ul className='mt-2 flex flex-col gap-0.5'>
-                        {hits.map((entry) => {
-                          const key = hitKey(entry);
-                          return (
-                            <li key={key}>
-                              <button
-                                type='button'
+                    {/* With `Others` on (the card's icon), the coordinated
+                        attacks from elsewhere that hit while it played sit
+                        among its hits, by time. */}
+                    {listed.length > 0 && (
+                      <ul
+                        data-testid='timeline-event-hits'
+                        className='mt-2 flex flex-col gap-0.5'
+                      >
+                        {listed.map((entry) =>
+                          own.has(entry) ? (
+                            <li key={hitKey(entry)}>
+                              <HitRow
+                                entry={entry}
+                                time={time}
+                                selected={
+                                  hit !== null && hitKey(entry) === hitKey(hit)
+                                }
+                                reactions={reactionsOf(entry)}
                                 onClick={() => {
                                   pinEvent(pinOf(view, action, entry));
                                   onSeek?.(entry.time);
                                 }}
-                                className={cn(
-                                  'flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-2xs hover:bg-muted',
-                                  hit &&
-                                    key === hitKey(hit) &&
-                                    'bg-brand-600/20'
-                                )}
-                              >
-                                <ElementIcon
-                                  element={entry.element}
-                                  size={12}
-                                />
-                                <span
-                                  className={cn(
-                                    'truncate',
-                                    entry.time > now
-                                      ? 'text-subtle'
-                                      : 'text-muted-foreground'
-                                  )}
-                                >
-                                  {entry.label}
-                                </span>
-                                {/* When it lands: a countdown until then
-                                    (no taller than the row's text, so the
-                                    row keeps its height as it lands). */}
-                                {entry.time > now ? (
-                                  <Badge
-                                    variant='brand'
-                                    size='xs'
-                                    className='text-2xs leading-none font-normal text-brand-300 tabular-nums'
-                                  >
-                                    lands {seconds(entry.time)} · in{' '}
-                                    {short(entry.time - time)}s
-                                  </Badge>
-                                ) : (
-                                  <span className='shrink-0 text-2xs text-emerald-400/90 tabular-nums'>
-                                    ✓ {seconds(entry.time)}
-                                  </span>
-                                )}
-                                {entry.isCrit && entry.time <= now && (
-                                  <Badge
-                                    variant='warning'
-                                    size='xs'
-                                    className='font-bold text-amber-300'
-                                  >
-                                    CRIT
-                                  </Badge>
-                                )}
-                                <span
-                                  className={cn(
-                                    'ml-auto shrink-0 font-semibold tabular-nums',
-                                    entry.time > now
-                                      ? 'text-subtle'
-                                      : 'text-foreground'
-                                  )}
-                                >
-                                  {formatNumber(Math.round(entry.damage))}
-                                </span>
-                              </button>
+                              />
                             </li>
-                          );
-                        })}
+                          ) : (
+                            <li
+                              key={hitKey(entry)}
+                              data-testid='timeline-event-other-hit'
+                            >
+                              <HitRow
+                                entry={entry}
+                                time={time}
+                                who={
+                                  memberOf(entry.characterId)?.name ??
+                                  entry.characterId
+                                }
+                                reactions={reactionsOf(entry)}
+                                onClick={() => onSeek?.(entry.time)}
+                              />
+                            </li>
+                          )
+                        )}
                       </ul>
                     )}
                   </>

@@ -252,6 +252,41 @@ const PlayheadLine = memo(function PlayheadLine({
   );
 });
 
+// The first talent row a block's hits read, from the kit's data: a hit
+// dealt for another member (Nicole's projections, by the attacker) does
+// not carry its row.
+const findRow = (value: unknown): string | null => {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const row = findRow(entry);
+      if (row) {
+        return row;
+      }
+    }
+    return null;
+  }
+  if (value && typeof value === 'object') {
+    const { row } = value as { row?: unknown };
+    if (typeof row === 'string') {
+      return row;
+    }
+    return findRow(Object.values(value));
+  }
+  return null;
+};
+const blockRow = (characterId: string, blockId: string) =>
+  findRow(
+    getLoadedCharacter(characterId).character.blocks.find(
+      (block) => block.id === blockId
+    )
+  );
+
+// A talent row's prefix, as the talent it is of.
+const ROW_TALENTS: Record<string, { tag: string; kind: 'skill' | 'burst' }> = {
+  elementalSkill: { tag: 'E', kind: 'skill' },
+  elementalBurst: { tag: 'Q', kind: 'burst' },
+};
+
 const seconds = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)} s`;
 
@@ -1263,6 +1298,48 @@ const buildGroups = (
         entry.characterId === source.characterId &&
         entry.blockId === source.sourceId
     );
+    // Where it comes from: its block, the hitter's own or (a hit dealt for
+    // another member's effect, Nicole's projections) its giver's.
+    const origin =
+      chip ?? view.chips.find((entry) => entry.blockId === source.sourceId);
+    // A block tagged only "Talent" (a status of the kit, Opal Fire): the
+    // talent its hits' row is of, E or Q, with its in-game name.
+    const firstHit = view.hits.find(
+      (hit) =>
+        hit.characterId === source.characterId &&
+        hit.sourceId === source.sourceId
+    );
+    const rowTalent =
+      ROW_TALENTS[
+        (
+          firstHit?.row ??
+          (origin?.blockId
+            ? blockRow(origin.characterId, origin.blockId)
+            : null) ??
+          ''
+        ).split('/')[0]
+      ];
+    const talentName =
+      origin && rowTalent
+        ? getLoadedCharacter(origin.characterId).character.talents.find(
+            (talent) => talent.kind === rowTalent.kind
+          )?.name
+        : undefined;
+    const tag =
+      origin?.sourceTag === 'Talent' && rowTalent
+        ? rowTalent.tag
+        : origin?.sourceTag;
+    const name =
+      origin?.sourceTag === 'Talent' && rowTalent
+        ? talentName
+        : origin?.sourceName;
+    const from = origin
+      ? `${nameOf(origin.characterId)} · ${tag}${name ? ` (${name})` : ''}`
+      : null;
+    const setOffBy =
+      origin && origin.characterId !== source.characterId
+        ? nameOf(source.characterId)
+        : null;
     const marks: Mark[] = view.hits
       .filter(
         (hit) =>
@@ -1283,6 +1360,8 @@ const buildGroups = (
             accentClass={accentOf(hit.characterId)}
           >
             <TipTime start={hit.time} />
+            {from && <TipStat label='From' value={from} />}
+            {setOffBy && <TipStat label='Set off by' value={setOffBy} />}
             <TipStat
               label='Element'
               value={<ElementList elements={[hit.element]} />}
