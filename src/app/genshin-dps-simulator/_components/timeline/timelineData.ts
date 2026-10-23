@@ -567,6 +567,73 @@ export const countUpTo = (times: number[], time: number): number => {
   return low;
 };
 
+// A part of the run's DMG: a member's, or a kind of hit's.
+export type DamageShare = {
+  key: string;
+  label: string;
+  damage: number;
+  // Of the run's counted DMG (0-1).
+  share: number;
+};
+
+const DAMAGE_TYPE_LABELS: Record<string, string> = {
+  Normal: 'Normal Attack',
+  Charged: 'Charged Attack',
+  Plunge: 'Plunge',
+  Skill: 'Skill (E)',
+  Burst: 'Burst (Q)',
+  coordinated: 'Coordinated attacks',
+};
+
+// A hit's kind in the breakdown: a coordinated attack (a status's or a
+// trigger's hit), else its category (a talent, a reaction's own hit, a
+// Lunar reaction, or a kit's own: Sprint).
+const damageTypeOf = (hit: EnemyHit) =>
+  hit.coordinated ? 'coordinated' : hit.category;
+
+const sharesBy = (
+  hits: EnemyHit[],
+  total: number,
+  keyOf: (hit: EnemyHit) => string,
+  labelOf: (key: string) => string
+): DamageShare[] => {
+  const damage = new Map<string, number>();
+  hits.forEach((hit) => {
+    const key = keyOf(hit);
+    damage.set(key, (damage.get(key) ?? 0) + hit.damage);
+  });
+  return Array.from(damage, ([key, dealt]) => ({
+    key,
+    label: labelOf(key),
+    damage: dealt,
+    share: total > 0 ? dealt / total : 0,
+  })).sort((a, b) => b.damage - a.damage);
+};
+
+// The run's counted DMG by member and by kind of hit, most first. Hits
+// past the counted duration add nothing.
+export const damageBreakdown = (
+  view: Pick<InspectorView, 'hits'>
+): { total: number; byMember: DamageShare[]; byType: DamageShare[] } => {
+  const hits = view.hits.filter((hit) => hit.counted);
+  const total = hits.reduce((sum, hit) => sum + hit.damage, 0);
+  return {
+    total,
+    byMember: sharesBy(
+      hits,
+      total,
+      (hit) => hit.characterId,
+      (characterId) => getLoadedCharacter(characterId).character.name
+    ),
+    byType: sharesBy(
+      hits,
+      total,
+      damageTypeOf,
+      (key) => DAMAGE_TYPE_LABELS[key] ?? key
+    ),
+  };
+};
+
 // A list of rows at `now`, from the whole run's (in their order): the ones
 // that started by then, each the run's own object unless it still changes
 // at `now` (`settlesAt` after it: an action with hits to land), which `at`
@@ -582,6 +649,19 @@ export const rowsAt = <R extends { time: number; settlesAt?: number }>(
       : row.settlesAt !== undefined && row.settlesAt > now
       ? [at(row, now)]
       : [row]
+  );
+
+// React.memo's check for a bar's parts that do not follow the playhead:
+// drawn again only when what they show changes, not on every frame of a
+// playback. Function props are callbacks that do the same thing on every
+// render.
+export const sameShownProps = <P extends object>(
+  before: P,
+  after: P
+): boolean =>
+  (Object.keys(after) as (keyof P)[]).every(
+    (key) =>
+      typeof after[key] === 'function' || Object.is(before[key], after[key])
   );
 
 // The panels redraw at most this often while the playhead moves (s).

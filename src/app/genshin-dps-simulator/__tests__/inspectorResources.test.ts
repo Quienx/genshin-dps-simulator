@@ -15,6 +15,8 @@ import { buildInspectorView } from '../_lib/inspector';
 import {
   buildDefaultTeam,
   buildMemberValues,
+  buildPresetTeam,
+  MAVUIKA_PRESETS,
   runSolo,
   runTeam,
 } from '../_lib/team';
@@ -184,6 +186,47 @@ describe('Selected Event: the character state', () => {
 
     expect(remaining(at)).toBeGreaterThan(0);
     expect(remaining(after)).toBeCloseTo(remaining(at) - 1, 1);
+  });
+
+  // The panel shows the mechanic and weapon lines only when there is one:
+  // that must hold for a member's whole run, or the panel would jump.
+  it.each([
+    ['Varesa', buildDefaultTeam()],
+    ['Mavuika', buildPresetTeam(MAVUIKA_PRESETS[0])],
+  ])("keeps each member's lines for the whole run (%s's team)", (_, team) => {
+    const run = runTeam(team, 'expected');
+    const view = buildInspectorView(run);
+    const shapes = new Map<string, Set<string>>();
+    for (const action of view.actions) {
+      const member = run.members.find(
+        (entry) => entry.characterId === action.characterId
+      )!;
+      const times = [
+        action.start,
+        (action.start + action.end) / 2,
+        action.end,
+        action.end + 2,
+      ];
+      for (const time of times) {
+        const state = eventCharacterState(member, action, time);
+        const shape = `${state.mechanic?.id ?? 'none'}|${
+          state.weapon.value === null ? 'no stacks' : 'stacks'
+        }`;
+        const seen = shapes.get(member.characterId) ?? new Set<string>();
+        seen.add(shape);
+        shapes.set(member.characterId, seen);
+      }
+    }
+
+    expect(shapes.size).toBe(run.members.length);
+    // The members whose lines change, with what they showed.
+    const changing = Array.from(shapes)
+      .filter(([, seen]) => seen.size > 1)
+      .map(
+        ([characterId, seen]) =>
+          `${characterId}: ${Array.from(seen).join(', ')}`
+      );
+    expect(changing).toEqual([]);
   });
 });
 

@@ -18,7 +18,7 @@ import { FRAMES_PER_SECOND } from './frames';
 import { isAmplifyingReaction, TRANSFORMATIVE_REACTIONS } from './reactions';
 import { getDeadWait } from './rotation/timelineLayout';
 import { TeamRun } from './team';
-import { HitLogEntry } from './types';
+import { CritMode, HitLogEntry } from './types';
 
 const toSeconds = (frame: number) => frame / FRAMES_PER_SECOND;
 
@@ -331,6 +331,8 @@ export type InspectorView = {
   // How long the run played (s), and the part of it that counts.
   duration: number;
   countedDuration: number;
+  // Rolled CRITs (each hit crits or not), or every hit's average.
+  critMode: CritMode;
   chips: BlockChip[];
   lanes: number;
   actions: ActionPiece[];
@@ -1544,6 +1546,7 @@ export const buildInspectorView = (
   return {
     duration: run.duration,
     countedDuration: run.countedDuration,
+    critMode: run.critMode,
     hits: run.members
       .flatMap((member) =>
         member.hitLog.map((hit, index) => ({

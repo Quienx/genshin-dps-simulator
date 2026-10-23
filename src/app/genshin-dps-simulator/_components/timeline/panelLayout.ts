@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+
+import { CritMode } from '../../_lib/types';
 
 // The timeline's panel layout (which panels are minimized, how big each
 // one is), kept in this browser only (localStorage): it comes back on
@@ -69,6 +77,49 @@ export const useMinimizedPanels = () => {
   );
   return { panels, togglePanel };
 };
+
+// The timeline's names column (px): dragged wider or narrower by its
+// edge, remembered across reloads.
+const LABEL_WIDTH_KEY = 'genshin-sim:label-width';
+export const LABEL_WIDTH = { min: 160, max: 360, initial: 220 } as const;
+export const clampLabelWidth = (width: number) =>
+  Math.round(Math.min(LABEL_WIDTH.max, Math.max(LABEL_WIDTH.min, width)));
+export const parseLabelWidth = (text: string | null): number => {
+  const width = Number(text);
+  return text && Number.isFinite(width)
+    ? clampLabelWidth(width)
+    : LABEL_WIDTH.initial;
+};
+
+// The width, read after mounting (as the panels are); `resize` follows a
+// drag, `save` keeps where it ended.
+export const useLabelWidth = () => {
+  const [width, setWidth] = useState<number>(LABEL_WIDTH.initial);
+  const latest = useRef<number>(LABEL_WIDTH.initial);
+  useEffect(() => {
+    latest.current = parseLabelWidth(layoutStorage.getItem(LABEL_WIDTH_KEY));
+    setWidth(latest.current);
+  }, []);
+  const resize = useCallback((next: number) => {
+    latest.current = clampLabelWidth(next);
+    setWidth(latest.current);
+  }, []);
+  const save = useCallback(
+    () => layoutStorage.setItem(LABEL_WIDTH_KEY, String(latest.current)),
+    []
+  );
+  return { width, resize, save };
+};
+
+// How CRITs are played: each hit's average (the default: the same total
+// on every run, to compare rotations) or rolled, as the user last picked.
+const CRIT_MODE_KEY = 'genshin-sim:crit-mode';
+export const parseCritMode = (text: string | null): CritMode =>
+  text === 'random' ? 'random' : 'expected';
+export const loadCritMode = (): CritMode =>
+  parseCritMode(layoutStorage.getItem(CRIT_MODE_KEY));
+export const storeCritMode = (mode: CritMode) =>
+  layoutStorage.setItem(CRIT_MODE_KEY, mode);
 
 // Whether a media query holds: false on the server and the first client
 // render, then the real answer (kept up to date).

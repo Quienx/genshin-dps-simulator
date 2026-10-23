@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { DisclosureButton } from '@/components/ui/disclosure';
 
 import { MemberColor } from './memberColors';
+import { LABEL_WIDTH, useLabelWidth } from './panelLayout';
 import {
   currentPointerX,
   memberRowAtPointer,
@@ -38,7 +39,6 @@ import {
 import { Ruler } from './ruler';
 import SectionHelp from './SectionHelp';
 import { SectionHelpKey } from './sectionHelp';
-import { SOURCE_STYLES, SourceKind, sourceKindOfChip } from './sourceStyles';
 import {
   ActionGroup,
   actionTitle,
@@ -67,7 +67,6 @@ import {
   splitTeamActionId,
 } from '../../_lib/engine/simulateTeam';
 import formatNumber from '../../_lib/formatNumber';
-import { FRAMES_PER_SECOND } from '../../_lib/frames';
 import { elementIconUrl } from '../../_lib/genshinIcons';
 import {
   ActionPiece,
@@ -78,7 +77,6 @@ import {
 import { RotationAction } from '../../_lib/rotation/rotationSchema';
 import { TeamMemberRun } from '../../_lib/team';
 
-export const LABEL_PX = 200;
 const AXIS_PX = 20;
 const ICON_PX = 20;
 // Room an icon needs around it in a block (or a stretch of one) to show.
@@ -138,7 +136,6 @@ type TimelineChartProps = {
   ruler: Ruler;
   pxPerSecond: number;
   onSeek: (time: number) => void;
-  onTogglePlay: () => void;
   // Zoom by a factor (the chart keeps the point under the pointer, or the
   // playhead, where it was).
   onZoom: (factor: number) => void;
@@ -199,6 +196,10 @@ type Row = {
   label: string;
   icon: ReactNode;
   content: ReactNode;
+  // A member's heading over their rows (no track of its own), in their
+  // color; or a row's stripe in the color of the member it belongs to.
+  heading?: string;
+  stripe?: string;
 };
 
 type Group = {
@@ -462,15 +463,6 @@ const buildGroups = (
   const slotOf = new Map(members.map((member) => [member.characterId, member]));
   const nameOf = (id: string) => slotOf.get(id)?.name ?? id;
   const ownerOf = (id: string) => slotOf.get(id) ?? null;
-  // The talent of the action that made a block (its play's cause id).
-  const kindByCause = new Map(
-    view.actions.map((action) => [
-      action.causeId,
-      actionsById.get(action.actionId)?.kind,
-    ])
-  );
-  const causeKindOf = (cause: string | null | undefined) =>
-    cause ? kindByCause.get(cause) : undefined;
   const accentOf = (id: string) => slotOf.get(id)?.color.bar ?? 'bg-slate-400';
   // "Chevreuse: Elemental Burst" → "Elemental Burst" (the card shows whose).
   const actionName = (action: ActionPiece | ActionGroup) =>
@@ -554,7 +546,11 @@ const buildGroups = (
             />
             <TipStat
               label='CRITs'
-              value={`${crits} / ${hits.length}`}
+              value={
+                view.critMode === 'expected'
+                  ? 'Averaged'
+                  : `${crits} / ${hits.length}`
+              }
               className={crits > 0 ? 'text-rose-300' : undefined}
             />
             <TipStat
@@ -585,6 +581,7 @@ const buildGroups = (
       id: `action-${member.characterId}`,
       label: member.name,
       icon: <Avatar src={member.avatar} size={22} shape='circle' />,
+      stripe: member.color.bar,
       content: actions.map((action) => {
         const rotationAction = displayAction(action, actionsById);
         tips.set(`a:${action.key}`, () => actionTip(action));
@@ -720,7 +717,8 @@ const buildGroups = (
             {warned && (
               <TriangleAlert
                 data-testid='timeline-action-warned'
-                aria-label='Warning'
+                role='img'
+                aria-label={`Warning: ${warningsOf(action).join(' · ')}`}
                 className='absolute top-0 right-0 size-2.5 fill-amber-400 text-slate-950'
               />
             )}
@@ -801,7 +799,12 @@ const buildGroups = (
   // One row per block (owner and name), with every time it was up.
   const spans = new Map<
     string,
-    { label: string; iconUrl: string | null; kind: SourceKind; bars: Bar[] }
+    {
+      characterId: string;
+      label: string;
+      iconUrl: string | null;
+      bars: Bar[];
+    }
   >();
   view.chips.forEach((chip) => {
     if (
@@ -813,9 +816,9 @@ const buildGroups = (
     }
     const rowKey = `${chip.characterId}|${chip.label}`;
     const row = spans.get(rowKey) ?? {
+      characterId: chip.characterId,
       label: chip.label,
       iconUrl: chip.iconUrl,
-      kind: sourceKindOfChip(chip, causeKindOf(chip.cause)),
       bars: [],
     };
     // Renewed while up, it is one stretch (mergeSpans).
@@ -886,28 +889,33 @@ const buildGroups = (
   spans.forEach((row) =>
     row.bars.forEach((bar) => tips.set(`b:${bar.key}`, bar.title))
   );
-  const buffRows: Row[] = Array.from(spans.entries()).map(([key, row]) => ({
+  const buffRows: (Row & { characterId: string })[] = Array.from(
+    spans.entries()
+  ).map(([key, row]) => ({
     id: `buff-${key}`,
+    characterId: row.characterId,
     label: row.label,
     icon: <RowIcon src={row.iconUrl} />,
     content: (
       <Bars
         bars={row.bars}
         ruler={ruler}
-        colorClass={SOURCE_STYLES[row.kind].track}
+        // The giver's color, as their blocks.
+        colorClass={cn(
+          'border',
+          slotOf.get(row.characterId)?.color.chip ?? 'border-input bg-muted'
+        )}
       />
     ),
   }));
 
   // A weapon's, set's or constellation's change to a special system (Crimson
   // Moon's Semblance granting Bond of Life): a row of its own, a mark each
-  // time, in the source's color.
-  const systemRows: Row[] = systemEventRows(view).map((row) => {
+  // time, in its member's color.
+  const systemRows: (Row & { characterId: string })[] = systemEventRows(
+    view
+  ).map((row) => {
     const prefix = `s:${row.key}:`;
-    const kind = sourceKindOfChip(
-      row.chips[0],
-      causeKindOf(row.chips[0].cause)
-    );
     const marks: Mark[] = row.chips.map((chip) => ({
       key: chip.key,
       time: chip.start,
@@ -937,12 +945,16 @@ const buildGroups = (
     marks.forEach((mark) => tips.set(`${prefix}${mark.key}`, mark.title));
     return {
       id: `system-${row.key}`,
+      characterId: row.characterId,
       label: row.label,
       icon: <RowIcon src={row.iconUrl} />,
       content: (
         <Marks marks={marks} prefix={prefix} ruler={ruler}>
           <MarkDot
-            className={cn(SOURCE_STYLES[kind].chip, 'ring-current')}
+            className={cn(
+              slotOf.get(row.characterId)?.color.chip ?? 'bg-muted',
+              'ring-current'
+            )}
             Icon={Sparkle}
           />
         </Marks>
@@ -1191,7 +1203,13 @@ const buildGroups = (
             />
             <TipStat
               label='CRIT'
-              value={hit.isCrit ? 'Yes' : 'No'}
+              value={
+                view.critMode === 'expected'
+                  ? 'Averaged'
+                  : hit.isCrit
+                  ? 'Yes'
+                  : 'No'
+              }
               className={hit.isCrit ? 'text-rose-300' : undefined}
             />
             {!hit.counted && (
@@ -1251,6 +1269,30 @@ const buildGroups = (
     };
   });
 
+  // Each member's effects together, in the party's order (each in the
+  // order it first came up), under the member's name when there are
+  // several; each row striped in its member's color.
+  const byGiver = (rows: (Row & { characterId: string })[]): Row[] =>
+    members.flatMap((member) => {
+      const own = rows.filter((row) => row.characterId === member.characterId);
+      if (own.length === 0) {
+        return [];
+      }
+      const striped = own.map((row) => ({ ...row, stripe: member.color.bar }));
+      return members.length > 1
+        ? [
+            {
+              id: `giver-${member.characterId}`,
+              label: member.name,
+              icon: <Avatar src={member.avatar} size={16} shape='circle' />,
+              content: null,
+              heading: member.color.text,
+            },
+            ...striped,
+          ]
+        : striped;
+    });
+
   const groups: Group[] = [
     {
       id: 'actions',
@@ -1264,7 +1306,7 @@ const buildGroups = (
       help: 'buffs' as const,
       title: 'Buffs & Debuffs',
       Icon: ShieldPlus,
-      rows: [...buffRows, ...systemRows],
+      rows: byGiver([...buffRows, ...systemRows]),
     },
     {
       id: 'coordinated',
@@ -1417,33 +1459,66 @@ const TimelineRows = memo(function TimelineRows({
               </div>
             </div>
             {open &&
-              group.rows.map((row) => (
-                <div
-                  key={row.id}
-                  data-testid={`timeline-row-${row.id}`}
-                  // A member's actions row: what a Dash or Wait dropped on
-                  // it belongs to.
-                  data-row-member={
-                    row.id.startsWith('action-') ? row.id.slice(7) : undefined
-                  }
-                  className='flex h-8 hover:bg-muted/30'
-                >
-                  {labelPx > 0 && (
-                    <div
-                      className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
-                      style={{ width: labelPx }}
-                      title={row.label}
-                    >
-                      {row.icon}
-                      <span className='truncate'>{row.label}</span>
+              group.rows.map((row) =>
+                row.heading !== undefined ? (
+                  <div
+                    key={row.id}
+                    data-testid={`timeline-row-${row.id}`}
+                    className='flex h-6'
+                  >
+                    {labelPx > 0 && (
+                      <div
+                        className={cn(
+                          'sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-r border-border bg-sunken pr-2 pl-6 text-2xs font-medium',
+                          row.heading
+                        )}
+                        style={{ width: labelPx }}
+                      >
+                        {row.icon}
+                        <span className='truncate'>{row.label}</span>
+                      </div>
+                    )}
+                    <div className='relative' style={{ width: trackWidth }}>
+                      {gridLines}
                     </div>
-                  )}
-                  <div className='relative' style={{ width: trackWidth }}>
-                    {gridLines}
-                    {row.content}
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <div
+                    key={row.id}
+                    data-testid={`timeline-row-${row.id}`}
+                    // A member's actions row: what a Dash or Wait dropped on
+                    // it belongs to.
+                    data-row-member={
+                      row.id.startsWith('action-') ? row.id.slice(7) : undefined
+                    }
+                    className='flex h-8 hover:bg-muted/30'
+                  >
+                    {labelPx > 0 && (
+                      <div
+                        className='sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-border bg-sunken pr-2 pl-8 text-xs text-muted-foreground'
+                        style={{ width: labelPx }}
+                        title={row.label}
+                      >
+                        {row.stripe && (
+                          <span
+                            aria-hidden
+                            className={cn(
+                              'absolute inset-y-1.5 left-6 w-0.5 rounded-full opacity-70',
+                              row.stripe
+                            )}
+                          />
+                        )}
+                        {row.icon}
+                        <span className='truncate'>{row.label}</span>
+                      </div>
+                    )}
+                    <div className='relative' style={{ width: trackWidth }}>
+                      {gridLines}
+                      {row.content}
+                    </div>
+                  </div>
+                )
+              )}
             {/* Room after a section's rows, so sections stand apart. */}
             {open && group.rows.length > 0 && (
               <div aria-hidden className='flex h-3'>
@@ -1477,82 +1552,6 @@ const TimelineRows = memo(function TimelineRows({
     </>
   );
 });
-
-// The horizontal scrollbar, under the tracks only (it starts where time
-// starts, not under the labels column).
-const TimeScrollbar = ({
-  scroll,
-  onScrollTo,
-  labelPx,
-}: {
-  scroll: { left: number; client: number; width: number };
-  onScrollTo: (left: number) => void;
-  labelPx: number;
-}) => {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; left: number } | null>(null);
-  const visible = scroll.client - labelPx;
-  const content = scroll.width - labelPx;
-  const maxLeft = Math.max(0, scroll.width - scroll.client);
-  const trackWidth = trackRef.current?.clientWidth ?? visible;
-  const thumb = Math.max(
-    32,
-    content > 0 ? (trackWidth * visible) / content : trackWidth
-  );
-  const room = Math.max(1, trackWidth - thumb);
-  const thumbLeft = maxLeft > 0 ? (scroll.left / maxLeft) * room : 0;
-  const pxPerScroll = maxLeft / room;
-
-  return (
-    <div className='group flex h-2.5 shrink-0 items-center'>
-      <div className='shrink-0' style={{ width: labelPx }} />
-      <div
-        ref={trackRef}
-        className='relative h-full flex-1 touch-none'
-        // A click on the track jumps there (the thumb centered on it).
-        onPointerDown={(event) => {
-          if (event.target !== event.currentTarget) {
-            return;
-          }
-          const x =
-            event.clientX - event.currentTarget.getBoundingClientRect().left;
-          onScrollTo((x - thumb / 2) * pxPerScroll);
-        }}
-      >
-        {maxLeft > 0 && (
-          <span
-            role='scrollbar'
-            aria-orientation='horizontal'
-            aria-controls='timeline-chart'
-            aria-valuemin={0}
-            aria-valuemax={Math.round(maxLeft)}
-            aria-valuenow={Math.round(scroll.left)}
-            className='absolute top-1/2 h-1 -translate-y-1/2 cursor-pointer rounded-full bg-input/70 transition-[height,background-color] group-hover:h-1.5 group-hover:bg-subtle/80'
-            style={{ left: thumbLeft, width: thumb }}
-            onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId);
-              drag.current = { x: event.clientX, left: scroll.left };
-            }}
-            onPointerMove={(event) => {
-              if (drag.current) {
-                onScrollTo(
-                  drag.current.left +
-                    (event.clientX - drag.current.x) * pxPerScroll
-                );
-              }
-            }}
-            onPointerUp={() => {
-              drag.current = null;
-            }}
-            onPointerCancel={() => {
-              drag.current = null;
-            }}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
 
 // How long the pointer rests on a block before its tip opens, and how
 // long a tip stays once the pointer leaves (to reach it and scroll it).
@@ -1653,7 +1652,6 @@ const TimelineChart = ({
   ruler,
   pxPerSecond,
   onSeek,
-  onTogglePlay,
   onZoom,
   onTrackWidthChange,
   selectedBlocks = NO_BLOCKS,
@@ -1666,8 +1664,13 @@ const TimelineChart = ({
   memberRuns = NO_MEMBER_RUNS,
 }: TimelineChartProps) => {
   const editing = onSelectBlock !== undefined;
-  // The labels column on the left (in edit mode too).
-  const labelPx = LABEL_PX;
+  // The labels column on the left (in edit mode too): its right edge
+  // drags it wider or narrower.
+  const {
+    width: labelPx,
+    resize: resizeLabels,
+    save: saveLabels,
+  } = useLabelWidth();
   // Edit mode: the slot a drag would drop in (its moment) and what is
   // dragged: the guide line and the placeholder go there.
   const [slot, setSlot] = useState<DropSlot | null>(null);
@@ -1820,9 +1823,9 @@ const TimelineChart = ({
         zoomRef.current(Math.exp(-event.deltaY * WHEEL_ZOOM * 2));
         return;
       }
-      // A sideways swipe pans (the native horizontal scroll is off, see
-      // TimeScrollbar); up and down scroll the tracks when they do not
-      // fit, else (or with Shift) pan.
+      // A sideways swipe pans (the native horizontal scroll is off); up
+      // and down scroll the tracks when they do not fit, else (or with
+      // Shift) pan.
       const sideways = Math.abs(event.deltaX) > Math.abs(event.deltaY);
       const scrollsDown = element.scrollHeight > element.clientHeight + 1;
       if (!sideways && scrollsDown && !event.shiftKey) {
@@ -1835,20 +1838,16 @@ const TimelineChart = ({
     return () => element.removeEventListener('wheel', handleWheel);
   }, [labelPx]);
 
-  // Where the view is: the time scrollbar and the playhead's label follow
-  // it.
-  const [scroll, setScroll] = useState({ left: 0, client: 0, width: 0 });
+  // Where the view is: the playhead's label and the names column's edge
+  // follow it.
+  const [scroll, setScroll] = useState({ left: 0 });
   const measure = () => {
     const element = scrollRef.current;
     if (element) {
-      setScroll({
-        left: element.scrollLeft,
-        client: element.clientWidth,
-        width: element.scrollWidth,
-      });
+      setScroll({ left: element.scrollLeft });
     }
   };
-  useLayoutEffect(measure, [ruler]);
+  useLayoutEffect(measure, [ruler, labelPx]);
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) {
@@ -2132,29 +2131,11 @@ const TimelineChart = ({
             measure();
             hideTip();
           }}
-          className='relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-sunken pb-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60'
+          className='relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-sunken outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60'
+          // The player's keys (Space, the arrows, Home, End, + and −) are
+          // the page's (usePlayerShortcuts); edit mode's are the chart's.
           onKeyDown={(event) => {
-            if (event.key === ' ') {
-              event.preventDefault();
-              onTogglePlay();
-            } else if (
-              event.key === 'ArrowRight' ||
-              event.key === 'ArrowLeft'
-            ) {
-              event.preventDefault();
-              const step = event.shiftKey ? 1 : 1 / FRAMES_PER_SECOND;
-              onSeek(time + (event.key === 'ArrowRight' ? step : -step));
-            } else if (event.key === 'Home') {
-              event.preventDefault();
-              onSeek(0);
-            } else if (event.key === 'End') {
-              event.preventDefault();
-              onSeek(view.duration);
-            } else if (event.key === '+' || event.key === '=') {
-              onZoom(1.25);
-            } else if (event.key === '-') {
-              onZoom(0.8);
-            } else if (editing && event.key === 'Escape') {
+            if (editing && event.key === 'Escape') {
               onSelectionKey?.('clear');
             } else if (
               editing &&
@@ -2448,6 +2429,53 @@ const TimelineChart = ({
               </div>
             )}
 
+            {/* The names column's edge: drag it (or arrow keys) to make
+              the column wider or narrower. */}
+            <div
+              role='separator'
+              aria-orientation='vertical'
+              aria-label='Names column width'
+              aria-valuenow={labelPx}
+              aria-valuemin={LABEL_WIDTH.min}
+              aria-valuemax={LABEL_WIDTH.max}
+              tabIndex={0}
+              data-testid='timeline-label-resize'
+              title='Drag to resize the names'
+              className='absolute inset-y-0 z-[45] w-2 -translate-x-1/2 cursor-col-resize outline-none hover:bg-brand-500/30 focus-visible:bg-brand-500/40 active:bg-brand-500/50'
+              style={{ left: labelPx + scroll.left }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                hideTip();
+                const startX = event.clientX;
+                const startWidth = labelPx;
+                const handle = event.currentTarget;
+                handle.setPointerCapture(event.pointerId);
+                const move = (moved: PointerEvent) =>
+                  resizeLabels(startWidth + moved.clientX - startX);
+                const end = () => {
+                  handle.removeEventListener('pointermove', move);
+                  handle.removeEventListener('pointerup', end);
+                  handle.removeEventListener('pointercancel', end);
+                  saveLabels();
+                };
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', end);
+                handle.addEventListener('pointercancel', end);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  resizeLabels(
+                    labelPx + (event.key === 'ArrowRight' ? 16 : -16)
+                  );
+                  saveLabels();
+                }
+              }}
+              onClick={(event) => event.stopPropagation()}
+            />
+
             {/* The playhead's line through every track. */}
             <span
               aria-hidden
@@ -2457,15 +2485,6 @@ const TimelineChart = ({
             />
           </div>
         </div>
-        <TimeScrollbar
-          labelPx={labelPx}
-          scroll={scroll}
-          onScrollTo={(left) => {
-            if (scrollRef.current) {
-              scrollRef.current.scrollLeft = left;
-            }
-          }}
-        />
       </div>
       <HoverTip
         hover={hover}

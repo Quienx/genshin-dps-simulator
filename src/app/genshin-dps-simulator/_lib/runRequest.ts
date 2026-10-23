@@ -19,7 +19,7 @@ export type RunRequest =
   | { kind: 'team'; team: TeamRunSetup; critMode: CritMode }
   | { kind: 'own'; team: TeamState; critMode: CritMode }
   | { kind: 'solo'; values: SimulationValues; critMode: CritMode }
-  | { kind: 'inspector'; members: SimulationValues[] };
+  | { kind: 'inspector'; members: SimulationValues[]; critMode?: CritMode };
 
 export const executeRun = (request: RunRequest): TeamRun => {
   switch (request.kind) {
@@ -30,6 +30,6 @@ export const executeRun = (request: RunRequest): TeamRun => {
     case 'solo':
       return runSolo(request.values, request.critMode);
     case 'inspector':
-      return runInspectorTest(request.members);
+      return runInspectorTest(request.members, request.critMode);
   }
 };

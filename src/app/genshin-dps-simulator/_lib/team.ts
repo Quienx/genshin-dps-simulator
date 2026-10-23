@@ -643,6 +643,8 @@ export type TeamMemberRun = {
 };
 
 export type TeamRun = {
+  // CRITs rolled on each hit, or each hit's average (the same every run).
+  critMode: CritMode;
   // Over the counted duration.
   dps: number;
   // DMG within the counted duration.
@@ -799,6 +801,7 @@ export const runTeam = (
       return sum + Math.max(0, Math.min(end, duration) - swap.time);
     }, 0);
   return {
+    critMode,
     dps: total / duration,
     totalDamage: total,
     duration: played,
@@ -1073,10 +1076,10 @@ export type StateRow = {
   needed?: number;
 };
 
-// A character's own state at a moment, for the Event panel: always the
-// same three lines, so the panel never jumps. Its mechanic (Nightsoul
-// points, else Bond of Life; null without either), Energy, and its weapon
-// with its stacks.
+// A character's own state at a moment, for the Event panel. Each line
+// shows only when it exists, and stays the same for the member's whole
+// run, so the panel never jumps. Its mechanic (Nightsoul points, else Bond
+// of Life; null without either), Energy, and its weapon with its stacks.
 export type CharacterState = {
   mechanic: StateRow | null;
   // What fills the Q: its Energy, or what it needs instead (Mavuika's
@@ -1600,7 +1603,10 @@ const INSPECTOR_TEST_ROTATION: [string, string][] = [
   ['iansan', 'burst'],
 ];
 
-export const runInspectorTest = (members: SimulationValues[]): TeamRun => {
+export const runInspectorTest = (
+  members: SimulationValues[],
+  critMode: CritMode = 'random'
+): TeamRun => {
   const ids = members.map((values) => values.character);
   return runTeam(
     {
@@ -1617,6 +1623,6 @@ export const runInspectorTest = (members: SimulationValues[]): TeamRun => {
       fillWhileWaiting: false,
       swapDelayFrames: DEFAULT_SWAP_DELAY_FRAMES,
     },
-    'random'
+    critMode
   );
 };
