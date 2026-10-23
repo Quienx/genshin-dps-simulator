@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+import { PlayheadStore, useStoreValue } from './playhead';
 import { sameShownProps } from './timelineData';
 import useLatestCallback from './useLatestCallback';
 import formatNumber from '../../_lib/formatNumber';
@@ -29,7 +30,7 @@ export const SPEEDS = [0.5, 1, 2, 4];
 
 type TimelinePlayerProps = {
   duration: number;
-  time: number;
+  playhead: PlayheadStore;
   playing: boolean;
   speed: number;
   onTogglePlay: () => void;
@@ -172,11 +173,58 @@ const ZoomControls = memo(function ZoomControls({
 },
 sameShownProps);
 
+// The clock and the slider: the only parts of the bar that follow every
+// frame, so each reads the playhead itself (nothing else is redrawn).
+const PlayheadClock = ({
+  playhead,
+  duration,
+}: {
+  playhead: PlayheadStore;
+  duration: number;
+}) => {
+  const time = useStoreValue(playhead);
+  return (
+    <span
+      data-testid='timeline-time'
+      className='font-mono text-2xs whitespace-nowrap text-foreground tabular-nums'
+    >
+      {time.toFixed(3)} s{' '}
+      <span className='text-subtle'>/ {formatNumber(duration)} s</span>
+    </span>
+  );
+};
+
+// It drags the run like a video's, taking the room the bar has left.
+const TimeSlider = ({
+  playhead,
+  duration,
+  onSeek,
+}: {
+  playhead: PlayheadStore;
+  duration: number;
+  onSeek: (time: number) => void;
+}) => {
+  const time = useStoreValue(playhead);
+  return (
+    <input
+      type='range'
+      aria-label='Time'
+      data-testid='timeline-slider'
+      min={0}
+      max={duration}
+      step={0.001}
+      value={time}
+      onChange={(event) => onSeek(Number(event.target.value))}
+      className='h-1 min-w-32 flex-1 cursor-pointer accent-brand-500'
+    />
+  );
+};
+
 // The timeline's player, in its panel's bar: the buttons, the speed, the
 // clock, the slider that drags the run like a video's, and the zoom.
 const TimelinePlayer = ({
   duration,
-  time,
+  playhead,
   playing,
   speed,
   onTogglePlay: togglePlay,
@@ -207,27 +255,8 @@ const TimelinePlayer = ({
         onSeek={onSeek}
       />
       <SpeedToggle speed={speed} onSpeedChange={onSpeedChange} />
-      {/* The clock (and the slider): the only part redrawn as the
-          playhead moves. */}
-      <span
-        data-testid='timeline-time'
-        className='font-mono text-2xs whitespace-nowrap text-foreground tabular-nums'
-      >
-        {time.toFixed(3)} s{' '}
-        <span className='text-subtle'>/ {formatNumber(duration)} s</span>
-      </span>
-      {/* It takes the room the bar has left. */}
-      <input
-        type='range'
-        aria-label='Time'
-        data-testid='timeline-slider'
-        min={0}
-        max={duration}
-        step={0.001}
-        value={time}
-        onChange={(event) => onSeek(Number(event.target.value))}
-        className='h-1 min-w-32 flex-1 cursor-pointer accent-brand-500'
-      />
+      <PlayheadClock playhead={playhead} duration={duration} />
+      <TimeSlider playhead={playhead} duration={duration} onSeek={onSeek} />
       {zoomable && <ZoomControls onZoom={onZoom} onFit={onFit} />}
     </div>
   );

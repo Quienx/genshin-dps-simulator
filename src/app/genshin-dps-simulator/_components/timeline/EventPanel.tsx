@@ -37,6 +37,7 @@ import {
 
 import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
+import { usePlayheadStore, useQuantizedTime } from './playhead';
 import SectionHelp from './SectionHelp';
 import { SectionHelpKey } from './sectionHelp';
 import { ELEMENT_TEXT } from './sourceStyles';
@@ -52,7 +53,9 @@ import {
   hitsOfAction,
   isSystemResource,
   meterAt,
+  PANEL_QUANTUM,
   pinOf,
+  PLAYING_QUANTUM,
   resolvePin,
   samePanelProps,
   shownEvent,
@@ -295,16 +298,18 @@ const Card = ({
 // timer empties as it runs out; stacks light up one segment each. An
 // instant block (a trigger firing) lasts nothing, so it gets no bar: a
 // dot that fades out while it stays listed. The exact numbers are in its
-// tooltip.
+// tooltip. It reads the playhead itself (at the panel's quantum), so its
+// row is not drawn again as the time moves.
 const BlockMeter = ({
   chip,
-  time,
+  quantum,
   barClass,
 }: {
   chip: BlockChip;
-  time: number;
+  quantum: number;
   barClass: string;
 }) => {
+  const time = useQuantizedTime(usePlayheadStore(), quantum);
   // A bonus while a resource meets a bound: the resource is its timer,
   // full far from the bound, empty at it.
   if (chip.meter) {
@@ -363,39 +368,43 @@ const BlockMeter = ({
 // `pulseKey`) it lights up and fades out over a second; `held` keeps it
 // lit softly (made by the event shown). `quiet`: drawn again for its
 // tooltip, it does not light up for the application it already showed.
-// Its ref and props go through, as a tooltip's trigger.
+// The light is a CSS animation on a layer keyed by `pulseKey` (a renewal
+// mounts it again, so it plays again): no state or timer, so no extra
+// render. Its ref and props go through, as a tooltip's trigger.
 const PulseRow = forwardRef<
   HTMLDivElement,
   ComponentProps<'div'> & { pulseKey: number; held: boolean; quiet?: boolean }
 >(function PulseRow(
-  { pulseKey, held, quiet = false, className, ...props },
+  { pulseKey, held, quiet = false, className, children, ...props },
   ref
 ) {
-  const [lit, setLit] = useState(!quiet);
   const quietKey = useRef(quiet ? pulseKey : null);
-  useEffect(() => {
-    if (quietKey.current === pulseKey) {
-      return undefined;
-    }
-    setLit(true);
-    // Lit for a moment, then the transition fades it.
-    const timer = window.setTimeout(() => setLit(false), 30);
-    return () => window.clearTimeout(timer);
-  }, [pulseKey]);
   return (
     <div
       ref={ref}
       {...props}
-      className={cn(
-        className,
-        lit
-          ? 'bg-brand-400/35 transition-none'
-          : 'transition-colors duration-1000 ease-out',
-        held && !lit && 'bg-brand-500/15'
+      className={cn('relative isolate', className, held && 'bg-brand-500/15')}
+    >
+      {quietKey.current !== pulseKey && (
+        <span
+          key={pulseKey}
+          aria-hidden
+          className='pointer-events-none absolute inset-0 -z-10 bg-brand-400/35 animate-out fade-out-0 fill-mode-forwards duration-1000 ease-out'
+        />
       )}
-    />
+      {children}
+    </div>
   );
 });
+
+// A row's tooltip, reading the playhead itself like the meter.
+const LiveBlockTipCard = ({
+  quantum,
+  ...props
+}: Omit<ComponentProps<typeof BlockTipCard>, 'time'> & { quantum: number }) => {
+  const time = useQuantizedTime(usePlayheadStore(), quantum);
+  return <BlockTipCard {...props} time={time} />;
+};
 
 // A coordinated attack's line in Active Effects: what it dealt so far and
 // its next hit (null: none yet).
@@ -413,12 +422,12 @@ const coordinatedText = (
           : ''
       }`;
 
-// An Active Effects row: drawn again only when what it shows changes (the
-// playhead moving, it being hovered on the chart, leaving), not when
-// another row does.
+// An Active Effects row: drawn again only when what it shows changes (it
+// joining or being renewed, hovered on the chart, leaving), not when
+// another row does, nor as the playhead moves: its meter and tip read it.
 const EffectRow = memo(function EffectRow({
   chip,
-  time,
+  quantum,
   giver,
   leaving,
   hovered,
@@ -429,7 +438,8 @@ const EffectRow = memo(function EffectRow({
   healedName,
 }: {
   chip: BlockChip;
-  time: number;
+  // How often its meter and tip follow the playhead (s).
+  quantum: number;
   giver: TimelineMember | undefined;
   leaving: boolean;
   hovered: boolean;
@@ -500,7 +510,7 @@ const EffectRow = memo(function EffectRow({
           </span>
         )}
         <span className='mt-1 flex justify-end'>
-          <BlockMeter chip={chip} time={time} barClass={giverBar} />
+          <BlockMeter chip={chip} quantum={quantum} barClass={giverBar} />
         </span>
       </span>
     </PulseRow>
@@ -518,9 +528,9 @@ const EffectRow = memo(function EffectRow({
         <Tooltip>
           <TooltipTrigger asChild>{row}</TooltipTrigger>
           <TooltipContent side='left' variant='card'>
-            <BlockTipCard
+            <LiveBlockTipCard
               chip={chip}
-              time={time}
+              quantum={quantum}
               owner={giver ?? null}
               holderName={holderName}
               healedName={healedName}
@@ -755,6 +765,7 @@ const EventPanel = ({
   members,
   actionsById,
   time,
+  playing = false,
   builds,
   collapsed,
   onToggle,
@@ -1456,7 +1467,9 @@ const EventPanel = ({
                             <EffectRow
                               key={chip.key}
                               chip={chip}
-                              time={time}
+                              quantum={
+                                playing ? PLAYING_QUANTUM : PANEL_QUANTUM
+                              }
                               giver={giver}
                               leaving={exiting.has(chip.key)}
                               hovered={chip.key === hoveredChip}

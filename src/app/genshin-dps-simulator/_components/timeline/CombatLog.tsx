@@ -587,16 +587,21 @@ const CombatLog = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allRows, tab, words]
   );
-  const counts = useMemo(
+  // How many rows each tab keeps: the same object while the numbers stay
+  // (hits landing change a row, not the counts), so the filters are not
+  // drawn again.
+  const countList = useMemo(
     () =>
-      Object.fromEntries(
-        TABS.map(({ id }) => [
-          id,
-          allRows.filter((row) => matches(row, id)).length,
-        ])
-      ),
+      TABS.map(({ id }) => allRows.filter((row) => matches(row, id)).length),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allRows, words]
+  );
+  const countsKey = countList.join(',');
+  const counts = useMemo(
+    () =>
+      Object.fromEntries(TABS.map(({ id }, index) => [id, countList[index]])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [countsKey]
   );
   // The rows drawn: a row is redrawn only when it changes (a new one, an
   // action's hits landing, the newest one).

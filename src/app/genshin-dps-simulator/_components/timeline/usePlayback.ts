@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { createValueStore, PlayheadStore } from './playhead';
 import { FRAMES_PER_SECOND } from '../../_lib/frames';
 
 // A run, replayed: the cursor's time, played in real time × speed, and
 // stepped from one moment to the next (an action or a block starting).
+// The time is a store (`playhead`), not state: a frame of playback writes
+// it without redrawing the page, and each reader takes what it needs.
 const usePlayback = (duration: number, stepTimes: number[]) => {
-  const [time, setTime] = useState(0);
+  const [playhead] = useState(() => createValueStore(0));
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
@@ -19,52 +22,50 @@ const usePlayback = (duration: number, stepTimes: number[]) => {
     const tick = (now: number) => {
       const elapsed = last.current === null ? 0 : (now - last.current) / 1000;
       last.current = now;
-      setTime((current) => {
-        const next = current + elapsed * speed;
-        if (next >= duration) {
-          setPlaying(false);
-          return duration;
-        }
-        return next;
-      });
+      const next = playhead.get() + elapsed * speed;
+      if (next >= duration) {
+        playhead.set(duration);
+        setPlaying(false);
+        return;
+      }
+      playhead.set(next);
       handle = requestAnimationFrame(tick);
     };
     handle = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(handle);
-  }, [playing, speed, duration]);
+  }, [playhead, playing, speed, duration]);
 
   const togglePlay = useCallback(() => {
-    setTime((current) => (current >= duration ? 0 : current));
+    if (playhead.get() >= duration) {
+      playhead.set(0);
+    }
     setPlaying((value) => !value);
-  }, [duration]);
+  }, [playhead, duration]);
 
   const stepTo = useCallback(
     (direction: 1 | -1) => {
       setPlaying(false);
       const epsilon = 1e-6;
-      setTime((current) => {
-        const next =
-          direction === 1
-            ? stepTimes.find((entry) => entry > current + epsilon)
-            : [...stepTimes]
-                .reverse()
-                .find((entry) => entry < current - epsilon);
-        return next ?? (direction === 1 ? duration : 0);
-      });
+      const current = playhead.get();
+      const next =
+        direction === 1
+          ? stepTimes.find((entry) => entry > current + epsilon)
+          : [...stepTimes].reverse().find((entry) => entry < current - epsilon);
+      playhead.set(next ?? (direction === 1 ? duration : 0));
     },
-    [stepTimes, duration]
+    [playhead, stepTimes, duration]
   );
 
   // Moving the cursor by hand stops playback.
   const seek = useCallback(
     (value: number) => {
       setPlaying(false);
-      setTime(Math.min(duration, Math.max(0, value)));
+      playhead.set(Math.min(duration, Math.max(0, value)));
     },
-    [duration]
+    [playhead, duration]
   );
 
-  return { time, playing, speed, setSpeed, togglePlay, stepTo, seek };
+  return { playhead, playing, speed, setSpeed, togglePlay, stepTo, seek };
 };
 
 export default usePlayback;
@@ -138,9 +139,10 @@ export const playerKeyOf = (event: {
 };
 
 // The player's keys on the whole page (see playerKeyOf). The latest
-// callbacks and time are read when a key comes, so it listens once.
+// callbacks and the playhead's time are read when a key comes, so it
+// listens once.
 export const usePlayerShortcuts = (player: {
-  time: number;
+  playhead: PlayheadStore;
   duration: number;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
@@ -165,11 +167,12 @@ export const usePlayerShortcuts = (player: {
         return;
       }
       event.preventDefault();
-      const { time, duration, onTogglePlay, onSeek, onZoom } = latest.current;
+      const { playhead, duration, onTogglePlay, onSeek, onZoom } =
+        latest.current;
       if (action.kind === 'toggle') {
         onTogglePlay();
       } else if (action.kind === 'step') {
-        onSeek(time + action.seconds);
+        onSeek(playhead.get() + action.seconds);
       } else if (action.kind === 'start') {
         onSeek(0);
       } else if (action.kind === 'end') {

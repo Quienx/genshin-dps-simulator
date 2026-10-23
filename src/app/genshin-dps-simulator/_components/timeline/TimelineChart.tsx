@@ -31,6 +31,13 @@ import { DisclosureButton } from '@/components/ui/disclosure';
 import { MemberColor } from './memberColors';
 import { LABEL_WIDTH, useLabelWidth } from './panelLayout';
 import {
+  createValueStore,
+  PlayheadStore,
+  useStoreEffect,
+  useStoreValue,
+  ValueStore,
+} from './playhead';
+import {
   currentPointerX,
   memberRowAtPointer,
   payloadOf,
@@ -132,7 +139,8 @@ type TimelineChartProps = {
   actions: ActionGroup[];
   members: TimelineMember[];
   actionsById: Map<string, RotationAction>;
-  time: number;
+  // The playhead's time: only the playhead's marks redraw as it moves.
+  playhead: PlayheadStore;
   ruler: Ruler;
   pxPerSecond: number;
   onSeek: (time: number) => void;
@@ -177,6 +185,71 @@ type TimelineChartProps = {
 const tickLabel = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)}s`;
 const playheadLabel = (value: number) => `${value.toFixed(3)}s`;
+
+// The playhead's head, on the ruler (it stays there while the tracks
+// scroll), under the labels' corner: centered on the line, but never
+// under the labels column (at the start it sits at the tracks' left
+// edge). It reads the playhead and the view itself, so it is the only
+// part of the chart redrawn on each frame of a playback.
+const PlayheadHead = memo(function PlayheadHead({
+  playhead,
+  scroll,
+  ruler,
+  labelPx,
+}: {
+  playhead: PlayheadStore;
+  scroll: ValueStore<number>;
+  ruler: Ruler;
+  labelPx: number;
+}) {
+  const time = useStoreValue(playhead);
+  const left = useStoreValue(scroll);
+  const headX = ruler.toX(time);
+  if (headX < left) {
+    return null;
+  }
+  const atStart = headX - left < HEAD_HALF_PX;
+  return (
+    <div className='pointer-events-none sticky top-0 z-[35] h-0'>
+      {/* No border: the arrow under it sits at its bottom. */}
+      <Badge
+        size='xs'
+        className={cn(
+          'absolute top-0 border-0 bg-brand-500 font-mono shadow',
+          !atStart && '-translate-x-1/2'
+        )}
+        style={{ left: labelPx + (atStart ? left : headX) }}
+      >
+        {playheadLabel(time)}
+      </Badge>
+      <span
+        className='absolute top-[11px] size-0 -translate-x-1/2 border-x-[4px] border-t-[5px] border-x-transparent border-t-brand-500'
+        style={{ left: labelPx + headX }}
+      />
+    </div>
+  );
+});
+
+// The playhead's line through every track.
+const PlayheadLine = memo(function PlayheadLine({
+  playhead,
+  ruler,
+  labelPx,
+}: {
+  playhead: PlayheadStore;
+  ruler: Ruler;
+  labelPx: number;
+}) {
+  const time = useStoreValue(playhead);
+  return (
+    <span
+      aria-hidden
+      data-testid='timeline-cursor'
+      className='pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-brand-400 shadow-[0_0_6px_var(--color-brand-400)]'
+      style={{ left: labelPx + ruler.toX(time) }}
+    />
+  );
+});
 
 const seconds = (value: number) =>
   `${formatNumber(Math.round(value * 100) / 100)} s`;
@@ -367,8 +440,7 @@ type ActionBlockProps = {
 
 // An action on the chart. In edit mode it drags (dnd-kit): to move its
 // block, or onto the trash; the chart stays in place under it. Out of it,
-// a plain block: it does not follow the drag context, which changes on
-// every frame of a playback.
+// a plain block, with no drag hooks to run.
 const DraggableAction = (props: ActionBlockProps) =>
   props.editing ? <EditableAction {...props} /> : <ShownAction {...props} />;
 
@@ -1648,7 +1720,7 @@ const TimelineChart = ({
   actions,
   members,
   actionsById,
-  time,
+  playhead,
   ruler,
   pxPerSecond,
   onSeek,
@@ -1720,25 +1792,36 @@ const TimelineChart = ({
   );
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The view's width (px), kept from its observer: following the playhead
+  // reads it without asking the browser for a layout.
+  const viewWidth = useRef(0);
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) {
       return undefined;
     }
-    const observer = new ResizeObserver(([entry]) =>
-      onTrackWidthChange(entry.contentRect.width - labelPx)
-    );
+    const observer = new ResizeObserver(([entry]) => {
+      viewWidth.current = entry.contentRect.width;
+      onTrackWidthChange(entry.contentRect.width - labelPx);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, [onTrackWidthChange, labelPx]);
 
   // Where a point of the tracks is on screen, from the tracks' left edge.
+  // A gesture keeps the view's edge from its start (`gestureLeft`), so a
+  // scrub or a pan asks the browser for no layout on each move.
+  const gestureLeft = useRef<number | null>(null);
   const viewX = (clientX: number) =>
-    clientX - (scrollRef.current?.getBoundingClientRect().left ?? 0) - labelPx;
+    clientX -
+    (gestureLeft.current ??
+      scrollRef.current?.getBoundingClientRect().left ??
+      0) -
+    labelPx;
   // The pointer's x over the tracks (null: not over them), for pastes.
   const hoverClientX = useRef<number | null>(null);
   const timeAtClient = (clientX: number) =>
-    ruler.toTime(viewX(clientX) + (scrollRef.current?.scrollLeft ?? 0));
+    ruler.toTime(viewX(clientX) + scroll.get());
 
   // A zoom keeps one moment where it was on screen: the one under the
   // pointer (wheel), else the playhead. Any other new ruler (a new run, a
@@ -1746,8 +1829,6 @@ const TimelineChart = ({
   const anchor = useRef<{ time: number; offset: number } | null>(null);
   const previousRuler = useRef(ruler);
   const previousScale = useRef(pxPerSecond);
-  const timeRef = useRef(time);
-  timeRef.current = time;
   useLayoutEffect(() => {
     const element = scrollRef.current;
     const previous = previousRuler.current;
@@ -1759,26 +1840,49 @@ const TimelineChart = ({
       return;
     }
     const kept = anchor.current ?? {
-      time: timeRef.current,
-      offset: previous.toX(timeRef.current) - element.scrollLeft,
+      time: playhead.get(),
+      offset: previous.toX(playhead.get()) - element.scrollLeft,
     };
     anchor.current = null;
     element.scrollLeft = Math.max(0, ruler.toX(kept.time) - kept.offset);
-  }, [ruler, pxPerSecond]);
+  }, [ruler, pxPerSecond, playhead]);
+
+  // Where the view is (its scrollLeft): the playhead's marks and the names
+  // column's edge follow it, each on its own, so a scroll redraws only them.
+  const [scroll] = useState(() => createValueStore(0));
+  const measure = () => {
+    const element = scrollRef.current;
+    if (element) {
+      scroll.set(element.scrollLeft);
+    }
+  };
+  useLayoutEffect(measure, [ruler, labelPx, scroll]);
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // While the playhead moves, the view follows it smoothly: once it nears
   // an edge, the view moves with it, so it stays there (no page jumps). A
   // far jump (a step, a log row) scrolls there animated. Dragging (the
-  // tracks or the playhead) leaves the view to the gesture.
-  useEffect(() => {
+  // tracks or the playhead) leaves the view to the gesture. It runs as
+  // the playhead moves, outside React's render, and reads no layout: the
+  // view's width and scroll are kept (viewWidth, scroll).
+  useStoreEffect(playhead, (time) => {
     const element = scrollRef.current;
     if (!element || gesture.current) {
       return;
     }
     const x = ruler.toX(time);
-    const visible = element.clientWidth - labelPx;
+    const visible = viewWidth.current - labelPx;
     const margin = Math.min(FOLLOW_MARGIN_PX, visible * 0.2);
-    const left = element.scrollLeft;
+    const left = scroll.get();
     const target =
       x > left + visible - margin
         ? x - (visible - margin)
@@ -1786,7 +1890,7 @@ const TimelineChart = ({
         ? x - margin
         : left;
     const clamped = Math.min(
-      element.scrollWidth - element.clientWidth,
+      Math.max(0, labelPx + trackWidth - viewWidth.current),
       Math.max(0, target)
     );
     if (Math.abs(clamped - left) < 0.5) {
@@ -1796,9 +1900,9 @@ const TimelineChart = ({
       element.scrollTo({ left: clamped, behavior: 'smooth' });
     } else {
       element.scrollLeft = clamped;
+      scroll.set(clamped);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time]);
+  });
 
   // The wheel: scrolls (Shift: pans), or zooms with Ctrl/Alt/⌘ (a pinch
   // is Ctrl + wheel).
@@ -1837,26 +1941,6 @@ const TimelineChart = ({
     element.addEventListener('wheel', handleWheel, { passive: false });
     return () => element.removeEventListener('wheel', handleWheel);
   }, [labelPx]);
-
-  // Where the view is: the playhead's label and the names column's edge
-  // follow it.
-  const [scroll, setScroll] = useState({ left: 0 });
-  const measure = () => {
-    const element = scrollRef.current;
-    if (element) {
-      setScroll({ left: element.scrollLeft });
-    }
-  };
-  useLayoutEffect(measure, [ruler, labelPx]);
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (!element) {
-      return undefined;
-    }
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
 
   const gesture = useRef<Gesture | null>(null);
   const [panning, setPanning] = useState(false);
@@ -1960,6 +2044,20 @@ const TimelineChart = ({
   const edgeFrame = useRef(0);
   const seekRef = useRef(onSeek);
   seekRef.current = onSeek;
+  // Pans the view to `left` (kept within the tracks), and keeps where it
+  // is (`scroll`) without reading it back from the browser.
+  const panTo = (left: number) => {
+    const element = scrollRef.current;
+    if (!element) {
+      return;
+    }
+    const next = Math.min(
+      Math.max(0, labelPx + trackWidth - viewWidth.current),
+      Math.max(0, left)
+    );
+    element.scrollLeft = next;
+    scroll.set(next);
+  };
   const panAtEdges = () => {
     const element = scrollRef.current;
     const mode = gesture.current?.mode;
@@ -1967,7 +2065,7 @@ const TimelineChart = ({
       return;
     }
     const x = viewX(pointerX.current);
-    const visible = element.clientWidth - labelPx;
+    const visible = viewWidth.current - labelPx;
     const into =
       x > visible - EDGE_PX
         ? (x - (visible - EDGE_PX)) / EDGE_PX
@@ -1975,8 +2073,10 @@ const TimelineChart = ({
         ? -(EDGE_PX - x) / EDGE_PX
         : 0;
     if (into !== 0) {
-      element.scrollLeft +=
-        Math.sign(into) * Math.min(1, Math.abs(into)) ** 2 * EDGE_SPEED_PX;
+      panTo(
+        scroll.get() +
+          Math.sign(into) * Math.min(1, Math.abs(into)) ** 2 * EDGE_SPEED_PX
+      );
       if (mode === 'marquee') {
         updateMarquee();
       } else {
@@ -2024,6 +2124,8 @@ const TimelineChart = ({
     if (current?.mode === 'pan' && !current.moved) {
       onSeek(blockStartOf(current.blockTip) ?? timeAtClient(clientX));
     }
+    // Measured again from now on (the layout may change between gestures).
+    gestureLeft.current = null;
   };
 
   // Edit mode (dnd-kit): the tracks take drops; while a drag is over them,
@@ -2113,10 +2215,33 @@ const TimelineChart = ({
     },
   });
 
-  // The playhead's label: centered on the line, but never under the
-  // labels column (at the start it sits at the tracks' left edge).
-  const headX = ruler.toX(time);
-  const headAtStart = headX - scroll.left < HEAD_HALF_PX;
+  // Where particles are caught (their Energy lands there), one faint line
+  // each, in their element's color: built once per run and zoom.
+  const particleLines = useMemo(
+    () =>
+      particleArrivals(view).map((arrival) => (
+        <span
+          key={arrival.key}
+          aria-hidden
+          data-testid='timeline-particle-line'
+          className={cn(
+            'pointer-events-none absolute inset-y-0 z-[5] w-0 -translate-x-1/2 border-l border-dashed',
+            PARTICLE_LINES[arrival.element] ?? PARTICLE_LINES.clear
+          )}
+          style={{ left: labelPx + ruler.toX(arrival.time) }}
+        />
+      )),
+    [view, ruler, labelPx]
+  );
+
+  // The names column's edge stays at the column as the tracks scroll: it
+  // moves with the view, without redrawing the chart.
+  const resizeHandle = useRef<HTMLDivElement>(null);
+  useStoreEffect(scroll, (left) => {
+    if (resizeHandle.current) {
+      resizeHandle.current.style.left = `${labelPx + left}px`;
+    }
+  });
 
   return (
     <>
@@ -2225,6 +2350,9 @@ const TimelineChart = ({
               ) {
                 return;
               }
+              // The view's edge, once for the whole gesture.
+              gestureLeft.current =
+                scrollRef.current?.getBoundingClientRect().left ?? null;
               const onRuler =
                 event.button === 0 &&
                 (event.target as HTMLElement).closest('[data-ruler]') !== null;
@@ -2256,7 +2384,7 @@ const TimelineChart = ({
               gesture.current = {
                 mode: onRuler ? 'scrub' : 'pan',
                 startX: event.clientX,
-                startScroll: scrollRef.current?.scrollLeft ?? 0,
+                startScroll: scroll.get(),
                 moved: false,
                 blockTip:
                   (event.target as HTMLElement).closest<HTMLElement>(
@@ -2300,12 +2428,13 @@ const TimelineChart = ({
                 current.moved = true;
                 setPanning(true);
               }
-              element.scrollLeft = current.startScroll - delta;
+              panTo(current.startScroll - delta);
             }}
             onPointerUp={(event) => {
               const current = gesture.current;
               if (current?.mode === 'marquee') {
                 gesture.current = null;
+                gestureLeft.current = null;
                 cancelAnimationFrame(edgeFrame.current);
                 setMarquee(null);
                 // Every block the rectangle touches (in the tracks'
@@ -2348,6 +2477,7 @@ const TimelineChart = ({
             onPointerCancel={() => {
               setMarquee(null);
               gesture.current = null;
+              gestureLeft.current = null;
               cancelAnimationFrame(edgeFrame.current);
               setPanning(false);
             }}
@@ -2360,29 +2490,12 @@ const TimelineChart = ({
                 style={marquee}
               />
             )}
-            {/* The playhead's head, on the ruler (it stays there while the
-              tracks scroll), under the labels' corner. */}
-            {headX >= scroll.left && (
-              <div className='pointer-events-none sticky top-0 z-[35] h-0'>
-                {/* No border: the arrow under it sits at its bottom. */}
-                <Badge
-                  size='xs'
-                  className={cn(
-                    'absolute top-0 border-0 bg-brand-500 font-mono shadow',
-                    !headAtStart && '-translate-x-1/2'
-                  )}
-                  style={{
-                    left: labelPx + (headAtStart ? scroll.left : headX),
-                  }}
-                >
-                  {playheadLabel(time)}
-                </Badge>
-                <span
-                  className='absolute top-[11px] size-0 -translate-x-1/2 border-x-[4px] border-t-[5px] border-x-transparent border-t-brand-500'
-                  style={{ left: labelPx + headX }}
-                />
-              </div>
-            )}
+            <PlayheadHead
+              playhead={playhead}
+              scroll={scroll}
+              ruler={ruler}
+              labelPx={labelPx}
+            />
             <TimelineRows
               groups={groups}
               trackWidth={trackWidth}
@@ -2390,20 +2503,7 @@ const TimelineChart = ({
               ruler={ruler}
               labelPx={labelPx}
             />
-            {/* Where particles are caught (their Energy lands there), one
-              faint line each, in their element's color. */}
-            {particleArrivals(view).map((arrival) => (
-              <span
-                key={arrival.key}
-                aria-hidden
-                data-testid='timeline-particle-line'
-                className={cn(
-                  'pointer-events-none absolute inset-y-0 z-[5] w-0 -translate-x-1/2 border-l border-dashed',
-                  PARTICLE_LINES[arrival.element] ?? PARTICLE_LINES.clear
-                )}
-                style={{ left: labelPx + ruler.toX(arrival.time) }}
-              />
-            ))}
+            {particleLines}
             {/* Edit mode: where the block being dragged would go. */}
             {slot !== null && (
               <span
@@ -2441,8 +2541,9 @@ const TimelineChart = ({
               tabIndex={0}
               data-testid='timeline-label-resize'
               title='Drag to resize the names'
+              ref={resizeHandle}
               className='absolute inset-y-0 z-[45] w-2 -translate-x-1/2 cursor-col-resize outline-none hover:bg-brand-500/30 focus-visible:bg-brand-500/40 active:bg-brand-500/50'
-              style={{ left: labelPx + scroll.left }}
+              style={{ left: labelPx + scroll.get() }}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 event.preventDefault();
@@ -2476,13 +2577,7 @@ const TimelineChart = ({
               onClick={(event) => event.stopPropagation()}
             />
 
-            {/* The playhead's line through every track. */}
-            <span
-              aria-hidden
-              data-testid='timeline-cursor'
-              className='pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-brand-400 shadow-[0_0_6px_var(--color-brand-400)]'
-              style={{ left: labelPx + ruler.toX(time) }}
-            />
+            <PlayheadLine playhead={playhead} ruler={ruler} labelPx={labelPx} />
           </div>
         </div>
       </div>

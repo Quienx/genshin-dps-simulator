@@ -34,6 +34,7 @@ import {
 } from './panelLayout';
 import PanelTitle from './PanelTitle';
 import PanelToggle from './PanelToggle';
+import { PlayheadProvider, withPlayheadTime } from './playhead';
 import ResizableSplit from './ResizableSplit';
 import ResultsPanel from './ResultsPanel';
 import { payloadOf } from './rotationDnd';
@@ -137,6 +138,19 @@ const liftOverlay: Modifier = ({ transform }) => ({
   ...transform,
   y: transform.y - 34,
 });
+const OVERLAY_MODIFIERS = [liftOverlay];
+
+// The panels that follow the playhead read it themselves, at their
+// quantum: a frame of playback does not redraw the page around them.
+const LiveCombatLog = withPlayheadTime(CombatLog);
+const LiveEventPanel = withPlayheadTime(EventPanel);
+const LiveResultsPanel = withPlayheadTime(ResultsPanel);
+const LiveEnemyPanel = withPlayheadTime(EnemyPanel);
+
+// A drag starts past 5 px, so a click still picks a block or adds one.
+// One object for every render: new options would make new sensors, and
+// with them a new drag context that redraws every draggable.
+const DRAG_SENSOR_OPTIONS = { activationConstraint: { distance: 5 } };
 
 // A rotation of one's own, and how it plays.
 type OwnSetup = Omit<TeamState, 'members'>;
@@ -1005,7 +1019,20 @@ const CombatTimeline = ({
     return picked.filter((uid) => uids.has(uid));
   }, [picked, edit?.rotation.blocks]);
   const selectedBlock = selection[selection.length - 1] ?? null;
-  const setSelectedBlock = (uid: string | null) => setPicked(uid ? [uid] : []);
+  // Stable, for the memoized edit bar.
+  const setSelectedBlock = useCallback(
+    (uid: string | null) => setPicked(uid ? [uid] : []),
+    []
+  );
+  const clearPicked = useCallback(() => setPicked([]), []);
+  const editActions = useMemo(
+    () => Array.from(actionsById.values()),
+    [actionsById]
+  );
+  const holdLimit = useMemo(
+    () => holdLimitOf(view.actions, selectedBlock),
+    [view.actions, selectedBlock]
+  );
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   // The buff or debuff bar hovered on the chart (lit in the Event panel).
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
@@ -1102,10 +1129,7 @@ const CombatTimeline = ({
     selection.includes(payload.blockUid)
       ? { ...payload, blockUids: selection }
       : payload;
-  // A drag starts past 5 px, so a click still picks a block or adds one.
-  const dragSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const dragSensors = useSensors(useSensor(PointerSensor, DRAG_SENSOR_OPTIONS));
   const draggedAction = !dragging
     ? undefined
     : actionsById.get(
@@ -1146,7 +1170,7 @@ const CombatTimeline = ({
   // Space, the arrows, Home, End, + and − wherever the focus is (not in a
   // field, a dialog or a menu).
   usePlayerShortcuts({
-    time: playback.time,
+    playhead: playback.playhead,
     duration: view.duration,
     onTogglePlay: playback.togglePlay,
     onSeek: playback.seek,
@@ -1180,7 +1204,7 @@ const CombatTimeline = ({
         <PanelTitle section='timeline'>Timeline</PanelTitle>
         <TimelinePlayer
           duration={view.duration}
-          time={playback.time}
+          playhead={playback.playhead}
           playing={playback.playing}
           speed={playback.speed}
           onTogglePlay={playback.togglePlay}
@@ -1247,14 +1271,14 @@ const CombatTimeline = ({
         {!panels.chart && edit && (
           <RotationEditBar
             members={members}
-            actions={Array.from(actionsById.values())}
+            actions={editActions}
             rotation={edit.rotation}
             selected={selectedBlock}
             selection={selection}
-            holdLimit={holdLimitOf(view.actions, selectedBlock)}
+            holdLimit={holdLimit}
             onChange={edit.onChange}
             onSelect={setSelectedBlock}
-            onClearSelection={() => setPicked([])}
+            onClearSelection={clearPicked}
           />
         )}
         {!panels.chart && (
@@ -1264,7 +1288,7 @@ const CombatTimeline = ({
               actions={chartActions}
               members={members}
               actionsById={actionsById}
-              time={playback.time}
+              playhead={playback.playhead}
               ruler={ruler}
               pxPerSecond={pxPerSecond}
               onSeek={playback.seek}
@@ -1312,7 +1336,7 @@ const CombatTimeline = ({
           dropAnimation={null}
           // Above the pointer, so the placeholder in the row (where
           // it will land) stays in sight.
-          modifiers={[liftOverlay]}
+          modifiers={OVERLAY_MODIFIERS}
         >
           {draggedAction && (
             <span className='flex h-7 items-center gap-1 rounded-md border border-brand-400 bg-muted px-1.5 text-2xs text-foreground shadow-lg'>
@@ -1339,11 +1363,11 @@ const CombatTimeline = ({
     </Panel>
   );
   const logPanel = (
-    <CombatLog
+    <LiveCombatLog
       view={view}
       members={members}
       actionsById={actionsById}
-      time={playback.time}
+      playhead={playback.playhead}
       playing={playback.playing}
       onSeek={playback.seek}
       collapsed={panels.log}
@@ -1351,12 +1375,12 @@ const CombatTimeline = ({
     />
   );
   const eventPanel = (
-    <EventPanel
+    <LiveEventPanel
       view={view}
       run={run}
       members={members}
       actionsById={actionsById}
-      time={playback.time}
+      playhead={playback.playhead}
       playing={playback.playing}
       builds={builds}
       collapsed={panels.event}
@@ -1367,18 +1391,18 @@ const CombatTimeline = ({
     />
   );
   const resultsPanel = (
-    <ResultsPanel
+    <LiveResultsPanel
       view={view}
       members={members}
-      time={playback.time}
+      playhead={playback.playhead}
       playing={playback.playing}
       change={change}
     />
   );
   const enemyPanel = (
-    <EnemyPanel
+    <LiveEnemyPanel
       view={view}
-      time={playback.time}
+      playhead={playback.playhead}
       playing={playback.playing}
       hp={enemy.hp}
       level={enemy.level}
@@ -1389,120 +1413,125 @@ const CombatTimeline = ({
 
   return (
     // The page always fits the window (no page scroll): each panel scrolls
-    // on its own. Narrow screens stack the panels and scroll.
-    <main
-      data-testid='combat-timeline'
-      className='h-dvh overflow-auto bg-background p-4 text-foreground lg:overflow-hidden'
-    >
-      <div className='flex flex-col gap-4 lg:h-full'>
-        <TimelineHeader
-          members={members}
-          duration={view.duration}
-          results={resultsPanel}
-          onSimulate={onSimulate}
-          simulating={simulating}
-          critMode={critMode}
-          onCritModeChange={onCritModeChange}
-          scenarios={scenarios}
-          scenario={scenario}
-          onScenarioChange={onScenarioChange}
-          onTeamChange={onTeamChange}
-          teamActions={teamActions}
-          onMemberClick={setOpenMember}
-          share={share}
-        />
-        {desktop ? (
-          // Left: the timeline over the log; right: the selected event
-          // over the enemy. Every handle resizes.
-          <ResizableSplit
-            id='columns'
-            orientation='horizontal'
-            className='flex-1'
-            panes={[
-              {
-                id: 'main',
-                minSize: '40%',
-                node: (
-                  <ResizableSplit
-                    id='main'
-                    orientation='vertical'
-                    className='h-full'
-                    panes={[
-                      {
-                        id: 'chart',
-                        node: chartPanel,
-                        collapsed: panels.chart,
-                        // Twice the log, as before resizing.
-                        defaultSize: `${200 / 3}%`,
-                        minSize: '10rem',
-                      },
-                      {
-                        id: 'log',
-                        node: logPanel,
-                        collapsed: panels.log,
-                        minSize: '6rem',
-                      },
-                    ]}
-                  />
-                ),
-              },
-              {
-                id: 'side',
-                // As before resizing: 20rem, 22rem from Tailwind's `xl`.
-                defaultSize: wideScreen ? '22rem' : '20rem',
-                minSize: '18rem',
-                keepPixels: true,
-                node: (
-                  <ResizableSplit
-                    id='side'
-                    orientation='vertical'
-                    className='h-full'
-                    panes={[
-                      {
-                        id: 'event',
-                        node: eventPanel,
-                        collapsed: panels.event,
-                        minSize: '8rem',
-                      },
-                      {
-                        id: 'enemy',
-                        node: enemyPanel,
-                        collapsed: panels.enemy,
-                        // Its card's own height; the event takes the rest.
-                        defaultSize: 'content',
-                        keepPixels: true,
-                        minSize: '5rem',
-                      },
-                    ]}
-                  />
-                ),
-              },
-            ]}
+    // on its own. Narrow screens stack the panels and scroll. The playhead
+    // store is there for readers deep in a panel.
+    <PlayheadProvider value={playback.playhead}>
+      <main
+        data-testid='combat-timeline'
+        className='h-dvh overflow-auto bg-background p-4 text-foreground lg:overflow-hidden'
+      >
+        <div className='flex flex-col gap-4 lg:h-full'>
+          <TimelineHeader
+            members={members}
+            duration={view.duration}
+            results={resultsPanel}
+            onSimulate={onSimulate}
+            simulating={simulating}
+            critMode={critMode}
+            onCritModeChange={onCritModeChange}
+            scenarios={scenarios}
+            scenario={scenario}
+            onScenarioChange={onScenarioChange}
+            onTeamChange={onTeamChange}
+            teamActions={teamActions}
+            onMemberClick={setOpenMember}
+            share={share}
           />
-        ) : (
-          <div className='grid gap-4'>
-            <div className='flex min-w-0 flex-col gap-4'>
-              {chartPanel}
-              <div className={cn('min-h-0', !panels.log && 'h-[40vh]')}>
-                {logPanel}
+          {desktop ? (
+            // Left: the timeline over the log; right: the selected event
+            // over the enemy. Every handle resizes.
+            <ResizableSplit
+              id='columns'
+              orientation='horizontal'
+              className='flex-1'
+              panes={[
+                {
+                  id: 'main',
+                  minSize: '40%',
+                  node: (
+                    <ResizableSplit
+                      id='main'
+                      orientation='vertical'
+                      className='h-full'
+                      panes={[
+                        {
+                          id: 'chart',
+                          node: chartPanel,
+                          collapsed: panels.chart,
+                          // Twice the log, as before resizing.
+                          defaultSize: `${200 / 3}%`,
+                          minSize: '10rem',
+                        },
+                        {
+                          id: 'log',
+                          node: logPanel,
+                          collapsed: panels.log,
+                          minSize: '6rem',
+                        },
+                      ]}
+                    />
+                  ),
+                },
+                {
+                  id: 'side',
+                  // As before resizing: 20rem, 22rem from Tailwind's `xl`.
+                  defaultSize: wideScreen ? '22rem' : '20rem',
+                  minSize: '18rem',
+                  keepPixels: true,
+                  node: (
+                    <ResizableSplit
+                      id='side'
+                      orientation='vertical'
+                      className='h-full'
+                      panes={[
+                        {
+                          id: 'event',
+                          node: eventPanel,
+                          collapsed: panels.event,
+                          minSize: '8rem',
+                        },
+                        {
+                          id: 'enemy',
+                          node: enemyPanel,
+                          collapsed: panels.enemy,
+                          // Its card's own height; the event takes the rest.
+                          defaultSize: 'content',
+                          keepPixels: true,
+                          minSize: '5rem',
+                        },
+                      ]}
+                    />
+                  ),
+                },
+              ]}
+            />
+          ) : (
+            <div className='grid gap-4'>
+              <div className='flex min-w-0 flex-col gap-4'>
+                {chartPanel}
+                <div className={cn('min-h-0', !panels.log && 'h-[40vh]')}>
+                  {logPanel}
+                </div>
+              </div>
+              <div className='flex min-w-0 flex-col gap-4'>
+                <div className={cn('min-h-0', !panels.event && 'h-[70vh]')}>
+                  {eventPanel}
+                </div>
+                {enemyPanel}
               </div>
             </div>
-            <div className='flex min-w-0 flex-col gap-4'>
-              <div className={cn('min-h-0', !panels.event && 'h-[70vh]')}>
-                {eventPanel}
-              </div>
-              {enemyPanel}
-            </div>
-          </div>
-        )}
-      </div>
-      <CharacterSheet
-        key={`${openMember ?? ''}:${version}`}
-        onSave={onSaveBuild}
-        build={builds.find((values) => values.character === openMember) ?? null}
-        onClose={() => setOpenMember(null)}
-      />
-    </main>
+          )}
+        </div>
+        <CharacterSheet
+          key={`${openMember ?? ''}:${version}`}
+          onSave={onSaveBuild}
+          build={
+            builds.find((values) => values.character === openMember) ?? null
+          }
+          onClose={() => setOpenMember(null)}
+        />
+      </main>
+    </PlayheadProvider>
   );
 };
 
